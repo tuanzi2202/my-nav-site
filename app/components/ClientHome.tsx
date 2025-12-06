@@ -67,10 +67,11 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
     noise: false,
     glow: false,
     tilt: false,
-    themeMode: 'slideshow' as ThemeMode, // ✨ 修改点：默认使用轮播模式
+    themeMode: 'slideshow' as ThemeMode,
     bgBlur: 2,
-    cardOpacity: 0.15, // ✨ 修改点：默认更低的不透明度
-    boardOpacity: 0.15 
+    cardOpacity: 0.15,
+    boardOpacity: 0.15,
+    uiBlur: 12 // ✨ 新增：界面磨砂度 (默认 12px)
   })
   
   const [showSettings, setShowSettings] = useState(false)
@@ -94,7 +95,8 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
         themeMode: validMode,
         bgBlur: parsed.bgBlur ?? 2,
         cardOpacity: parsed.cardOpacity ?? 0.15,
-        boardOpacity: parsed.boardOpacity ?? 0.15
+        boardOpacity: parsed.boardOpacity ?? 0.15,
+        uiBlur: parsed.uiBlur ?? 12 // 兼容旧数据
       }))
     }
   }, [])
@@ -190,7 +192,6 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
             className={`absolute inset-0 bg-cover bg-center bg-no-repeat transition-all duration-[3000ms] ease-in-out transform ${index === currentSlide ? 'opacity-100 scale-105' : 'opacity-0 scale-100'}`}
             style={{ backgroundImage: `url(${wp})` }}
           >
-             {/* 动态背景模糊和遮罩 */}
              <div 
                 className="absolute inset-0 transition-all duration-500"
                 style={{ 
@@ -208,7 +209,11 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
       {/* --- 主界面 --- */}
       <div className="relative z-10 flex h-screen">
         {/* 左侧侧边栏 */}
-        <aside className="w-64 border-r border-slate-800/40 bg-slate-900/60 backdrop-blur-xl flex-col hidden md:flex h-full">
+        <aside 
+            className="w-64 border-r border-slate-800/40 bg-slate-900/60 flex-col hidden md:flex h-full transition-all duration-300"
+            // ✨ 侧边栏也加上动态模糊
+            style={{ backdropFilter: `blur(${settings.uiBlur}px)` }}
+        >
           <div className="p-8">
             <h1 className="text-3xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-sky-400 to-indigo-400">MyNav</h1>
             <p className="text-xs text-slate-500 mt-2 font-medium tracking-wide uppercase">Developer Hub</p>
@@ -234,7 +239,6 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
         </aside>
 
         {/* 右侧内容区 */}
-        {/* ✨ 修改点：删除了 md:pt-24，改回 p-6 md:p-10，让内容往上提 */}
         <main className="flex-1 overflow-y-auto custom-scrollbar p-6 md:p-10 relative">
           <header className="md:hidden mb-8 flex justify-between items-center bg-slate-900/80 backdrop-blur p-4 rounded-xl border border-slate-800 sticky top-0 z-50 shadow-lg">
                <h1 className="text-xl font-bold text-white">MyNav</h1>
@@ -257,12 +261,14 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
               </form>
           </div>
 
-          {/* 公告板 (动态不透明度) */}
+          {/* 公告板 (动态样式) */}
           <div 
-            className="mb-12 rounded-2xl border p-5 backdrop-blur-md relative overflow-hidden group transition-all duration-300"
+            className="mb-12 rounded-2xl border p-5 relative overflow-hidden group transition-all duration-300"
             style={{ 
                 backgroundColor: `rgba(99, 102, 241, ${settings.boardOpacity})`,
-                borderColor: `rgba(99, 102, 241, ${Math.min(settings.boardOpacity + 0.1, 0.5)})`
+                borderColor: `rgba(99, 102, 241, ${Math.min(settings.boardOpacity + 0.1, 0.5)})`,
+                // ✨ 动态磨砂感
+                backdropFilter: `blur(${settings.uiBlur}px)`
             }}
           >
               <div className="absolute top-0 left-0 w-1 h-full bg-indigo-500/50 group-hover:bg-indigo-400 transition-colors"></div>
@@ -288,10 +294,12 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
                 rel="noopener noreferrer" 
                 onMouseMove={handleCardMouseMove}
                 onMouseLeave={handleCardMouseLeave}
-                className="group relative backdrop-blur-md border border-white/10 rounded-2xl p-6 hover:border-sky-500/30 hover:shadow-2xl hover:shadow-sky-500/10 transition-all duration-300 flex flex-col h-full overflow-hidden"
+                // ✨ 动态卡片样式 ✨
+                className="group relative border border-white/10 rounded-2xl p-6 hover:border-sky-500/30 hover:shadow-2xl hover:shadow-sky-500/10 transition-all duration-300 flex flex-col h-full overflow-hidden"
                 style={{ 
                     transformStyle: 'preserve-3d',
-                    backgroundColor: `rgba(15, 23, 42, ${settings.cardOpacity})`
+                    backgroundColor: `rgba(15, 23, 42, ${settings.cardOpacity})`,
+                    backdropFilter: `blur(${settings.uiBlur}px)`
                 }}
               >
                 <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
@@ -318,6 +326,7 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
         <svg className="w-6 h-6 group-hover:rotate-90 transition-transform duration-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
       </button>
 
+      {/* --- 设置面板 --- */}
       {showSettings && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200" onClick={() => setShowSettings(false)}>
             <div className="bg-[#0f172a] border border-slate-700 w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
@@ -339,7 +348,6 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
                             </button>
                         </div>
                     )}
-                    
                     {activeTab === 'effects' && (
                         <div className="space-y-6">
                             <div className="space-y-3">
@@ -353,12 +361,9 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
                             <div className="w-full h-px bg-slate-800"></div>
                             <div className="space-y-5">
                                 <div><div className="flex justify-between text-xs mb-2"><span className="text-slate-400">背景模糊度</span><span className="text-sky-400">{settings.bgBlur}px</span></div><input type="range" min="0" max="20" step="1" value={settings.bgBlur} onChange={(e) => updateSetting('bgBlur', parseInt(e.target.value))} className="w-full h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-sky-500" /></div>
-                                <div><div className="flex justify-between text-xs mb-2"><span className="text-slate-400">网站卡片不透明度</span><span className="text-sky-400">{Math.round(settings.cardOpacity * 100)}%</span></div>
-                                {/* ✨ 修改点：min="0" 允许完全透明 */}
-                                <input type="range" min="0" max="1.0" step="0.05" value={settings.cardOpacity} onChange={(e) => updateSetting('cardOpacity', parseFloat(e.target.value))} className="w-full h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-sky-500" /></div>
-                                <div><div className="flex justify-between text-xs mb-2"><span className="text-slate-400">公告板不透明度</span><span className="text-sky-400">{Math.round(settings.boardOpacity * 100)}%</span></div>
-                                {/* ✨ 修改点：min="0" 允许完全透明 */}
-                                <input type="range" min="0" max="1.0" step="0.05" value={settings.boardOpacity} onChange={(e) => updateSetting('boardOpacity', parseFloat(e.target.value))} className="w-full h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-sky-500" /></div>
+                                <div><div className="flex justify-between text-xs mb-2"><span className="text-slate-400">网站卡片不透明度</span><span className="text-sky-400">{Math.round(settings.cardOpacity * 100)}%</span></div><input type="range" min="0" max="1.0" step="0.05" value={settings.cardOpacity} onChange={(e) => updateSetting('cardOpacity', parseFloat(e.target.value))} className="w-full h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-sky-500" /></div>
+                                <div><div className="flex justify-between text-xs mb-2"><span className="text-slate-400">公告板不透明度</span><span className="text-sky-400">{Math.round(settings.boardOpacity * 100)}%</span></div><input type="range" min="0" max="1.0" step="0.05" value={settings.boardOpacity} onChange={(e) => updateSetting('boardOpacity', parseFloat(e.target.value))} className="w-full h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-sky-500" /></div>
+                                <div><div className="flex justify-between text-xs mb-2"><span className="text-slate-400">界面磨砂感 (Blur)</span><span className="text-sky-400">{settings.uiBlur}px</span></div><input type="range" min="0" max="40" step="2" value={settings.uiBlur} onChange={(e) => updateSetting('uiBlur', parseInt(e.target.value))} className="w-full h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-sky-500" /></div>
                             </div>
                         </div>
                     )}
