@@ -197,15 +197,11 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
             className={`absolute inset-0 bg-cover bg-center bg-no-repeat transition-all duration-[3000ms] ease-in-out transform ${index === currentSlide ? 'opacity-100 scale-105' : 'opacity-0 scale-100'}`}
             style={{ backgroundImage: `url(${wp})` }}
           >
-             {/*
-                 👇👇👇 重点修改这里 👇👇👇
-                 旧代码: <div className={`absolute inset-0 backdrop-blur-[2px] ${timeSlotName === '深夜' ? 'bg-[#0f172a]/80' : 'bg-[#0f172a]/60'}`}></div>
+             {/* 👇👇👇 修改这里 👇👇👇 
+                 1. backdrop-blur-[2px]: 加回一点点模糊，消除噪点感，更柔和
+                 2. bg-black/20 & /40: 稍微加深一点点遮罩，保证文字对比度
              */}
-
-             {/* ✨ 新代码: 移除了 backdrop-blur (模糊)，并将遮罩颜色改为极淡的黑色 ✨ */}
-             {/* 深夜稍微暗一点点 (30%黑)，白天几乎透明 (10%黑) */}
-             <div className={`absolute inset-0 ${timeSlotName === '深夜' ? 'bg-black/30' : 'bg-black/10'}`}></div>
-
+             <div className={`absolute inset-0 backdrop-blur-[2px] ${timeSlotName === '深夜' ? 'bg-black/40' : 'bg-black/20'}`}></div>
           </div>
         ))}
       </div>
@@ -274,7 +270,7 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
                 rel="noopener noreferrer" 
                 onMouseMove={handleCardMouseMove}
                 onMouseLeave={handleCardMouseLeave}
-                className="group relative bg-slate-900/30 backdrop-blur-md border border-slate-800/50 rounded-2xl p-6 hover:border-sky-500/30 hover:shadow-2xl hover:shadow-sky-500/10 transition-all duration-300 flex flex-col h-full overflow-hidden"
+                className="group relative bg-slate-900/20 backdrop-blur-md border border-white/10 rounded-2xl p-6 hover:border-sky-500/30 hover:shadow-2xl hover:shadow-sky-500/10 transition-all duration-300 flex flex-col h-full overflow-hidden"
                 style={{ transformStyle: 'preserve-3d' }}
               >
                 <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
