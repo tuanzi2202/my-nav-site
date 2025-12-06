@@ -28,7 +28,7 @@ type ClientHomeProps = {
 }
 
 type ThemeMode = 'default' | 'slideshow'
-type TransitionEffect = 'fade' | 'zoom' | 'pan' // ✨ 新增：动画类型定义
+type TransitionEffect = 'fade' | 'zoom' | 'pan'
 
 // --- 壁纸配置 ---
 const WALLPAPER_CONFIG = {
@@ -69,11 +69,12 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
     glow: false,
     tilt: false,
     themeMode: 'slideshow' as ThemeMode,
-    bgBlur: 2,
-    cardOpacity: 0.15,
-    boardOpacity: 0.15,
-    uiBlur: 12,
-    slideshowEffect: 'zoom' as TransitionEffect // ✨ 新增：默认使用呼吸缩放效果
+    // ✨ 修改点：应用新的默认值
+    bgBlur: 0,          // 背景模糊度 0px
+    cardOpacity: 0.1,   // 卡片不透明度 10%
+    boardOpacity: 0.1,  // 公告板不透明度 10%
+    uiBlur: 2,          // 界面磨砂感 2px
+    slideshowEffect: 'fade' as TransitionEffect // 默认柔和淡入
   })
   
   const [showSettings, setShowSettings] = useState(false)
@@ -95,11 +96,12 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
         ...prev, 
         ...parsed, 
         themeMode: validMode,
-        bgBlur: parsed.bgBlur ?? 2,
-        cardOpacity: parsed.cardOpacity ?? 0.15,
-        boardOpacity: parsed.boardOpacity ?? 0.15,
-        uiBlur: parsed.uiBlur ?? 12,
-        slideshowEffect: parsed.slideshowEffect ?? 'zoom' // 兼容旧数据
+        // ✨ 修改点：读取存档时的 fallback 也要同步更新
+        bgBlur: parsed.bgBlur ?? 0,
+        cardOpacity: parsed.cardOpacity ?? 0.1,
+        boardOpacity: parsed.boardOpacity ?? 0.1,
+        uiBlur: parsed.uiBlur ?? 2,
+        slideshowEffect: parsed.slideshowEffect ?? 'fade'
       }))
     }
   }, [])
@@ -170,28 +172,20 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
     router.push(`/?query=${query}${categoryParam}`)
   }
 
-  // ✨ 辅助函数：根据选择的特效生成 CSS 类名
+  // 动态特效 CSS
   const getSlideStyle = (index: number) => {
     const isActive = index === currentSlide
-    const baseClass = "absolute inset-0 bg-cover bg-center bg-no-repeat transition-all duration-[3000ms] ease-in-out" // 3秒慢速过渡
-    
+    const baseClass = "absolute inset-0 bg-cover bg-center bg-no-repeat transition-all duration-[3000ms] ease-in-out"
     let transformClass = ""
-    
-    // 基础状态：不透明度
     const opacityClass = isActive ? "opacity-100" : "opacity-0"
 
-    // 动态效果逻辑
     if (settings.slideshowEffect === 'zoom') {
-        // 呼吸缩放：激活时放大到 110%，未激活时恢复 100%
         transformClass = isActive ? "scale-110" : "scale-100"
     } else if (settings.slideshowEffect === 'pan') {
-        // 全景运镜：激活时归位，未激活时向右偏移
         transformClass = isActive ? "translate-x-0 scale-105" : "translate-x-[5%] scale-105"
     } else {
-        // 默认淡入淡出：无位移缩放
         transformClass = "scale-100"
     }
-
     return `${baseClass} ${opacityClass} ${transformClass}`
   }
 
@@ -217,7 +211,7 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
         {currentWallpaperSet.map((wp, index) => (
           <div 
             key={wp}
-            className={getSlideStyle(index)} // ✨ 应用动态生成的样式
+            className={getSlideStyle(index)}
             style={{ backgroundImage: `url(${wp})` }}
           >
              <div 
@@ -370,7 +364,6 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
                                 <div className="text-left"><div className="font-medium">智能轮播</div><div className="text-[10px] opacity-70">根据时间段自动切换风景</div></div>
                             </button>
                             
-                            {/* ✨✨✨ 新增：轮播切换动画选择器 (仅在轮播模式下显示) ✨✨✨ */}
                             {settings.themeMode === 'slideshow' && (
                                 <div className="mt-4 pt-4 border-t border-slate-800">
                                     <div className="text-xs text-slate-400 mb-3">切换动画效果：</div>
