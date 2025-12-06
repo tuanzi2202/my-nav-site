@@ -9,9 +9,9 @@ const prisma = new PrismaClient()
 
 export default async function AdminPage() {
   // ---------------------------------------------------------
-  // 👇 修复点：显式定义类型为 any[]，解决 TypeScript 报错
+  // 👇 关键修复：必须加上 ": any[]"
   // ---------------------------------------------------------
-  let links: any[] = []
+  let links: any[] = [] 
   let errorMsg = ''
 
   try {
