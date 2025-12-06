@@ -3,7 +3,6 @@
 
 import { PrismaClient } from '@prisma/client'
 import { revalidatePath } from 'next/cache'
-import { redirect } from 'next/navigation' // 引入重定向
 
 const prisma = new PrismaClient()
 
@@ -62,9 +61,7 @@ export async function updateLink(formData: FormData) {
     },
   })
 
+  // 只刷新数据，不跳转页面
   revalidatePath('/admin')
   revalidatePath('/')
-  
-  // 更新完成后，重定向回纯净的 admin 页面（去除 ?editId=...）
-  redirect('/admin')
 }
