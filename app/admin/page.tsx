@@ -2,13 +2,16 @@
 import { PrismaClient } from '@prisma/client'
 import { addLink, deleteLink } from '../actions'
 
-// 1. 强制动态渲染 (防止缓存导致数据不刷新)
+// 1. 强制动态渲染
 export const dynamic = 'force-dynamic'
 
 const prisma = new PrismaClient()
 
 export default async function AdminPage() {
-  let links = []
+  // ---------------------------------------------------------
+  // 👇 修复点：显式定义类型为 any[]，解决 TypeScript 报错
+  // ---------------------------------------------------------
+  let links: any[] = []
   let errorMsg = ''
 
   try {
@@ -18,7 +21,6 @@ export default async function AdminPage() {
     })
   } catch (e: any) {
     console.error("Admin DB Error:", e)
-    // 捕获错误，防止页面直接崩溃
     errorMsg = "连接数据库失败，请检查网络或环境变量。"
   }
 
@@ -42,7 +44,7 @@ export default async function AdminPage() {
           </a>
         </header>
 
-        {/* 错误提示条 (只有报错时才会显示) */}
+        {/* 错误提示条 */}
         {errorMsg && (
           <div className="mb-8 p-4 bg-red-900/20 border border-red-800 rounded-xl text-red-300 text-sm flex items-center gap-3">
             <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
