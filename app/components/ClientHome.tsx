@@ -1,7 +1,7 @@
 // app/components/ClientHome.tsx
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 
 // 类型定义
@@ -27,7 +27,6 @@ type ClientHomeProps = {
   searchQuery: string
 }
 
-// 工具函数
 function formatUrl(url: string) { if (!url) return '#'; const cleanUrl = url.trim(); if (!cleanUrl.startsWith('http')) return `https://${cleanUrl}`; return cleanUrl; }
 function getFaviconUrl(rawUrl: string) { try { const hostname = new URL(formatUrl(rawUrl)).hostname; return `https://www.google.com/s2/favicons?domain=${hostname}&sz=128`; } catch { return "https://www.google.com/s2/favicons?domain=google.com&sz=128"; } }
 
@@ -35,11 +34,11 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
   const router = useRouter()
   
   // --- ✨ 设置状态管理 ---
+  // 修改：移除 aurora，其他默认设为 false
   const [settings, setSettings] = useState({
-    aurora: true,   // 极光背景
-    noise: true,    // 噪点质感
-    glow: true,     // 鼠标光晕
-    tilt: true      // 卡片3D视差
+    noise: false,    // 默认关闭
+    glow: false,     // 默认关闭
+    tilt: false      // 默认关闭
   })
   const [showSettings, setShowSettings] = useState(false)
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 })
@@ -48,7 +47,10 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
   useEffect(() => {
     const saved = localStorage.getItem('nav_settings')
     if (saved) {
-      setSettings(JSON.parse(saved))
+      // 兼容旧数据：如果旧数据里有 aurora，通过解构赋值自动过滤掉
+      const { aurora, ...rest } = JSON.parse(saved)
+      // 如果本地没有存储（第一次访问），保持默认 false；如果有存储，使用存储的值
+      setSettings(prev => ({ ...prev, ...rest }))
     }
   }, [])
 
@@ -88,7 +90,6 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
     const centerX = rect.width / 2
     const centerY = rect.height / 2
     
-    // 计算旋转角度 (限制在 +/- 10deg)
     const rotateX = ((y - centerY) / centerY) * -5
     const rotateY = ((x - centerX) / centerX) * 5
 
@@ -101,40 +102,22 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
 
   return (
     <div className="relative min-h-screen bg-[#0f172a] text-slate-300 font-sans selection:bg-sky-500/30 overflow-hidden">
-      {/* 注入滚动条 CSS */}
+      {/* 注入滚动条 CSS (移除了 aurora 动画) */}
       <style jsx global>{`
         .custom-scrollbar::-webkit-scrollbar { width: 5px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background-color: rgba(71, 85, 105, 0.4); border-radius: 20px; }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover { background-color: rgba(71, 85, 105, 0.8); }
-        
-        /* 极光动画 */
-        @keyframes aurora {
-          0% { background-position: 50% 50%, 50% 50%; }
-          50% { background-position: 100% 0%, 0% 100%; }
-          100% { background-position: 50% 50%, 50% 50%; }
-        }
-        .animate-aurora {
-          animation: aurora 20s linear infinite;
-        }
       `}</style>
 
-      {/* --- ✨ 特效层 --- */}
+      {/* --- ✨ 特效层 (移除了 aurora) --- */}
       
-      {/* 1. 极光背景 */}
-      {settings.aurora && (
-        <div className="fixed inset-0 z-0 pointer-events-none opacity-40">
-          <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20"></div>
-          <div className="absolute top-[-50%] left-[-50%] w-[200%] h-[200%] animate-aurora bg-[radial-gradient(circle_at_center,rgba(56,189,248,0.15)_0,rgba(56,189,248,0)_50%),radial-gradient(circle_at_center,rgba(129,140,248,0.15)_0,rgba(129,140,248,0)_50%)] mix-blend-screen"></div>
-        </div>
-      )}
-
-      {/* 2. 噪点纹理 */}
+      {/* 1. 噪点纹理 */}
       {settings.noise && (
         <div className="fixed inset-0 z-[1] pointer-events-none opacity-[0.03] bg-[url('https://grainy-gradients.vercel.app/noise.svg')]"></div>
       )}
 
-      {/* 3. 鼠标光晕 (随鼠标移动) */}
+      {/* 2. 鼠标光晕 (随鼠标移动) */}
       {settings.glow && (
         <div 
           className="fixed z-0 pointer-events-none w-[600px] h-[600px] bg-sky-500/10 rounded-full blur-[80px] transition-transform duration-75 will-change-transform"
@@ -145,7 +128,7 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
         />
       )}
 
-      {/* --- 主界面 (z-index 提高以覆盖特效) --- */}
+      {/* --- 主界面 --- */}
       <div className="relative z-10 flex h-screen">
         
         {/* 左侧侧边栏 */}
@@ -211,9 +194,7 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
                 className="group relative bg-slate-900/30 backdrop-blur-md border border-slate-800/50 rounded-2xl p-6 hover:border-sky-500/30 hover:shadow-2xl hover:shadow-sky-500/10 transition-all duration-300 flex flex-col h-full overflow-hidden"
                 style={{ transformStyle: 'preserve-3d' }}
               >
-                {/* 卡片高光层 */}
                 <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
-                
                 <div className="absolute top-0 right-0 w-20 h-20 bg-sky-500/10 blur-[40px] rounded-full -mr-10 -mt-10 pointer-events-none group-hover:bg-sky-500/20 transition-all duration-500"></div>
                 
                 <div className="flex items-start justify-between mb-5 relative z-10 translate-z-10" style={{ transform: 'translateZ(20px)' }}>
@@ -225,7 +206,6 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
                 <h3 className="text-lg font-bold text-slate-200 group-hover:text-sky-400 transition-colors line-clamp-1 mb-2 tracking-tight translate-z-10" style={{ transform: 'translateZ(10px)' }}>{link.title}</h3>
                 {link.description && <p className="text-sm text-slate-500 line-clamp-2 leading-relaxed flex-1 group-hover:text-slate-400 transition-colors">{link.description}</p>}
                 
-                {/* 悬停箭头 */}
                 <div className="absolute bottom-4 right-4 opacity-0 group-hover:opacity-100 transition-all transform translate-y-2 group-hover:translate-y-0 text-sky-500">
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path></svg>
                 </div>
@@ -257,9 +237,8 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
                 </div>
                 
                 <div className="space-y-4">
-                    {/* 开关组件 */}
+                    {/* 开关组件 (移除了极光选项) */}
                     {[
-                        { key: 'aurora', label: '极光流光背景', desc: '动态混合颜色背景动画' },
                         { key: 'tilt', label: '3D 悬停视差', desc: '鼠标悬停时卡片倾斜' },
                         { key: 'glow', label: '鼠标跟随光晕', desc: '跟随鼠标的聚光灯效果' },
                         { key: 'noise', label: '胶片噪点质感', desc: '增加画面纹理细节' },
