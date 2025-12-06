@@ -46,9 +46,6 @@ export default async function Home(props: Props) {
   // 构建查询条件
   const whereCondition = currentCategory === 'All' ? {} : { category: currentCategory }
 
-  // ---------------------------------------------------------
-  // 👇 修复点：显式定义类型为 any[]，解决 TypeScript 报错
-  // ---------------------------------------------------------
   let links: any[] = []
   
   try {
@@ -63,6 +60,23 @@ export default async function Home(props: Props) {
   return (
     <div className="flex min-h-screen bg-[#0f172a] bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-sky-900/20 via-[#0f172a] to-[#0f172a] text-slate-300 font-sans selection:bg-sky-500/30">
       
+      {/* ✨ 注入自定义滚动条样式 ✨ */}
+      <style>{`
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 5px; /* 极细宽度 */
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: transparent; /* 轨道透明 */
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background-color: rgba(71, 85, 105, 0.4); /* Slate-600 半透明 */
+          border-radius: 20px; /* 圆角 */
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+          background-color: rgba(71, 85, 105, 0.8); /* 悬停加深 */
+        }
+      `}</style>
+
       {/* 左侧侧边栏 */}
       <aside className="w-64 border-r border-slate-800/60 bg-slate-900/40 backdrop-blur-xl flex-col hidden md:flex fixed h-full z-20">
         <div className="p-8">
@@ -72,7 +86,8 @@ export default async function Home(props: Props) {
           <p className="text-xs text-slate-500 mt-2 font-medium tracking-wide uppercase">Developer Hub</p>
         </div>
         
-        <nav className="flex-1 overflow-y-auto px-4 space-y-1.5 scrollbar-thin scrollbar-thumb-slate-800">
+        {/* ✨ 应用 custom-scrollbar 类 ✨ */}
+        <nav className="flex-1 overflow-y-auto px-4 space-y-1.5 custom-scrollbar">
           <a 
             href="/" 
             className={`flex items-center justify-between px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 ${
