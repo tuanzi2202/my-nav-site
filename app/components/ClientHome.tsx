@@ -28,6 +28,7 @@ type ClientHomeProps = {
 }
 
 type ThemeMode = 'default' | 'slideshow'
+type TransitionEffect = 'fade' | 'zoom' | 'pan' // ✨ 新增：动画类型定义
 
 // --- 壁纸配置 ---
 const WALLPAPER_CONFIG = {
@@ -71,7 +72,8 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
     bgBlur: 2,
     cardOpacity: 0.15,
     boardOpacity: 0.15,
-    uiBlur: 12 // ✨ 新增：界面磨砂度 (默认 12px)
+    uiBlur: 12,
+    slideshowEffect: 'zoom' as TransitionEffect // ✨ 新增：默认使用呼吸缩放效果
   })
   
   const [showSettings, setShowSettings] = useState(false)
@@ -96,7 +98,8 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
         bgBlur: parsed.bgBlur ?? 2,
         cardOpacity: parsed.cardOpacity ?? 0.15,
         boardOpacity: parsed.boardOpacity ?? 0.15,
-        uiBlur: parsed.uiBlur ?? 12 // 兼容旧数据
+        uiBlur: parsed.uiBlur ?? 12,
+        slideshowEffect: parsed.slideshowEffect ?? 'zoom' // 兼容旧数据
       }))
     }
   }, [])
@@ -167,6 +170,31 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
     router.push(`/?query=${query}${categoryParam}`)
   }
 
+  // ✨ 辅助函数：根据选择的特效生成 CSS 类名
+  const getSlideStyle = (index: number) => {
+    const isActive = index === currentSlide
+    const baseClass = "absolute inset-0 bg-cover bg-center bg-no-repeat transition-all duration-[3000ms] ease-in-out" // 3秒慢速过渡
+    
+    let transformClass = ""
+    
+    // 基础状态：不透明度
+    const opacityClass = isActive ? "opacity-100" : "opacity-0"
+
+    // 动态效果逻辑
+    if (settings.slideshowEffect === 'zoom') {
+        // 呼吸缩放：激活时放大到 110%，未激活时恢复 100%
+        transformClass = isActive ? "scale-110" : "scale-100"
+    } else if (settings.slideshowEffect === 'pan') {
+        // 全景运镜：激活时归位，未激活时向右偏移
+        transformClass = isActive ? "translate-x-0 scale-105" : "translate-x-[5%] scale-105"
+    } else {
+        // 默认淡入淡出：无位移缩放
+        transformClass = "scale-100"
+    }
+
+    return `${baseClass} ${opacityClass} ${transformClass}`
+  }
+
   return (
     <div className="relative min-h-screen text-slate-300 font-sans selection:bg-sky-500/30 overflow-hidden bg-[#0f172a]">
       <style jsx global>{`
@@ -189,7 +217,7 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
         {currentWallpaperSet.map((wp, index) => (
           <div 
             key={wp}
-            className={`absolute inset-0 bg-cover bg-center bg-no-repeat transition-all duration-[3000ms] ease-in-out transform ${index === currentSlide ? 'opacity-100 scale-105' : 'opacity-0 scale-100'}`}
+            className={getSlideStyle(index)} // ✨ 应用动态生成的样式
             style={{ backgroundImage: `url(${wp})` }}
           >
              <div 
@@ -211,7 +239,6 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
         {/* 左侧侧边栏 */}
         <aside 
             className="w-64 border-r border-slate-800/40 bg-slate-900/60 flex-col hidden md:flex h-full transition-all duration-300"
-            // ✨ 侧边栏也加上动态模糊
             style={{ backdropFilter: `blur(${settings.uiBlur}px)` }}
         >
           <div className="p-8">
@@ -261,13 +288,11 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
               </form>
           </div>
 
-          {/* 公告板 (动态样式) */}
           <div 
             className="mb-12 rounded-2xl border p-5 relative overflow-hidden group transition-all duration-300"
             style={{ 
                 backgroundColor: `rgba(99, 102, 241, ${settings.boardOpacity})`,
                 borderColor: `rgba(99, 102, 241, ${Math.min(settings.boardOpacity + 0.1, 0.5)})`,
-                // ✨ 动态磨砂感
                 backdropFilter: `blur(${settings.uiBlur}px)`
             }}
           >
@@ -294,8 +319,7 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
                 rel="noopener noreferrer" 
                 onMouseMove={handleCardMouseMove}
                 onMouseLeave={handleCardMouseLeave}
-                // ✨ 动态卡片样式 ✨
-                className="group relative border border-white/10 rounded-2xl p-6 hover:border-sky-500/30 hover:shadow-2xl hover:shadow-sky-500/10 transition-all duration-300 flex flex-col h-full overflow-hidden"
+                className="group relative backdrop-blur-md border border-white/10 rounded-2xl p-6 hover:border-sky-500/30 hover:shadow-2xl hover:shadow-sky-500/10 transition-all duration-300 flex flex-col h-full overflow-hidden"
                 style={{ 
                     transformStyle: 'preserve-3d',
                     backgroundColor: `rgba(15, 23, 42, ${settings.cardOpacity})`,
@@ -326,7 +350,6 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
         <svg className="w-6 h-6 group-hover:rotate-90 transition-transform duration-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
       </button>
 
-      {/* --- 设置面板 --- */}
       {showSettings && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200" onClick={() => setShowSettings(false)}>
             <div className="bg-[#0f172a] border border-slate-700 w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
@@ -346,6 +369,32 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
                                 <div className="w-8 h-8 rounded-full bg-gradient-to-r from-orange-400 to-sky-500 border border-slate-600 mr-3 flex items-center justify-center relative overflow-hidden"><div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1470252649378-9c29740c9fa8?q=80&w=100&auto=format&fit=crop')] bg-cover"></div></div>
                                 <div className="text-left"><div className="font-medium">智能轮播</div><div className="text-[10px] opacity-70">根据时间段自动切换风景</div></div>
                             </button>
+                            
+                            {/* ✨✨✨ 新增：轮播切换动画选择器 (仅在轮播模式下显示) ✨✨✨ */}
+                            {settings.themeMode === 'slideshow' && (
+                                <div className="mt-4 pt-4 border-t border-slate-800">
+                                    <div className="text-xs text-slate-400 mb-3">切换动画效果：</div>
+                                    <div className="grid grid-cols-3 gap-2">
+                                        {[
+                                            { id: 'fade', label: '柔和淡入' },
+                                            { id: 'zoom', label: '呼吸缩放' },
+                                            { id: 'pan', label: '全景运镜' },
+                                        ].map((effect) => (
+                                            <button
+                                                key={effect.id}
+                                                onClick={() => updateSetting('slideshowEffect', effect.id)}
+                                                className={`py-2 text-xs rounded-lg border transition-all ${
+                                                    settings.slideshowEffect === effect.id
+                                                        ? 'bg-sky-500/20 border-sky-500 text-sky-400 font-medium'
+                                                        : 'bg-slate-800 border-slate-700 text-slate-400 hover:bg-slate-700'
+                                                }`}
+                                            >
+                                                {effect.label}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     )}
                     {activeTab === 'effects' && (
