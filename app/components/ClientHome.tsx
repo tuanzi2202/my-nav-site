@@ -25,10 +25,11 @@ type ClientHomeProps = {
   categoriesData: CategoryData[]
   currentCategory: string
   searchQuery: string
-  announcement: string // ✨ 修复点 1: 添加类型定义
+  announcement: string
 }
 
 type ThemeMode = 'default' | 'slideshow'
+type TransitionEffect = 'fade' | 'zoom' | 'pan'
 
 // --- 壁纸配置 ---
 const WALLPAPER_CONFIG = {
@@ -60,7 +61,6 @@ function getTimeSlot(): 'morning' | 'afternoon' | 'night' {
   return 'night'
 }
 
-// ✨ 修复点 2: 在参数中解构 announcement
 export default function ClientHome({ links, categoriesData, currentCategory, searchQuery, announcement }: ClientHomeProps) {
   const router = useRouter()
   
@@ -70,10 +70,11 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
     glow: false,
     tilt: false,
     themeMode: 'slideshow' as ThemeMode,
-    bgBlur: 0,
-    cardOpacity: 0.15,
-    boardOpacity: 0.15,
-    uiBlur: 2 
+    bgBlur: 0,          // 默认背景清晰
+    cardOpacity: 0.1,   // ✨ 修改点：默认 10% 不透明度
+    boardOpacity: 0.1,  // ✨ 修改点：默认 10% 不透明度
+    uiBlur: 2,          // 默认微磨砂
+    slideshowEffect: 'fade' as TransitionEffect // 默认柔和淡入
   })
   
   const [showSettings, setShowSettings] = useState(false)
@@ -96,9 +97,10 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
         ...parsed, 
         themeMode: validMode,
         bgBlur: parsed.bgBlur ?? 0,
-        cardOpacity: parsed.cardOpacity ?? 0.15,
-        boardOpacity: parsed.boardOpacity ?? 0.15,
-        uiBlur: parsed.uiBlur ?? 2
+        cardOpacity: parsed.cardOpacity ?? 0.1,  // ✨ 读取存档时也应用新默认值作为 fallback
+        boardOpacity: parsed.boardOpacity ?? 0.1, // ✨
+        uiBlur: parsed.uiBlur ?? 2,
+        slideshowEffect: parsed.slideshowEffect ?? 'fade'
       }))
     }
   }, [])
@@ -169,6 +171,23 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
     router.push(`/?query=${query}${categoryParam}`)
   }
 
+  // 动态特效 CSS
+  const getSlideStyle = (index: number) => {
+    const isActive = index === currentSlide
+    const baseClass = "absolute inset-0 bg-cover bg-center bg-no-repeat transition-all duration-[3000ms] ease-in-out"
+    let transformClass = ""
+    const opacityClass = isActive ? "opacity-100" : "opacity-0"
+
+    if (settings.slideshowEffect === 'zoom') {
+        transformClass = isActive ? "scale-110" : "scale-100"
+    } else if (settings.slideshowEffect === 'pan') {
+        transformClass = isActive ? "translate-x-0 scale-105" : "translate-x-[5%] scale-105"
+    } else {
+        transformClass = "scale-100"
+    }
+    return `${baseClass} ${opacityClass} ${transformClass}`
+  }
+
   return (
     <div className="relative min-h-screen text-slate-300 font-sans selection:bg-sky-500/30 overflow-hidden bg-[#0f172a]">
       <style jsx global>{`
@@ -191,7 +210,7 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
         {currentWallpaperSet.map((wp, index) => (
           <div 
             key={wp}
-            className={`absolute inset-0 bg-cover bg-center bg-no-repeat transition-all duration-[3000ms] ease-in-out transform ${index === currentSlide ? 'opacity-100 scale-105' : 'opacity-0 scale-100'}`}
+            className={getSlideStyle(index)}
             style={{ backgroundImage: `url(${wp})` }}
           >
              <div 
@@ -279,7 +298,6 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
                   <div>
                       <h3 className="text-sm font-bold text-indigo-200 mb-1 flex items-center gap-2">系统公告<span className="text-[10px] px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/20">News</span></h3>
                       <p className="text-sm text-slate-300 leading-relaxed max-w-2xl whitespace-pre-wrap">
-                          {/* ✨ 修复点 3: 正确显示传入的公告内容 */}
                           {announcement}
                       </p>
                   </div>
@@ -345,6 +363,32 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
                                 <div className="w-8 h-8 rounded-full bg-gradient-to-r from-orange-400 to-sky-500 border border-slate-600 mr-3 flex items-center justify-center relative overflow-hidden"><div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1470252649378-9c29740c9fa8?q=80&w=100&auto=format&fit=crop')] bg-cover"></div></div>
                                 <div className="text-left"><div className="font-medium">智能轮播</div><div className="text-[10px] opacity-70">根据时间段自动切换风景</div></div>
                             </button>
+                            
+                            {/* ✨✨✨ 修复：找回了轮播切换效果选择器 ✨✨✨ */}
+                            {settings.themeMode === 'slideshow' && (
+                                <div className="mt-4 pt-4 border-t border-slate-800">
+                                    <div className="text-xs text-slate-400 mb-3">切换动画效果：</div>
+                                    <div className="grid grid-cols-3 gap-2">
+                                        {[
+                                            { id: 'fade', label: '柔和淡入' },
+                                            { id: 'zoom', label: '呼吸缩放' },
+                                            { id: 'pan', label: '全景运镜' },
+                                        ].map((effect) => (
+                                            <button
+                                                key={effect.id}
+                                                onClick={() => updateSetting('slideshowEffect', effect.id)}
+                                                className={`py-2 text-xs rounded-lg border transition-all ${
+                                                    settings.slideshowEffect === effect.id
+                                                        ? 'bg-sky-500/20 border-sky-500 text-sky-400 font-medium'
+                                                        : 'bg-slate-800 border-slate-700 text-slate-400 hover:bg-slate-700'
+                                                }`}
+                                            >
+                                                {effect.label}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     )}
                     {activeTab === 'effects' && (
