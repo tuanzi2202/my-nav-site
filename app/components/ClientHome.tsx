@@ -67,11 +67,10 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
     noise: false,
     glow: false,
     tilt: false,
-    themeMode: 'default' as ThemeMode,
-    // ✨ 新增：清晰度控制参数
-    bgBlur: 2,          // 背景模糊度 (px)
-    cardOpacity: 0.2,   // 卡片不透明度 (0-1)
-    boardOpacity: 0.2   // 公告板不透明度 (0-1)
+    themeMode: 'slideshow' as ThemeMode, // ✨ 修改点：默认使用轮播模式
+    bgBlur: 2,
+    cardOpacity: 0.15, // ✨ 修改点：默认更低的不透明度
+    boardOpacity: 0.15 
   })
   
   const [showSettings, setShowSettings] = useState(false)
@@ -88,15 +87,14 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
     const saved = localStorage.getItem('nav_settings')
     if (saved) {
       const parsed = JSON.parse(saved)
-      const validMode = parsed.themeMode === 'static' ? 'default' : (parsed.themeMode || 'default')
-      // 合并默认值，防止旧数据缺少新字段
+      const validMode = parsed.themeMode === 'static' ? 'default' : (parsed.themeMode || 'slideshow')
       setSettings(prev => ({ 
         ...prev, 
         ...parsed, 
         themeMode: validMode,
         bgBlur: parsed.bgBlur ?? 2,
-        cardOpacity: parsed.cardOpacity ?? 0.2,
-        boardOpacity: parsed.boardOpacity ?? 0.2
+        cardOpacity: parsed.cardOpacity ?? 0.15,
+        boardOpacity: parsed.boardOpacity ?? 0.15
       }))
     }
   }, [])
@@ -175,28 +173,9 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
         .custom-scrollbar::-webkit-scrollbar-thumb { background-color: rgba(71, 85, 105, 0.4); border-radius: 20px; }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover { background-color: rgba(71, 85, 105, 0.8); }
         
-        /* 滑动条样式优化 */
-        input[type=range] {
-          -webkit-appearance: none;
-          background: transparent;
-        }
-        input[type=range]::-webkit-slider-thumb {
-          -webkit-appearance: none;
-          height: 16px;
-          width: 16px;
-          border-radius: 50%;
-          background: #38bdf8;
-          cursor: pointer;
-          margin-top: -6px;
-          box-shadow: 0 0 10px rgba(56,189,248,0.5);
-        }
-        input[type=range]::-webkit-slider-runnable-track {
-          width: 100%;
-          height: 4px;
-          cursor: pointer;
-          background: #334155;
-          border-radius: 2px;
-        }
+        input[type=range] { -webkit-appearance: none; background: transparent; }
+        input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; height: 16px; width: 16px; border-radius: 50%; background: #38bdf8; cursor: pointer; margin-top: -6px; box-shadow: 0 0 10px rgba(56,189,248,0.5); }
+        input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 4px; cursor: pointer; background: #334155; border-radius: 2px; }
       `}</style>
 
       {/* --- 背景层 --- */}
@@ -211,12 +190,12 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
             className={`absolute inset-0 bg-cover bg-center bg-no-repeat transition-all duration-[3000ms] ease-in-out transform ${index === currentSlide ? 'opacity-100 scale-105' : 'opacity-0 scale-100'}`}
             style={{ backgroundImage: `url(${wp})` }}
           >
-             {/* ✨ 动态背景模糊和遮罩 ✨ */}
+             {/* 动态背景模糊和遮罩 */}
              <div 
                 className="absolute inset-0 transition-all duration-500"
                 style={{ 
                     backdropFilter: `blur(${settings.bgBlur}px)`,
-                    backgroundColor: `rgba(0,0,0,${timeSlotName === '深夜' ? 0.4 : 0.1})` 
+                    backgroundColor: `rgba(0,0,0,${timeSlotName === '深夜' ? 0.4 : 0.2})` 
                 }}
              ></div>
           </div>
@@ -235,17 +214,17 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
             <p className="text-xs text-slate-500 mt-2 font-medium tracking-wide uppercase">Developer Hub</p>
           </div>
           <nav className="flex-1 overflow-y-auto px-4 space-y-1.5 custom-scrollbar">
-            <button onClick={() => router.push('/?category=All')} className={`w-full flex items-center justify-between px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 ${currentCategory === 'All' ? 'bg-slate-800/80 text-white ring-1 ring-slate-700 shadow-lg' : 'hover:bg-slate-800/40 hover:text-white text-slate-400'}`}>
-              <span>全部工具</span><span className="text-[10px] bg-slate-800 px-2 py-0.5 rounded-md">All</span>
+            <button onClick={() => router.push('/?category=All')} className={`w-full flex items-center justify-between px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 ${currentCategory === 'All' ? 'bg-sky-600 text-white shadow-lg shadow-sky-500/20' : 'hover:bg-slate-800/40 hover:text-white text-slate-400'}`}>
+              <span>全部工具</span><span className={`text-[10px] px-2 py-0.5 rounded-md ${currentCategory === 'All' ? 'bg-sky-700/50 text-white' : 'bg-slate-800'}`}>All</span>
             </button>
-            <button onClick={() => router.push('/?category=Recommended')} className={`w-full flex items-center justify-between px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 ${currentCategory === 'Recommended' ? 'bg-slate-800/80 text-white ring-1 ring-slate-700 shadow-lg' : 'hover:bg-slate-800/40 hover:text-white text-slate-400'}`}>
+            <button onClick={() => router.push('/?category=Recommended')} className={`w-full flex items-center justify-between px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 ${currentCategory === 'Recommended' ? 'bg-sky-600 text-white shadow-lg shadow-sky-500/20' : 'hover:bg-slate-800/40 hover:text-white text-slate-400'}`}>
               <span className="flex items-center gap-2"><svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg> 站长推荐</span>
             </button>
             <div className="my-4 h-px bg-gradient-to-r from-transparent via-slate-800 to-transparent"></div>
             {categoriesData.map((cat) => (
-              <button key={cat.category} onClick={() => router.push(`/?category=${cat.category}`)} className={`w-full flex items-center justify-between px-4 py-2.5 rounded-xl text-sm transition-all duration-200 group ${currentCategory === cat.category ? 'bg-slate-800/80 text-sky-400 ring-1 ring-slate-700' : 'hover:bg-slate-800/40 hover:text-white text-slate-400'}`}>
+              <button key={cat.category} onClick={() => router.push(`/?category=${cat.category}`)} className={`w-full flex items-center justify-between px-4 py-2.5 rounded-xl text-sm transition-all duration-200 group ${currentCategory === cat.category ? 'bg-sky-600 text-white shadow-lg shadow-sky-500/20' : 'hover:bg-slate-800/40 hover:text-white text-slate-400'}`}>
                 <span>{cat.category}</span>
-                <span className={`text-[10px] px-2 py-0.5 rounded-md transition-colors ${currentCategory === cat.category ? 'bg-sky-900/30 text-sky-300' : 'bg-slate-800 text-slate-500 group-hover:bg-slate-700'}`}>{cat._count.category}</span>
+                <span className={`text-[10px] px-2 py-0.5 rounded-md transition-colors ${currentCategory === cat.category ? 'bg-sky-700/50 text-white' : 'bg-slate-800 text-slate-500 group-hover:bg-slate-700'}`}>{cat._count.category}</span>
               </button>
             ))}
           </nav>
@@ -255,7 +234,8 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
         </aside>
 
         {/* 右侧内容区 */}
-        <main className="flex-1 overflow-y-auto custom-scrollbar p-6 md:px-12 md:pb-12 md:pt-24 relative">
+        {/* ✨ 修改点：删除了 md:pt-24，改回 p-6 md:p-10，让内容往上提 */}
+        <main className="flex-1 overflow-y-auto custom-scrollbar p-6 md:p-10 relative">
           <header className="md:hidden mb-8 flex justify-between items-center bg-slate-900/80 backdrop-blur p-4 rounded-xl border border-slate-800 sticky top-0 z-50 shadow-lg">
                <h1 className="text-xl font-bold text-white">MyNav</h1>
                <button onClick={() => router.push('/admin')} className="text-xs bg-slate-800 px-3 py-1.5 rounded-full text-sky-400">Admin</button>
@@ -277,11 +257,11 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
               </form>
           </div>
 
-          {/* 公告板 (✨ 动态不透明度) */}
+          {/* 公告板 (动态不透明度) */}
           <div 
             className="mb-12 rounded-2xl border p-5 backdrop-blur-md relative overflow-hidden group transition-all duration-300"
             style={{ 
-                backgroundColor: `rgba(99, 102, 241, ${settings.boardOpacity})`, // Indigo-500 with dynamic opacity
+                backgroundColor: `rgba(99, 102, 241, ${settings.boardOpacity})`,
                 borderColor: `rgba(99, 102, 241, ${Math.min(settings.boardOpacity + 0.1, 0.5)})`
             }}
           >
@@ -293,7 +273,7 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
                   <div>
                       <h3 className="text-sm font-bold text-indigo-200 mb-1 flex items-center gap-2">系统公告<span className="text-[10px] px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/20">News</span></h3>
                       <p className="text-sm text-slate-300 leading-relaxed max-w-2xl">
-                          欢迎来到 MyNav！现在您可以在设置中自由调节 <span className="text-white font-medium">背景模糊度</span> 和 <span className="text-white font-medium">卡片透明度</span> 了，快去试试打造您的专属界面吧！
+                          欢迎来到 MyNav！界面已升级为更通透的玻璃质感，您可以在右下角设置中自由调节透明度，打造您的专属工作台。
                       </p>
                   </div>
               </div>
@@ -308,11 +288,10 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
                 rel="noopener noreferrer" 
                 onMouseMove={handleCardMouseMove}
                 onMouseLeave={handleCardMouseLeave}
-                // ✨ 动态卡片样式 ✨
                 className="group relative backdrop-blur-md border border-white/10 rounded-2xl p-6 hover:border-sky-500/30 hover:shadow-2xl hover:shadow-sky-500/10 transition-all duration-300 flex flex-col h-full overflow-hidden"
                 style={{ 
                     transformStyle: 'preserve-3d',
-                    backgroundColor: `rgba(15, 23, 42, ${settings.cardOpacity})` // Slate-900 with dynamic opacity
+                    backgroundColor: `rgba(15, 23, 42, ${settings.cardOpacity})`
                 }}
               >
                 <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
@@ -361,73 +340,25 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
                         </div>
                     )}
                     
-                    {/* ✨✨✨ 新增：视觉特效调节器 (Sliders) ✨✨✨ */}
                     {activeTab === 'effects' && (
                         <div className="space-y-6">
-                            {/* 开关类特效 */}
                             <div className="space-y-3">
-                                {[
-                                    { key: 'tilt', label: '3D 悬停视差' },
-                                    { key: 'glow', label: '鼠标跟随光晕' },
-                                    { key: 'noise', label: '胶片噪点质感' },
-                                ].map((item) => (
+                                {[{ key: 'tilt', label: '3D 悬停视差' }, { key: 'glow', label: '鼠标跟随光晕' }, { key: 'noise', label: '胶片噪点质感' }].map((item) => (
                                     <div key={item.key} className="flex items-center justify-between">
                                         <span className="text-sm text-slate-300">{item.label}</span>
-                                        <button 
-                                            onClick={() => updateSetting(item.key as keyof typeof settings, !settings[item.key as keyof typeof settings])}
-                                            className={`w-10 h-5 flex items-center rounded-full transition-colors duration-300 ${settings[item.key as keyof typeof settings] ? 'bg-sky-600' : 'bg-slate-700'}`}
-                                        >
-                                            <span className={`w-3.5 h-3.5 bg-white rounded-full shadow-md transform transition-transform duration-300 ${settings[item.key as keyof typeof settings] ? 'translate-x-5' : 'translate-x-1'}`} />
-                                        </button>
+                                        <button onClick={() => updateSetting(item.key as keyof typeof settings, !settings[item.key as keyof typeof settings])} className={`w-10 h-5 flex items-center rounded-full transition-colors duration-300 ${settings[item.key as keyof typeof settings] ? 'bg-sky-600' : 'bg-slate-700'}`}><span className={`w-3.5 h-3.5 bg-white rounded-full shadow-md transform transition-transform duration-300 ${settings[item.key as keyof typeof settings] ? 'translate-x-5' : 'translate-x-1'}`} /></button>
                                     </div>
                                 ))}
                             </div>
-
                             <div className="w-full h-px bg-slate-800"></div>
-
-                            {/* 滑动条类特效 */}
                             <div className="space-y-5">
-                                {/* 1. 背景模糊度 */}
-                                <div>
-                                    <div className="flex justify-between text-xs mb-2">
-                                        <span className="text-slate-400">背景模糊度 (仅轮播模式)</span>
-                                        <span className="text-sky-400">{settings.bgBlur}px</span>
-                                    </div>
-                                    <input 
-                                        type="range" min="0" max="20" step="1" 
-                                        value={settings.bgBlur}
-                                        onChange={(e) => updateSetting('bgBlur', parseInt(e.target.value))}
-                                        className="w-full h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-sky-500"
-                                    />
-                                </div>
-
-                                {/* 2. 网站卡片透明度 */}
-                                <div>
-                                    <div className="flex justify-between text-xs mb-2">
-                                        <span className="text-slate-400">网站卡片不透明度</span>
-                                        <span className="text-sky-400">{Math.round(settings.cardOpacity * 100)}%</span>
-                                    </div>
-                                    <input 
-                                        type="range" min="0.1" max="1.0" step="0.05" 
-                                        value={settings.cardOpacity}
-                                        onChange={(e) => updateSetting('cardOpacity', parseFloat(e.target.value))}
-                                        className="w-full h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-sky-500"
-                                    />
-                                </div>
-
-                                {/* 3. 公告板透明度 */}
-                                <div>
-                                    <div className="flex justify-between text-xs mb-2">
-                                        <span className="text-slate-400">公告板不透明度</span>
-                                        <span className="text-sky-400">{Math.round(settings.boardOpacity * 100)}%</span>
-                                    </div>
-                                    <input 
-                                        type="range" min="0.1" max="1.0" step="0.05" 
-                                        value={settings.boardOpacity}
-                                        onChange={(e) => updateSetting('boardOpacity', parseFloat(e.target.value))}
-                                        className="w-full h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-sky-500"
-                                    />
-                                </div>
+                                <div><div className="flex justify-between text-xs mb-2"><span className="text-slate-400">背景模糊度</span><span className="text-sky-400">{settings.bgBlur}px</span></div><input type="range" min="0" max="20" step="1" value={settings.bgBlur} onChange={(e) => updateSetting('bgBlur', parseInt(e.target.value))} className="w-full h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-sky-500" /></div>
+                                <div><div className="flex justify-between text-xs mb-2"><span className="text-slate-400">网站卡片不透明度</span><span className="text-sky-400">{Math.round(settings.cardOpacity * 100)}%</span></div>
+                                {/* ✨ 修改点：min="0" 允许完全透明 */}
+                                <input type="range" min="0" max="1.0" step="0.05" value={settings.cardOpacity} onChange={(e) => updateSetting('cardOpacity', parseFloat(e.target.value))} className="w-full h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-sky-500" /></div>
+                                <div><div className="flex justify-between text-xs mb-2"><span className="text-slate-400">公告板不透明度</span><span className="text-sky-400">{Math.round(settings.boardOpacity * 100)}%</span></div>
+                                {/* ✨ 修改点：min="0" 允许完全透明 */}
+                                <input type="range" min="0" max="1.0" step="0.05" value={settings.boardOpacity} onChange={(e) => updateSetting('boardOpacity', parseFloat(e.target.value))} className="w-full h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-sky-500" /></div>
                             </div>
                         </div>
                     )}
