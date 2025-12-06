@@ -18,3 +18,9 @@ model Link {
   isRecommended Boolean @default(false)
   createdAt   DateTime @default(now())
 }
+
+model Category {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  sortOrder Int      @default(0) // 数字越小排越前，或者反过来，我们定为：数字越大排越前
+}
