@@ -15,5 +15,6 @@ model Link {
   url         String
   description String?
   category    String   @default("General")
+  isRecommended Boolean @default(false)
   createdAt   DateTime @default(now())
 }
