@@ -12,7 +12,7 @@ interface Props {
 }
 
 // ---------------------------------------------------------
-// 工具函数保持不变
+// 工具函数
 // ---------------------------------------------------------
 function formatUrl(url: string) {
   if (!url) return '#'
@@ -27,7 +27,7 @@ function getFaviconUrl(rawUrl: string) {
   try {
     const formattedUrl = formatUrl(rawUrl)
     const hostname = new URL(formattedUrl).hostname
-    return `https://www.google.com/s2/favicons?domain=${hostname}&sz=128` // 改为128获取更高清图标
+    return `https://www.google.com/s2/favicons?domain=${hostname}&sz=128`
   } catch (e) {
     return "https://www.google.com/s2/favicons?domain=google.com&sz=128"
   }
@@ -46,7 +46,11 @@ export default async function Home(props: Props) {
   // 构建查询条件
   const whereCondition = currentCategory === 'All' ? {} : { category: currentCategory }
 
-  let links = []
+  // ---------------------------------------------------------
+  // 👇 修复点：显式定义类型为 any[]，解决 TypeScript 报错
+  // ---------------------------------------------------------
+  let links: any[] = []
+  
   try {
     links = await prisma.link.findMany({
       where: whereCondition,
@@ -57,7 +61,6 @@ export default async function Home(props: Props) {
   }
 
   return (
-    // ✨ 美化点 1: 背景增加顶部光晕效果 (Radial Gradient)
     <div className="flex min-h-screen bg-[#0f172a] bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-sky-900/20 via-[#0f172a] to-[#0f172a] text-slate-300 font-sans selection:bg-sky-500/30">
       
       {/* 左侧侧边栏 */}
@@ -79,7 +82,6 @@ export default async function Home(props: Props) {
             }`}
           >
             <span>全部工具</span>
-            {/* ✨ 美化点 2: 数量标签样式优化 */}
             <span className={`text-[10px] px-2 py-0.5 rounded-md ${currentCategory === 'All' ? 'bg-white/20' : 'bg-slate-800'}`}>All</span>
           </a>
 
@@ -139,13 +141,10 @@ export default async function Home(props: Props) {
               href={formatUrl(link.url)} 
               target="_blank"
               rel="noopener noreferrer"
-              // ✨ 美化点 3: 卡片样式重构 (移除底部文字，增加 Hover 动效)
               className="group relative bg-slate-900/40 backdrop-blur-sm border border-slate-800/60 rounded-2xl p-6 hover:bg-slate-800/60 hover:border-sky-500/30 hover:shadow-2xl hover:shadow-sky-500/10 hover:-translate-y-1 transition-all duration-300 flex flex-col h-full overflow-hidden"
             >
-              {/* 右上角光效背景 */}
               <div className="absolute top-0 right-0 w-20 h-20 bg-sky-500/10 blur-[40px] rounded-full -mr-10 -mt-10 pointer-events-none group-hover:bg-sky-500/20 transition-all duration-500"></div>
 
-              {/* ✨ 美化点 4: 右上角添加隐形箭头，Hover 时显现 */}
               <div className="absolute top-5 right-5 text-slate-600 opacity-0 transform -translate-x-2 translate-y-2 group-hover:opacity-100 group-hover:translate-x-0 group-hover:translate-y-0 group-hover:text-sky-400 transition-all duration-300">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
               </div>
@@ -171,8 +170,6 @@ export default async function Home(props: Props) {
               <p className="text-sm text-slate-500 line-clamp-2 leading-relaxed flex-1 group-hover:text-slate-400 transition-colors">
                 {link.description || "暂无描述"}
               </p>
-              
-              {/* 原来的底部文字已被删除，取而代之的是整体可点击和右上角的箭头反馈 */}
             </a>
           ))}
           
