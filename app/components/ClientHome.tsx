@@ -25,6 +25,7 @@ type ClientHomeProps = {
   categoriesData: CategoryData[]
   currentCategory: string
   searchQuery: string
+  announcement: string
 }
 
 type ThemeMode = 'default' | 'slideshow'
@@ -298,7 +299,8 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
                   <div>
                       <h3 className="text-sm font-bold text-indigo-200 mb-1 flex items-center gap-2">系统公告<span className="text-[10px] px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/20">News</span></h3>
                       <p className="text-sm text-slate-300 leading-relaxed max-w-2xl">
-                          欢迎来到 MyNav！界面已升级为更通透的玻璃质感，您可以在右下角设置中自由调节透明度，打造您的专属工作台。
+                            {/* ✨ 这里换成动态数据 ✨ */}
+                            {announcement}
                       </p>
                   </div>
               </div>

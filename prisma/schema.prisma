@@ -24,3 +24,9 @@ model Category {
   name      String   @unique
   sortOrder Int      @default(0) // 数字越小排越前，或者反过来，我们定为：数字越大排越前
 }
+
+model GlobalConfig {
+  id    Int    @id @default(autoincrement())
+  key   String @unique // 例如: "announcement"
+  value String // 存储公告内容
+}

@@ -1,6 +1,7 @@
-// app/page.tsx
+// app/page.tsx (局部修改，请完全覆盖)
 import { PrismaClient } from '@prisma/client'
 import ClientHome from './components/ClientHome'
+import { getAnnouncement } from './actions' // ✨ 引入
 
 export const dynamic = 'force-dynamic'
 const prisma = new PrismaClient()
@@ -14,17 +15,10 @@ export default async function Home(props: Props) {
   const currentCategory = searchParams.category || 'Recommended'
   const searchQuery = searchParams.query || ''
   
-  // 1. 获取分类统计
-  const rawCategories = await prisma.link.groupBy({
-    by: ['category'],
-    _count: { category: true }
-  })
-
-  // 2. 获取分类排序配置
+  const rawCategories = await prisma.link.groupBy({ by: ['category'], _count: { category: true } })
   const categoryConfigs = await prisma.category.findMany()
   const sortMap = new Map(categoryConfigs.map(c => [c.name, c.sortOrder]))
 
-  // 3. 排序分类
   const categoriesData = rawCategories.sort((a, b) => {
     const scoreA = sortMap.get(a.category) || 0
     const scoreB = sortMap.get(b.category) || 0
@@ -32,7 +26,6 @@ export default async function Home(props: Props) {
     return b._count.category - a._count.category
   })
 
-  // 4. 构建 Link 查询条件
   const whereCondition: any = {}
   if (searchQuery) {
     whereCondition.OR = [
@@ -41,25 +34,23 @@ export default async function Home(props: Props) {
       { url: { contains: searchQuery, mode: 'insensitive' } },
     ]
   } else {
-    if (currentCategory === 'Recommended') {
-      whereCondition.isRecommended = true
-    } else if (currentCategory !== 'All') {
-      whereCondition.category = currentCategory
-    }
+    if (currentCategory === 'Recommended') { whereCondition.isRecommended = true }
+    else if (currentCategory !== 'All') { whereCondition.category = currentCategory }
   }
 
-  const links = await prisma.link.findMany({
-    where: whereCondition,
-    orderBy: { createdAt: 'desc' }
-  })
+  // ✨ 并行获取链接和公告
+  const [links, announcement] = await Promise.all([
+      prisma.link.findMany({ where: whereCondition, orderBy: { createdAt: 'desc' } }),
+      getAnnouncement()
+  ])
 
-  // 5. 传递给客户端组件
   return (
     <ClientHome 
       links={links} 
       categoriesData={categoriesData} 
       currentCategory={currentCategory}
       searchQuery={searchQuery}
+      announcement={announcement} // ✨ 传递公告
     />
   )
 }

@@ -114,3 +114,29 @@ export async function deleteCategoryConfig(formData: FormData) {
   await prisma.category.delete({ where: { id: parseInt(id) } })
   revalidatePath('/admin')
 }
+
+// --- 全局配置管理 ---
+
+// 更新公告
+export async function updateAnnouncement(formData: FormData) {
+  const content = formData.get('content') as string
+  
+  // 使用 upsert: 有则更新，无则创建
+  await prisma.globalConfig.upsert({
+    where: { key: 'announcement' },
+    update: { value: content },
+    create: { key: 'announcement', value: content }
+  })
+
+  revalidatePath('/admin')
+  revalidatePath('/')
+}
+
+// 获取公告 (供服务端组件调用)
+export async function getAnnouncement() {
+  const config = await prisma.globalConfig.findUnique({
+    where: { key: 'announcement' }
+  })
+  // 默认文案
+  return config?.value || '欢迎来到 MyNav！这是默认公告，请去后台编辑。'
+}
