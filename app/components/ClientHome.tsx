@@ -192,13 +192,20 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
       {/* 2. 智能轮播壁纸 (支持分时段) */}
       <div className={`fixed inset-0 z-0 transition-opacity duration-1000 ${settings.themeMode === 'slideshow' ? 'opacity-100' : 'opacity-0'}`}>
         {currentWallpaperSet.map((wp, index) => (
-          <div 
+          <div
             key={wp}
             className={`absolute inset-0 bg-cover bg-center bg-no-repeat transition-all duration-[3000ms] ease-in-out transform ${index === currentSlide ? 'opacity-100 scale-105' : 'opacity-0 scale-100'}`}
             style={{ backgroundImage: `url(${wp})` }}
           >
-             {/* 遮罩层：早晨和下午稍亮一点，晚上暗一点 */}
-             <div className={`absolute inset-0 backdrop-blur-[2px] ${timeSlotName === '深夜' ? 'bg-[#0f172a]/80' : 'bg-[#0f172a]/60'}`}></div>
+             {/*
+                 👇👇👇 重点修改这里 👇👇👇
+                 旧代码: <div className={`absolute inset-0 backdrop-blur-[2px] ${timeSlotName === '深夜' ? 'bg-[#0f172a]/80' : 'bg-[#0f172a]/60'}`}></div>
+             */}
+
+             {/* ✨ 新代码: 移除了 backdrop-blur (模糊)，并将遮罩颜色改为极淡的黑色 ✨ */}
+             {/* 深夜稍微暗一点点 (30%黑)，白天几乎透明 (10%黑) */}
+             <div className={`absolute inset-0 ${timeSlotName === '深夜' ? 'bg-black/30' : 'bg-black/10'}`}></div>
+
           </div>
         ))}
       </div>
