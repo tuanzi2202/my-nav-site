@@ -3,6 +3,7 @@
 
 import { PrismaClient } from '@prisma/client'
 import { revalidatePath } from 'next/cache'
+import { redirect } from 'next/navigation' // 引入重定向
 
 const prisma = new PrismaClient()
 
@@ -24,15 +25,13 @@ export async function addLink(formData: FormData) {
     },
   })
 
-  // 刷新页面数据，让新添加的内容立刻显示
   revalidatePath('/admin')
-  revalidatePath('/') // 同时刷新首页
+  revalidatePath('/')
 }
 
 // 2. 删除链接
 export async function deleteLink(formData: FormData) {
   const id = formData.get('id') as string
-
   if (!id) return
 
   await prisma.link.delete({
@@ -41,4 +40,31 @@ export async function deleteLink(formData: FormData) {
 
   revalidatePath('/admin')
   revalidatePath('/')
+}
+
+// 3. ✨ 新增: 更新链接
+export async function updateLink(formData: FormData) {
+  const id = formData.get('id') as string
+  const title = formData.get('title') as string
+  const url = formData.get('url') as string
+  const description = formData.get('description') as string
+  const category = formData.get('category') as string
+
+  if (!id || !title || !url) return
+
+  await prisma.link.update({
+    where: { id: parseInt(id) },
+    data: {
+      title,
+      url,
+      description,
+      category,
+    },
+  })
+
+  revalidatePath('/admin')
+  revalidatePath('/')
+  
+  // 更新完成后，重定向回纯净的 admin 页面（去除 ?editId=...）
+  redirect('/admin')
 }

@@ -1,28 +1,31 @@
 // app/admin/page.tsx
 import { PrismaClient } from '@prisma/client'
-import { addLink, deleteLink } from '../actions'
+import { addLink, deleteLink, updateLink } from '../actions' // 引入 updateLink
+import Link from 'next/link' // 引入 Link 组件用于跳转
 
-// 1. 强制动态渲染
 export const dynamic = 'force-dynamic'
 
 const prisma = new PrismaClient()
 
-export default async function AdminPage() {
-  // ---------------------------------------------------------
-  // 👇 关键修复：必须加上 ": any[]"
-  // ---------------------------------------------------------
-  let links: any[] = [] 
-  let errorMsg = ''
+// 定义页面接收的参数类型
+interface Props {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>
+}
 
-  try {
-    // 2. 尝试获取数据
-    links = await prisma.link.findMany({
-      orderBy: { createdAt: 'desc' },
-    })
-  } catch (e: any) {
-    console.error("Admin DB Error:", e)
-    errorMsg = "连接数据库失败，请检查网络或环境变量。"
-  }
+export default async function AdminPage(props: Props) {
+  const searchParams = await props.searchParams
+  
+  // 1. 获取 editId 参数
+  const editId = typeof searchParams.editId === 'string' ? parseInt(searchParams.editId) : null
+
+  // 2. 并行获取：列表数据 + (如果是编辑模式)当前要编辑的数据
+  const [links, editingLink] = await Promise.all([
+    prisma.link.findMany({ orderBy: { createdAt: 'desc' } }),
+    editId ? prisma.link.findUnique({ where: { id: editId } }) : null
+  ])
+
+  // 3. 判断当前模式
+  const isEditMode = !!editingLink
 
   return (
     <div className="min-h-screen bg-[#0f172a] text-slate-300 font-sans selection:bg-sky-500/30 p-8">
@@ -44,44 +47,78 @@ export default async function AdminPage() {
           </a>
         </header>
 
-        {/* 错误提示条 */}
-        {errorMsg && (
-          <div className="mb-8 p-4 bg-red-900/20 border border-red-800 rounded-xl text-red-300 text-sm flex items-center gap-3">
-            <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
-            {errorMsg}
+        {/* === 表单区域 (复用：既是添加也是编辑) === 
+            根据 isEditMode 切换 action 和默认值
+        */}
+        <div className={`bg-slate-900/50 backdrop-blur-sm border ${isEditMode ? 'border-sky-500/50 ring-1 ring-sky-500/20' : 'border-slate-800/60'} rounded-2xl p-6 mb-10 shadow-xl transition-all`}>
+          <div className="flex justify-between items-center mb-5">
+            <h2 className="text-lg font-semibold text-slate-100 flex items-center gap-2">
+              <span className={`w-1 h-5 rounded-full ${isEditMode ? 'bg-orange-500' : 'bg-sky-500'}`}></span>
+              {isEditMode ? '编辑资源' : '添加新资源'}
+            </h2>
+            {isEditMode && (
+              <Link href="/admin" className="text-xs text-slate-500 hover:text-slate-300">
+                取消编辑 ✕
+              </Link>
+            )}
           </div>
-        )}
 
-        {/* 添加表单区 */}
-        <div className="bg-slate-900/50 backdrop-blur-sm border border-slate-800/60 rounded-2xl p-6 mb-10 shadow-xl">
-          <h2 className="text-lg font-semibold mb-5 text-slate-100 flex items-center gap-2">
-            <span className="w-1 h-5 bg-sky-500 rounded-full"></span>
-            添加新资源
-          </h2>
-          <form action={addLink} className="space-y-5">
+          <form action={isEditMode ? updateLink : addLink} className="space-y-5">
+            {/* 如果是编辑模式，需要传递 ID */}
+            {isEditMode && <input type="hidden" name="id" value={editingLink.id} />}
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <div className="space-y-1">
                 <label className="text-xs text-slate-500 ml-1">标题</label>
-                <input name="title" placeholder="例如: GitHub" required className="w-full bg-slate-800/50 border border-slate-700 rounded-xl p-3 text-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-500/50 focus:border-sky-500 transition" />
+                <input 
+                  name="title" 
+                  defaultValue={editingLink?.title || ''} // 填充旧数据
+                  placeholder="例如: GitHub" 
+                  required 
+                  className="w-full bg-slate-800/50 border border-slate-700 rounded-xl p-3 text-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-500/50 focus:border-sky-500 transition" 
+                />
               </div>
               <div className="space-y-1">
                 <label className="text-xs text-slate-500 ml-1">链接</label>
-                <input name="url" placeholder="https://..." required className="w-full bg-slate-800/50 border border-slate-700 rounded-xl p-3 text-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-500/50 focus:border-sky-500 transition" />
+                <input 
+                  name="url" 
+                  defaultValue={editingLink?.url || ''} 
+                  placeholder="https://..." 
+                  required 
+                  className="w-full bg-slate-800/50 border border-slate-700 rounded-xl p-3 text-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-500/50 focus:border-sky-500 transition" 
+                />
               </div>
               <div className="space-y-1">
                 <label className="text-xs text-slate-500 ml-1">分类</label>
-                <input name="category" placeholder="默认: General" className="w-full bg-slate-800/50 border border-slate-700 rounded-xl p-3 text-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-500/50 focus:border-sky-500 transition" />
+                <input 
+                  name="category" 
+                  defaultValue={editingLink?.category || ''} 
+                  placeholder="默认: General" 
+                  className="w-full bg-slate-800/50 border border-slate-700 rounded-xl p-3 text-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-500/50 focus:border-sky-500 transition" 
+                />
               </div>
               <div className="space-y-1">
                 <label className="text-xs text-slate-500 ml-1">操作</label>
-                <button type="submit" className="w-full bg-gradient-to-r from-sky-600 to-indigo-600 hover:from-sky-500 hover:to-indigo-500 text-white p-3 rounded-xl font-medium shadow-lg shadow-sky-900/20 transition transform active:scale-95">
-                  提交数据
+                <button 
+                  type="submit" 
+                  className={`w-full text-white p-3 rounded-xl font-medium shadow-lg transition transform active:scale-95 ${
+                    isEditMode 
+                      ? 'bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-500 hover:to-red-500 shadow-orange-900/20' 
+                      : 'bg-gradient-to-r from-sky-600 to-indigo-600 hover:from-sky-500 hover:to-indigo-500 shadow-sky-900/20'
+                  }`}
+                >
+                  {isEditMode ? '保存修改' : '提交数据'}
                 </button>
               </div>
             </div>
             <div className="space-y-1">
               <label className="text-xs text-slate-500 ml-1">描述</label>
-              <textarea name="description" placeholder="一句话简介..." className="w-full bg-slate-800/50 border border-slate-700 rounded-xl p-3 text-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-500/50 focus:border-sky-500 transition h-20 resize-none" />
+              <textarea 
+                name="description" 
+                defaultValue={editingLink?.description || ''} 
+                placeholder="一句话简介..." 
+                className="w-full bg-slate-800/50 border border-slate-700 rounded-xl p-3 text-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-500/50 focus:border-sky-500 transition h-20 resize-none" 
+              />
             </div>
           </form>
         </div>
@@ -92,14 +129,14 @@ export default async function AdminPage() {
             <thead className="bg-slate-950/50 text-slate-400 text-xs uppercase tracking-wider">
               <tr>
                 <th className="p-5 font-medium border-b border-slate-800">ID</th>
-                <th className="p-5 font-medium border-b border-slate-800">标题 & URL</th>
+                <th className="p-5 font-medium border-b border-slate-800">信息</th>
                 <th className="p-5 font-medium border-b border-slate-800">分类</th>
                 <th className="p-5 font-medium border-b border-slate-800 text-right">管理</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800/50">
               {links.map((link: any) => (
-                <tr key={link.id} className="hover:bg-slate-800/30 transition group">
+                <tr key={link.id} className={`transition group ${editingLink?.id === link.id ? 'bg-sky-900/20' : 'hover:bg-slate-800/30'}`}>
                   <td className="p-5 text-slate-600 text-sm font-mono">#{link.id}</td>
                   <td className="p-5">
                     <div className="font-medium text-slate-200 group-hover:text-sky-400 transition">{link.title}</div>
@@ -111,25 +148,37 @@ export default async function AdminPage() {
                     </span>
                   </td>
                   <td className="p-5 text-right">
-                    <form action={deleteLink}>
-                      <input type="hidden" name="id" value={link.id} />
-                      <button 
-                        type="submit" 
-                        className="text-slate-500 hover:text-red-400 hover:bg-red-900/10 px-3 py-1.5 rounded-lg transition text-sm flex items-center gap-1 ml-auto"
+                    <div className="flex justify-end gap-2">
+                      {/* ✨ 编辑按钮：跳转到带参数的 URL */}
+                      <Link 
+                        href={`/admin?editId=${link.id}`}
+                        scroll={false} // 防止页面滚动到顶部
+                        className="text-slate-500 hover:text-sky-400 hover:bg-sky-900/10 px-3 py-1.5 rounded-lg transition text-sm flex items-center gap-1"
                       >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                        删除
-                      </button>
-                    </form>
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                        编辑
+                      </Link>
+
+                      <form action={deleteLink}>
+                        <input type="hidden" name="id" value={link.id} />
+                        <button 
+                          type="submit" 
+                          className="text-slate-500 hover:text-red-400 hover:bg-red-900/10 px-3 py-1.5 rounded-lg transition text-sm flex items-center gap-1"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                          删除
+                        </button>
+                      </form>
+                    </div>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
           
-          {links.length === 0 && !errorMsg && (
+          {links.length === 0 && (
             <div className="p-12 text-center text-slate-500 border-t border-slate-800/50">
-              暂无数据，快去添加第一条吧！
+              暂无数据
             </div>
           )}
         </div>
