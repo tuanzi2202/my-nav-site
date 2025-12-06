@@ -8,7 +8,10 @@ const prisma = new PrismaClient()
 
 // 定义 Props 类型
 interface Props {
-  searchParams: Promise<{ [key: string]: string | string[] | undefined }>
+  searchParams: Promise<{ 
+    category?: string; 
+    query?: string; // ✨ 新增搜索参数
+  }>
 }
 
 // ---------------------------------------------------------
@@ -35,7 +38,8 @@ function getFaviconUrl(rawUrl: string) {
 
 export default async function Home(props: Props) {
   const searchParams = await props.searchParams
-  const currentCategory = typeof searchParams.category === 'string' ? searchParams.category : 'All'
+  const currentCategory = searchParams.category || 'All'
+  const searchQuery = searchParams.query || '' // ✨ 获取搜索关键词
   
   // 获取分类统计
   const categoriesData = await prisma.link.groupBy({
@@ -43,8 +47,22 @@ export default async function Home(props: Props) {
     _count: { category: true }
   })
 
-  // 构建查询条件
-  const whereCondition = currentCategory === 'All' ? {} : { category: currentCategory }
+  // ✨ 构建复合查询条件 (分类 + 搜索)
+  const whereCondition: any = {}
+  
+  // 1. 分类筛选
+  if (currentCategory !== 'All') {
+    whereCondition.category = currentCategory
+  }
+
+  // 2. 关键词搜索 (模糊匹配 标题 OR 描述 OR 链接)
+  if (searchQuery) {
+    whereCondition.OR = [
+      { title: { contains: searchQuery, mode: 'insensitive' } }, // insensitive 忽略大小写
+      { description: { contains: searchQuery, mode: 'insensitive' } },
+      { url: { contains: searchQuery, mode: 'insensitive' } },
+    ]
+  }
 
   let links: any[] = []
   
@@ -60,21 +78,12 @@ export default async function Home(props: Props) {
   return (
     <div className="flex min-h-screen bg-[#0f172a] bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-sky-900/20 via-[#0f172a] to-[#0f172a] text-slate-300 font-sans selection:bg-sky-500/30">
       
-      {/* ✨ 注入自定义滚动条样式 ✨ */}
+      {/* 滚动条样式 */}
       <style>{`
-        .custom-scrollbar::-webkit-scrollbar {
-          width: 5px; /* 极细宽度 */
-        }
-        .custom-scrollbar::-webkit-scrollbar-track {
-          background: transparent; /* 轨道透明 */
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-          background-color: rgba(71, 85, 105, 0.4); /* Slate-600 半透明 */
-          border-radius: 20px; /* 圆角 */
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-          background-color: rgba(71, 85, 105, 0.8); /* 悬停加深 */
-        }
+        .custom-scrollbar::-webkit-scrollbar { width: 5px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background-color: rgba(71, 85, 105, 0.4); border-radius: 20px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background-color: rgba(71, 85, 105, 0.8); }
       `}</style>
 
       {/* 左侧侧边栏 */}
@@ -86,7 +95,6 @@ export default async function Home(props: Props) {
           <p className="text-xs text-slate-500 mt-2 font-medium tracking-wide uppercase">Developer Hub</p>
         </div>
         
-        {/* ✨ 应用 custom-scrollbar 类 ✨ */}
         <nav className="flex-1 overflow-y-auto px-4 space-y-1.5 custom-scrollbar">
           <a 
             href="/" 
@@ -105,7 +113,7 @@ export default async function Home(props: Props) {
           {categoriesData.map((cat) => (
             <a 
               key={cat.category}
-              href={`/?category=${cat.category}`}
+              href={`/?category=${cat.category}`} // 保持纯净链接，切换分类时清空搜索
               className={`flex items-center justify-between px-4 py-2.5 rounded-xl text-sm transition-all duration-200 group ${
                 currentCategory === cat.category 
                   ? 'bg-slate-800 text-sky-400 ring-1 ring-slate-700' 
@@ -134,21 +142,44 @@ export default async function Home(props: Props) {
 
       {/* 右侧内容区 */}
       <main className="flex-1 md:ml-64 p-6 md:p-10 relative z-10">
+        
+        {/* 移动端 Header */}
         <header className="md:hidden mb-8 flex justify-between items-center bg-slate-900/80 backdrop-blur p-4 rounded-xl border border-slate-800 sticky top-4 z-50">
              <h1 className="text-xl font-bold text-white bg-clip-text bg-gradient-to-r from-sky-400 to-indigo-400 text-transparent">MyNav</h1>
              <a href="/admin" className="text-xs bg-slate-800 px-3 py-1.5 rounded-full text-sky-400 border border-slate-700">Admin</a>
         </header>
 
-        <div className="mb-10">
-            <h2 className="text-3xl font-bold text-white mb-2 tracking-tight">
-                {currentCategory === 'All' ? '探索工具' : currentCategory}
-            </h2>
-            <p className="text-slate-400 text-sm flex items-center gap-2">
-                <span className="w-1.5 h-1.5 rounded-full bg-sky-500"></span>
-                收录了 {links.length} 个优质资源
-            </p>
+        {/* 顶部标题栏 + 搜索框 */}
+        <div className="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-6">
+            <div>
+                <h2 className="text-3xl font-bold text-white mb-2 tracking-tight">
+                    {currentCategory === 'All' ? '探索工具' : currentCategory}
+                </h2>
+                <p className="text-slate-400 text-sm flex items-center gap-2">
+                    <span className="w-1.5 h-1.5 rounded-full bg-sky-500"></span>
+                    {searchQuery ? `搜索 "${searchQuery}" 的结果` : `收录了 ${links.length} 个优质资源`}
+                </p>
+            </div>
+
+            {/* ✨ 首页搜索框 ✨ */}
+            <form action="/" method="get" className="relative w-full md:w-80 group">
+                {/* 这里的 hidden input 确保搜索时保留当前分类 */}
+                {currentCategory !== 'All' && <input type="hidden" name="category" value={currentCategory} />}
+                
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-500 group-focus-within:text-sky-400 transition-colors">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                </div>
+                <input 
+                    type="text" 
+                    name="query" 
+                    defaultValue={searchQuery}
+                    placeholder="搜索资源..." 
+                    className="w-full bg-slate-900/50 border border-slate-700/50 text-slate-200 text-sm rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:ring-2 focus:ring-sky-500/50 focus:border-sky-500/50 placeholder-slate-600 transition-all shadow-sm"
+                />
+            </form>
         </div>
 
+        {/* 资源列表 */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {links.map((link) => (
             <a 
@@ -182,19 +213,25 @@ export default async function Home(props: Props) {
                 {link.title}
               </h3>
               
-              <p className="text-sm text-slate-500 line-clamp-2 leading-relaxed flex-1 group-hover:text-slate-400 transition-colors">
-                {link.description || "暂无描述"}
-              </p>
+              {link.description && (
+                <p className="text-sm text-slate-500 line-clamp-2 leading-relaxed flex-1 group-hover:text-slate-400 transition-colors">
+                    {link.description}
+                </p>
+              )}
             </a>
           ))}
           
           {links.length === 0 && (
              <div className="col-span-full py-24 text-center border-2 border-dashed border-slate-800/50 rounded-2xl bg-slate-900/20">
                  <div className="inline-block p-4 rounded-full bg-slate-800/50 mb-4 text-slate-600">
-                    <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path></svg>
+                    <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
                  </div>
-                 <p className="text-slate-400 font-medium">该分类下暂无内容</p>
-                 <a href="/admin" className="text-sky-500 hover:text-sky-400 hover:underline mt-2 inline-block text-sm transition">去后台添加一个？</a>
+                 <p className="text-slate-400 font-medium">没有找到相关资源</p>
+                 {searchQuery && (
+                    <a href="/" className="text-sky-500 hover:text-sky-400 hover:underline mt-2 inline-block text-sm transition">
+                        清除搜索
+                    </a>
+                 )}
              </div>
           )}
         </div>
