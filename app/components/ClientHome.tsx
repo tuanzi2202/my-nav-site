@@ -107,15 +107,21 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
     }
   }, [])
 
-  // ✨✨✨ 右键菜单事件监听 ✨✨✨
+  // ✨✨✨ 右键菜单事件监听 (已修改逻辑) ✨✨✨
   useEffect(() => {
     const handleContextMenu = (e: MouseEvent) => {
       e.preventDefault() // 阻止默认右键菜单
-      setContextMenu({ x: e.clientX, y: e.clientY, show: true })
+      
+      // ✨ 核心修改点：如果菜单已显示，再次右键点击则关闭；否则打开
+      if (contextMenu?.show) {
+        setContextMenu(null)
+      } else {
+        setContextMenu({ x: e.clientX, y: e.clientY, show: true })
+      }
     }
 
     const handleClick = () => {
-      if (contextMenu?.show) setContextMenu(null) // 点击任意处关闭
+      if (contextMenu?.show) setContextMenu(null) // 左键点击任意处关闭
     }
 
     window.addEventListener('contextmenu', handleContextMenu)
