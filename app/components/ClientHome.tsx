@@ -235,8 +235,8 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
             style={{ backdropFilter: `blur(${settings.uiBlur}px)` }}
         >
           <div className="p-8">
-            <h1 className="text-3xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-sky-400 to-indigo-400">MyNav</h1>
-            <p className="text-xs text-slate-500 mt-2 font-medium tracking-wide uppercase">Developer Hub</p>
+            <h1 className="text-3xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-sky-400 to-indigo-400">Oasis</h1>
+            <p className="text-xs text-slate-500 mt-2 font-medium tracking-wide uppercase">Your Digital Sanctuary</p>
           </div>
           <nav className="flex-1 overflow-y-auto px-4 space-y-1.5 custom-scrollbar">
             <button onClick={() => router.push('/?category=All')} className={`w-full flex items-center justify-between px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 ${currentCategory === 'All' ? 'bg-sky-600 text-white shadow-lg shadow-sky-500/20' : 'hover:bg-slate-800/40 hover:text-white text-slate-400'}`}>
@@ -261,7 +261,7 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
         {/* 右侧内容区 */}
         <main className="flex-1 overflow-y-auto custom-scrollbar p-6 md:p-10 relative">
           <header className="md:hidden mb-8 flex justify-between items-center bg-slate-900/80 backdrop-blur p-4 rounded-xl border border-slate-800 sticky top-0 z-50 shadow-lg">
-               <h1 className="text-xl font-bold text-white">MyNav</h1>
+               <h1 className="text-xl font-bold text-white">Oasis</h1>
                <button onClick={() => router.push('/admin')} className="text-xs bg-slate-800 px-3 py-1.5 rounded-full text-sky-400">Admin</button>
           </header>
 
