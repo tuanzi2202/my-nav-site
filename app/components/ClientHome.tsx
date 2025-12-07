@@ -112,7 +112,6 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
   const closeMenu = () => {
     if (isClosing) return
     setIsClosing(true)
-    // 延迟 500ms 等待动画播放完毕后再销毁 DOM
     setTimeout(() => {
         setContextMenu(null)
         setIsClosing(false)
@@ -122,20 +121,17 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
   // ✨✨✨ 右键菜单事件监听 ✨✨✨
   useEffect(() => {
     const handleContextMenu = (e: MouseEvent) => {
-      e.preventDefault() // 阻止默认右键菜单
+      e.preventDefault() 
       
       if (contextMenu?.show && !isClosing) {
-        // 如果已经打开，则播放关闭动画
         closeMenu()
       } else {
-        // 如果没打开，直接打开
         setIsClosing(false)
         setContextMenu({ x: e.clientX, y: e.clientY, show: true })
       }
     }
 
     const handleClick = () => {
-      // 点击任意处关闭
       if (contextMenu?.show && !isClosing) closeMenu()
     }
 
@@ -331,7 +327,7 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
       localStorage.setItem('nav_settings', JSON.stringify(newSettings));
   }
 
-  // ✨✨✨ 环形菜单配置 (功能默认全空，文字直接在圆圈内) ✨✨✨
+  // ✨✨✨ 环形菜单配置 (所有操作均为空) ✨✨✨
   const menuItems = [
     { label: '首页', action: () => {} },
     { label: '前进', action: () => {} },
@@ -404,14 +400,14 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
                   <button
                     key={i}
                     onClick={(e) => { e.stopPropagation(); item.action(); closeMenu(); }}
-                    className="absolute w-14 h-14 -ml-7 -mt-7 bg-slate-900/60 border border-white/10 rounded-full flex items-center justify-center shadow-2xl hover:bg-sky-600/90 hover:border-sky-400 hover:scale-110 transition-all duration-300 backdrop-blur-xl group"
+                    className="absolute w-14 h-14 -ml-7 -mt-7 bg-slate-900/60 border border-white/10 rounded-full flex items-center justify-center shadow-2xl hover:bg-sky-600/90 hover:border-sky-400 hover:scale-110 transition-all duration-300 backdrop-blur-xl"
                     style={{
                       left: x,
                       top: y,
                     }}
                   >
-                     {/* 纯文本，居中显示 */}
-                     <span className="text-xs font-medium text-slate-200 group-hover:text-white pointer-events-none">
+                     {/* 纯文本，居中显示，移除所有SVG */}
+                     <span className="text-xs font-medium text-slate-200 hover:text-white pointer-events-none select-none">
                         {item.label}
                      </span>
                   </button>
@@ -471,7 +467,6 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
         <svg className="w-6 h-6 group-hover:rotate-90 transition-transform duration-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
       </button>
 
-      {/* ... (设置面板代码保持不变) ... */}
       {showSettings && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200" onClick={() => setShowSettings(false)}>
             <div className="bg-[#0f172a] border border-slate-700 w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
