@@ -363,7 +363,7 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
           <div className="relative group">
              {/* 菜单项 */}
              {menuItems.map((item, i) => {
-                const radius = 75; // 半径
+                const radius = 80; // 半径
                 // 角度计算：从12点钟(-90deg)开始，顺时针排列
                 const angle = (i * 60 - 90) * (Math.PI / 180);
                 const x = Math.cos(angle) * radius;
@@ -374,7 +374,7 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
                   <button
                     key={i}
                     onClick={(e) => { e.stopPropagation(); item.action(); setContextMenu(null); }}
-                    className="absolute w-12 h-12 -ml-6 -mt-6 bg-slate-900/60 border border-white/10 rounded-full flex items-center justify-center shadow-2xl text-slate-200 hover:bg-sky-600/90 hover:text-white hover:border-sky-400 hover:scale-110 transition-all duration-300 backdrop-blur-md group"
+                    className="absolute w-14 h-14 -ml-7 -mt-7 bg-slate-900/60 border border-white/10 rounded-full flex items-center justify-center shadow-2xl text-slate-200 hover:bg-sky-600/90 hover:text-white hover:border-sky-400 hover:scale-110 transition-all duration-300 backdrop-blur-xl group"
                     style={{
                       '--tx': `${x}px`,
                       '--ty': `${y}px`,
@@ -385,7 +385,7 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
                   >
                      {item.icon}
                      {/* 悬停显示文字标签 (玻璃拟态风格) */}
-                     <span className="absolute opacity-0 group-hover:opacity-100 transition-opacity duration-300 text-[10px] text-slate-100 bg-slate-900/80 px-2.5 py-1 rounded-full -bottom-8 whitespace-nowrap pointer-events-none backdrop-blur border border-white/10 shadow-lg translate-y-1 group-hover:translate-y-0 transform">
+                     <span className="absolute opacity-0 group-hover:opacity-100 transition-opacity duration-300 text-[10px] text-slate-100 bg-slate-900/80 px-2.5 py-1 rounded-full -bottom-8 whitespace-nowrap pointer-events-none backdrop-blur-md border border-white/10 shadow-lg translate-y-1 group-hover:translate-y-0 transform">
                         {item.label}
                      </span>
                   </button>
