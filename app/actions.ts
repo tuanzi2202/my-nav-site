@@ -178,9 +178,14 @@ export async function updateGlobalUISettings(formData: FormData) {
     cardOpacity: Number(formData.get('cardOpacity')),
     boardOpacity: Number(formData.get('boardOpacity')),
     uiBlur: Number(formData.get('uiBlur')),
-    slideshowInterval: Number(formData.get('slideshowInterval')),
+    
+    // ✨ 确保包含以下两个字段
+    slideshowInterval: Number(formData.get('slideshowInterval')), 
     slideshowEffect: formData.get('slideshowEffect'),
-    // ✨ 新增：描述颜色
+    
+    // ✨ 新增：保存点击特效
+    clickEffect: formData.get('clickEffect'),
+    
     descColor: formData.get('descColor'),
     
     noise: formData.get('noise') === 'on',

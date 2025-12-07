@@ -36,7 +36,8 @@ export default function AdminClient({
     uiBlur: 2,
     slideshowInterval: 30,
     slideshowEffect: 'fade',
-    descColor: '#94a3b8', // ✨ 新增默认颜色
+    clickEffect: 'ripple', // ✨ 默认点击特效
+    descColor: '#94a3b8',
     noise: false,
     glow: false,
     tilt: false,
@@ -86,7 +87,7 @@ export default function AdminClient({
 
   async function handleAdd(formData: FormData) { await addLink(formData); const form = document.getElementById('add-form') as HTMLFormElement; if (form) form.reset(); const data = await getCategories(); setCategories(data); }
   async function handleUpdate(formData: FormData) { await updateLink(formData); setEditingLink(null); const data = await getCategories(); setCategories(data); }
-  async function handleUpdateAnnouncement(formData: FormData) { await updateAnnouncement(formData); alert('公告已更新！') }
+  async function handleUpdateAnnouncement(formData: FormData) { await updateAnnouncement(formData); alert('公告已发布！') }
   async function handleUpdateTheme(formData: FormData) { await updateSmartWallpaper(formData); setEditingTheme(null) }
   
   const updateGlobalState = (key: string, value: any) => {
@@ -225,7 +226,6 @@ export default function AdminClient({
                     <h3 className="text-sm font-bold text-slate-300">发布历史</h3>
                     <button type="button" onClick={() => setShowHistory(!showHistory)} className="text-xs text-slate-500 hover:text-indigo-400 transition">{showHistory ? '收起' : '展开'}</button>
                   </div>
-                  
                   {showHistory && (
                     <div className="space-y-2 max-h-60 overflow-y-auto custom-scrollbar bg-slate-950/30 p-2 rounded-xl">
                       {initialHistory && initialHistory.length > 0 ? initialHistory.map((item) => (
@@ -244,7 +244,7 @@ export default function AdminClient({
         </div>
       )}
 
-      {/* ✨ Tab F: 全局视觉 (包含新颜色选择器) ✨ */}
+      {/* ✨ Tab F: 全局视觉 (包含所有新控件) ✨ */}
       {activeTab === 'design' && (
         <div className="max-w-4xl mx-auto">
             <div className="bg-slate-900/50 border border-slate-800/60 rounded-2xl p-8 shadow-xl">
@@ -265,22 +265,22 @@ export default function AdminClient({
                         <div className="space-y-4">
                             <div><label className="text-xs text-slate-400 mb-2 block">默认背景模式</label><select name="themeMode" defaultValue={globalSettings.themeMode} onChange={(e) => updateGlobalState('themeMode', e.target.value)} className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-pink-500"><option value="default">纯色深蓝</option><option value="slideshow">动态轮播</option></select></div>
                             <div><label className="text-xs text-slate-400 mb-2 block">轮播切换动画</label><select name="slideshowEffect" defaultValue={globalSettings.slideshowEffect} onChange={(e) => updateGlobalState('slideshowEffect', e.target.value)} className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-pink-500"><option value="fade">柔和淡入</option><option value="zoom">呼吸缩放</option><option value="pan">全景运镜</option></select></div>
-                            
-                            {/* ✨ 新增：描述文本颜色选择器 ✨ */}
-                            <div className="flex items-center justify-between bg-slate-950/50 p-3 rounded-lg border border-slate-800">
-                              <label className="text-xs text-slate-400">描述文字颜色</label>
-                              <div className="flex items-center gap-3">
-                                <span className="text-xs text-slate-500 font-mono">{globalSettings.descColor}</span>
-                                <input 
-                                  type="color" 
-                                  name="descColor" 
-                                  defaultValue={globalSettings.descColor}
-                                  onChange={(e) => updateGlobalState('descColor', e.target.value)}
-                                  className="w-6 h-6 rounded cursor-pointer bg-transparent border-0 p-0" 
-                                />
-                              </div>
+                            {/* ✨ 新增：轮播间隔时间 ✨ */}
+                            <div>
+                                <div className="flex justify-between text-xs mb-2 text-slate-300"><span>轮播间隔时间</span><span>{globalSettings.slideshowInterval}秒</span></div>
+                                <input type="range" name="slideshowInterval" min="5" max="300" step="5" defaultValue={globalSettings.slideshowInterval} onChange={(e) => updateGlobalState('slideshowInterval', e.target.value)} className="w-full h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-pink-500" />
                             </div>
-
+                            {/* ✨ 新增：鼠标点击特效 ✨ */}
+                            <div>
+                                <label className="text-xs text-slate-400 mb-2 block">鼠标点击特效</label>
+                                <select name="clickEffect" defaultValue={globalSettings.clickEffect} onChange={(e) => updateGlobalState('clickEffect', e.target.value)} className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-pink-500">
+                                    <option value="none">关闭</option>
+                                    <option value="ripple">波纹</option>
+                                    <option value="particles">粒子</option>
+                                    <option value="bubble">气泡</option>
+                                </select>
+                            </div>
+                            
                             <div className="flex flex-wrap gap-4 pt-2">
                                 <label className="flex items-center gap-2 text-sm text-slate-300 cursor-pointer"><input type="checkbox" name="tilt" defaultChecked={globalSettings.tilt} className="accent-pink-500" /> 3D视差</label>
                                 <label className="flex items-center gap-2 text-sm text-slate-300 cursor-pointer"><input type="checkbox" name="glow" defaultChecked={globalSettings.glow} className="accent-pink-500" /> 鼠标光晕</label>
@@ -288,6 +288,15 @@ export default function AdminClient({
                             </div>
                         </div>
                     </div>
+                    {/* ✨ 新增：描述文本颜色 ✨ */}
+                    <div className="flex items-center justify-between p-3 rounded-xl bg-slate-950/30 border border-slate-800/50 mt-4">
+                        <span className="text-sm font-medium text-slate-300">描述文字颜色</span>
+                        <div className="flex items-center gap-3">
+                            <span className="text-xs text-slate-500 font-mono">{globalSettings.descColor}</span>
+                            <input type="color" name="descColor" defaultValue={globalSettings.descColor} onChange={(e) => updateGlobalState('descColor', e.target.value)} className="w-8 h-8 rounded cursor-pointer bg-transparent border-0 p-0" />
+                        </div>
+                    </div>
+
                     <button type="submit" className="w-full bg-pink-600 hover:bg-pink-500 text-white p-3 rounded-xl font-medium shadow-lg shadow-pink-500/20 transition-all transform active:scale-95 mt-4">保存为默认配置</button>
                 </form>
             </div>
