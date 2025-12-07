@@ -92,8 +92,9 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
   const [currentSlide, setCurrentSlide] = useState(0)
   const [timeSlotName, setTimeSlotName] = useState('')
 
-  // ✨✨✨ 右键菜单状态 ✨✨✨
+  // ✨✨✨ 右键菜单状态管理 (新增 isClosing) ✨✨✨
   const [contextMenu, setContextMenu] = useState<{ x: number, y: number, show: boolean } | null>(null)
+  const [isClosing, setIsClosing] = useState(false)
   
   // 加载用户本地个性化设置
   useEffect(() => {
@@ -107,21 +108,36 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
     }
   }, [])
 
-  // ✨✨✨ 右键菜单事件监听 (已修改逻辑) ✨✨✨
+  // ✨✨✨ 关闭菜单的辅助函数 (带动画) ✨✨✨
+  const closeMenu = () => {
+    if (isClosing) return
+    setIsClosing(true)
+    // 延迟 500ms 等待动画播放完毕后再销毁 DOM
+    setTimeout(() => {
+        setContextMenu(null)
+        setIsClosing(false)
+    }, 500)
+  }
+
+  // ✨✨✨ 右键菜单事件监听 ✨✨✨
   useEffect(() => {
     const handleContextMenu = (e: MouseEvent) => {
       e.preventDefault() // 阻止默认右键菜单
       
-      // ✨ 核心修改点：如果菜单已显示，再次右键点击则关闭；否则打开
-      if (contextMenu?.show) {
-        setContextMenu(null)
+      if (contextMenu?.show && !isClosing) {
+        // 如果已经打开，则播放关闭动画
+        closeMenu()
       } else {
+        // 如果没打开，直接打开
+        // 重置关闭状态以防万一
+        setIsClosing(false)
         setContextMenu({ x: e.clientX, y: e.clientY, show: true })
       }
     }
 
     const handleClick = () => {
-      if (contextMenu?.show) setContextMenu(null) // 左键点击任意处关闭
+      // 点击任意处关闭
+      if (contextMenu?.show && !isClosing) closeMenu()
     }
 
     window.addEventListener('contextmenu', handleContextMenu)
@@ -130,7 +146,7 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
       window.removeEventListener('contextmenu', handleContextMenu)
       window.removeEventListener('click', handleClick)
     }
-  }, [contextMenu])
+  }, [contextMenu, isClosing])
 
   // 保存设置到本地
   const updateSetting = (key: keyof typeof settings, value: any) => {
@@ -149,7 +165,6 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
     if (settings.clickEffect === 'none') return
 
     const handleClick = (e: MouseEvent) => {
-      // 只有不是右键点击时才触发特效 (button 2 是右键)
       if (e.button === 2) return
 
       const x = e.clientX
@@ -329,7 +344,7 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
 
   return (
     <div className="relative min-h-screen text-slate-300 font-sans selection:bg-sky-500/30 overflow-hidden bg-[#0f172a]">
-      {/* ✨ 精致版动画定义 + 轮盘动画 */}
+      {/* ✨ 精致版动画定义 + 轮盘双向动画 */}
       <style jsx global>{`
         .custom-scrollbar::-webkit-scrollbar { width: 5px; } .custom-scrollbar::-webkit-scrollbar-track { background: transparent; } .custom-scrollbar::-webkit-scrollbar-thumb { background-color: rgba(71, 85, 105, 0.4); border-radius: 20px; } .custom-scrollbar::-webkit-scrollbar-thumb:hover { background-color: rgba(71, 85, 105, 0.8); }
         input[type=range] { -webkit-appearance: none; background: transparent; } input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; height: 16px; width: 16px; border-radius: 50%; background: #38bdf8; cursor: pointer; margin-top: -6px; box-shadow: 0 0 10px rgba(56,189,248,0.5); } input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 4px; cursor: pointer; background: #334155; border-radius: 2px; }
@@ -339,11 +354,17 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
         @keyframes refined-bubble-rise { 0% { transform: translateY(0) scale(0.8); opacity: 0; } 20% { opacity: 0.7; } 100% { transform: translateY(-150px) scale(1.1); opacity: 0; } }
         @keyframes refined-bubble-wobble { 0% { margin-left: -5px; } 100% { margin-left: 5px; } }
 
-        /* 轮盘菜单动画：从中心位置，旋转并放大弹出 */
+        /* 打开动画：顺时针旋转弹出 */
         @keyframes radial-popup {
           0% { transform: translate(0, 0) scale(0) rotate(-90deg); opacity: 0; }
           70% { opacity: 1; }
           100% { transform: translate(var(--tx), var(--ty)) scale(1) rotate(0deg); opacity: 1; }
+        }
+        
+        /* 关闭动画：逆时针旋转缩小回中心 */
+        @keyframes radial-popup-out {
+          0% { transform: translate(var(--tx), var(--ty)) scale(1) rotate(0deg); opacity: 1; }
+          100% { transform: translate(0, 0) scale(0) rotate(-90deg); opacity: 0; }
         }
       `}</style>
 
@@ -360,37 +381,40 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
       {settings.noise && <div className="fixed inset-0 z-[1] pointer-events-none opacity-[0.04] bg-[url('https://grainy-gradients.vercel.app/noise.svg')]"></div>}
       {settings.glow && <div className="fixed z-0 pointer-events-none w-[600px] h-[600px] bg-sky-500/10 rounded-full blur-[80px] transition-transform duration-75 will-change-transform" style={{ left: mousePos.x - 300, top: mousePos.y - 300 }} />}
 
-      {/* ✨✨✨ 环形右键菜单渲染 (无中心点版) ✨✨✨ */}
+      {/* ✨✨✨ 环形右键菜单渲染 (支持双向动画) ✨✨✨ */}
       {contextMenu?.show && (
         <div 
           className="fixed z-[9999]" 
           style={{ left: contextMenu.x, top: contextMenu.y }}
         >
           <div className="relative group">
-             {/* 仅保留菜单项，移除所有中心元素 */}
              {menuItems.map((item, i) => {
-                const radius = 80; // 半径
-                // 角度计算：从12点钟(-90deg)开始，顺时针排列
+                const radius = 80;
                 const angle = (i * 60 - 90) * (Math.PI / 180);
                 const x = Math.cos(angle) * radius;
                 const y = Math.sin(angle) * radius;
-                const delay = i * 0.04; // 顺序弹出延迟
+                
+                // ✨ 动画逻辑：
+                // 打开时：顺时针延迟 (i * 0.04)
+                // 关闭时：逆时针延迟 (倒序播放，看起来像同时收回但有层次)
+                const animName = isClosing ? 'radial-popup-out' : 'radial-popup'
+                const timing = isClosing ? 'ease-in' : 'cubic-bezier(0.34, 1.56, 0.64, 1)'
+                const delay = isClosing ? (menuItems.length - 1 - i) * 0.04 : i * 0.04
 
                 return (
                   <button
                     key={i}
-                    onClick={(e) => { e.stopPropagation(); item.action(); setContextMenu(null); }}
+                    onClick={(e) => { e.stopPropagation(); item.action(); closeMenu(); }}
                     className="absolute w-14 h-14 -ml-7 -mt-7 bg-slate-900/60 border border-white/10 rounded-full flex items-center justify-center shadow-2xl text-slate-200 hover:bg-sky-600/90 hover:text-white hover:border-sky-400 hover:scale-110 transition-all duration-300 backdrop-blur-xl group"
                     style={{
                       '--tx': `${x}px`,
                       '--ty': `${y}px`,
-                      animation: `radial-popup 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards ${delay}s`,
+                      animation: `${animName} 0.4s ${timing} forwards ${delay}s`,
                       opacity: 0,
-                      transform: 'translate(0,0) scale(0) rotate(-90deg)'
+                      transform: isClosing ? `translate(${x}px, ${y}px) scale(1) rotate(0deg)` : 'translate(0,0) scale(0) rotate(-90deg)'
                     } as React.CSSProperties}
                   >
                      {item.icon}
-                     {/* 悬停显示文字标签 (玻璃拟态风格) */}
                      <span className="absolute opacity-0 group-hover:opacity-100 transition-opacity duration-300 text-[10px] text-slate-100 bg-slate-900/80 px-2.5 py-1 rounded-full -bottom-8 whitespace-nowrap pointer-events-none backdrop-blur-md border border-white/10 shadow-lg translate-y-1 group-hover:translate-y-0 transform">
                         {item.label}
                      </span>
