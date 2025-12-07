@@ -214,7 +214,7 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
 
       <div className={`fixed inset-0 z-0 transition-opacity duration-1000 ${settings.themeMode === 'default' ? 'opacity-100' : 'opacity-0'}`}><div className="absolute inset-0 bg-[#0f172a] bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-sky-900/20 via-[#0f172a] to-[#0f172a]"></div></div>
       <div className={`fixed inset-0 z-0 transition-opacity duration-1000 ${settings.themeMode === 'slideshow' ? 'opacity-100' : 'opacity-0'}`}>
-        {currentWallpaperSet.length > 0 ? currentWallpaperSet.map((wp, index) => (
+        {currentWallpaperSet.length > 0 ? currentWallpaperSet.map((wp: string, index: number) => (
           <div key={index} className={getSlideStyle(index)} style={{ backgroundImage: `url(${wp})` }}>
              <div className="absolute inset-0 transition-all duration-500" style={{ backdropFilter: `blur(${settings.bgBlur}px)`, backgroundColor: `rgba(0,0,0,${settings.wallpaperSource === 'custom' ? 0.2 : (timeSlotName === '深夜' ? 0.4 : 0.2)})` }}></div>
           </div>
