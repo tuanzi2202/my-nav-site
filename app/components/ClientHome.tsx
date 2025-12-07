@@ -41,7 +41,6 @@ type ClientHomeProps = {
 type ThemeMode = 'default' | 'slideshow'
 type TransitionEffect = 'fade' | 'zoom' | 'pan'
 type WallpaperSource = 'smart' | 'custom'
-// ✨ 新增：点击特效类型
 type ClickEffectType = 'none' | 'ripple' | 'particles' | 'bubble'
 
 // --- 默认壁纸配置 ---
@@ -77,7 +76,7 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
     activeThemeId: 'default',
     slideshowInterval: 30,
     descColor: '#94a3b8',
-    clickEffect: 'ripple' as ClickEffectType // ✨ 新增：默认波纹特效
+    clickEffect: 'ripple' as ClickEffectType
   }
 
   // --- 状态管理 ---
@@ -117,65 +116,98 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
     }
   }
 
-  // ✨✨✨ 核心逻辑：鼠标点击特效 ✨✨✨
+  // ✨✨✨ 核心逻辑：精致版鼠标点击特效 ✨✨✨
   useEffect(() => {
     if (settings.clickEffect === 'none') return
 
     const handleClick = (e: MouseEvent) => {
       const x = e.clientX
       const y = e.clientY
+      const container = document.createElement('div')
+      container.className = 'fixed pointer-events-none z-[9999] top-0 left-0 w-full h-full overflow-hidden'
+      document.body.appendChild(container)
 
-      // 1. 波纹特效
+      // 1. 多重波纹冲击 (Ripple Shockwave)
       if (settings.clickEffect === 'ripple') {
-        const ripple = document.createElement('div')
-        ripple.className = 'fixed rounded-full bg-white/30 pointer-events-none z-[9999]'
-        ripple.style.left = `${x}px`
-        ripple.style.top = `${y}px`
-        ripple.style.width = '10px'
-        ripple.style.height = '10px'
-        ripple.style.transform = 'translate(-50%, -50%)'
-        ripple.style.animation = 'ripple-anim 0.6s linear forwards'
-        document.body.appendChild(ripple)
-        setTimeout(() => ripple.remove(), 600)
+        const count = 3; // 生成3个波纹
+        for (let i = 0; i < count; i++) {
+            const ripple = document.createElement('div')
+            ripple.className = 'absolute rounded-full border-2 border-sky-400/60 bg-sky-400/10 shadow-[0_0_15px_rgba(56,189,248,0.3)] will-change-transform'
+            ripple.style.left = `${x}px`
+            ripple.style.top = `${y}px`
+            // 随机大小和延迟，制造层次感
+            const size = 20 + i * 15
+            ripple.style.width = `${size}px`
+            ripple.style.height = `${size}px`
+            ripple.style.marginLeft = `-${size/2}px`
+            ripple.style.marginTop = `-${size/2}px`
+            ripple.style.animation = `refined-ripple 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards ${i * 0.1}s`
+            container.appendChild(ripple)
+        }
+        setTimeout(() => container.remove(), 1200)
       }
 
-      // 2. 粒子爆炸特效
+      // 2. 重力粒子爆炸 (Gravity Particles)
       if (settings.clickEffect === 'particles') {
-        const colors = ['#38bdf8', '#818cf8', '#c084fc', '#ffffff']
-        for (let i = 0; i < 8; i++) {
+        const count = 16; // 增加粒子数量
+        const colors = ['#38bdf8', '#818cf8', '#c084fc', '#22d3ee', '#ffffff']
+        for (let i = 0; i < count; i++) {
           const particle = document.createElement('div')
-          particle.className = 'fixed w-1.5 h-1.5 rounded-full pointer-events-none z-[9999]'
+          // 随机圆形或方形粒子
+          const isCircle = Math.random() > 0.3
+          particle.className = `absolute will-change-transform ${isCircle ? 'rounded-full' : 'rounded-sm'} shadow-sm`
           particle.style.left = `${x}px`
           particle.style.top = `${y}px`
           particle.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)]
           
-          // 随机角度和距离
+          // 随机大小
+          const size = Math.random() * 4 + 3 + 'px'
+          particle.style.width = size
+          particle.style.height = size
+          
+          // 物理参数：角度、距离、初速度、旋转
           const angle = Math.random() * Math.PI * 2
-          const velocity = 50 + Math.random() * 50
+          const velocity = 80 + Math.random() * 100 // 爆发力
           const tx = Math.cos(angle) * velocity
-          const ty = Math.sin(angle) * velocity
+          const ty = Math.sin(angle) * velocity - 50 // 初始向上冲
+          const rotation = Math.random() * 360
           
           particle.style.setProperty('--tx', `${tx}px`)
           particle.style.setProperty('--ty', `${ty}px`)
-          particle.style.animation = 'particle-anim 0.8s ease-out forwards'
+          particle.style.setProperty('--r', `${rotation}deg`)
           
-          document.body.appendChild(particle)
-          setTimeout(() => particle.remove(), 800)
+          // 使用 ease-out 让初始爆发快，然后受重力影响
+          particle.style.animation = `refined-particle 1s cubic-bezier(0.215, 0.61, 0.355, 1) forwards`
+          container.appendChild(particle)
         }
+        setTimeout(() => container.remove(), 1100)
       }
 
-      // 3. 气泡上升特效
+      // 3. 梦幻气泡群 (Dreamy Bubbles)
       if (settings.clickEffect === 'bubble') {
-         const bubble = document.createElement('div')
-         bubble.className = 'fixed pointer-events-none z-[9999] border border-sky-400/50 rounded-full'
-         bubble.style.left = `${x}px`
-         bubble.style.top = `${y}px`
-         bubble.style.width = '20px'
-         bubble.style.height = '20px'
-         bubble.style.transform = 'translate(-50%, -50%)'
-         bubble.style.animation = 'bubble-anim 1s ease-out forwards'
-         document.body.appendChild(bubble)
-         setTimeout(() => bubble.remove(), 1000)
+         const count = 5; // 生成气泡群
+         for(let i = 0; i < count; i++) {
+            const bubble = document.createElement('div')
+            // 增加高光质感
+            bubble.className = 'absolute rounded-full border border-sky-300/40 bg-gradient-to-br from-white/40 to-transparent shadow-[inset_0_0_10px_rgba(255,255,255,0.3)] backdrop-blur-[1px] will-change-transform'
+            bubble.style.left = `${x}px`
+            bubble.style.top = `${y}px`
+            
+            // 随机大小、偏移和延迟
+            const size = Math.random() * 25 + 10
+            bubble.style.width = `${size}px`
+            bubble.style.height = `${size}px`
+            const xOffset = (Math.random() - 0.5) * 40
+            bubble.style.marginLeft = `-${size/2 + xOffset}px`
+            bubble.style.marginTop = `-${size/2}px`
+            
+            // 组合动画：上升 + 摇摆
+            const delay = Math.random() * 0.3
+            const duration = 1.2 + Math.random() * 0.5
+            bubble.style.animation = `refined-bubble-rise ${duration}s ease-in forwards ${delay}s, refined-bubble-wobble ${duration*1.5}s ease-in-out infinite alternate ${delay}s`
+            container.appendChild(bubble)
+         }
+         setTimeout(() => container.remove(), 2000)
       }
     }
 
@@ -273,23 +305,38 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
 
   return (
     <div className="relative min-h-screen text-slate-300 font-sans selection:bg-sky-500/30 overflow-hidden bg-[#0f172a]">
-      {/* ✨ 定义点击特效动画 */}
+      {/* ✨ 精致版动画定义 */}
       <style jsx global>{`
         .custom-scrollbar::-webkit-scrollbar { width: 5px; } .custom-scrollbar::-webkit-scrollbar-track { background: transparent; } .custom-scrollbar::-webkit-scrollbar-thumb { background-color: rgba(71, 85, 105, 0.4); border-radius: 20px; } .custom-scrollbar::-webkit-scrollbar-thumb:hover { background-color: rgba(71, 85, 105, 0.8); }
         input[type=range] { -webkit-appearance: none; background: transparent; } input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; height: 16px; width: 16px; border-radius: 50%; background: #38bdf8; cursor: pointer; margin-top: -6px; box-shadow: 0 0 10px rgba(56,189,248,0.5); } input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 4px; cursor: pointer; background: #334155; border-radius: 2px; }
 
-        @keyframes ripple-anim {
-          0% { transform: translate(-50%, -50%) scale(0); opacity: 0.8; }
-          100% { transform: translate(-50%, -50%) scale(5); opacity: 0; }
+        /* 波纹：更强的爆发力和边缘感 */
+        @keyframes refined-ripple {
+          0% { transform: scale(0); opacity: 1; border-width: 4px; }
+          50% { opacity: 0.5; }
+          100% { transform: scale(4); opacity: 0; border-width: 1px; }
         }
-        @keyframes particle-anim {
-          0% { transform: translate(0, 0) scale(1); opacity: 1; }
-          100% { transform: translate(var(--tx), var(--ty)) scale(0); opacity: 0; }
+
+        /* 粒子：带重力和旋转的抛物线 */
+        @keyframes refined-particle {
+          0% { transform: translate(0, 0) rotate(0deg) scale(1); opacity: 1; }
+          60% { opacity: 0.8; }
+          100% { 
+            /* ty 增加一个正值模拟重力下坠 */
+            transform: translate(var(--tx), calc(var(--ty) + 100px)) rotate(var(--r)) scale(0); 
+            opacity: 0; 
+          }
         }
-        @keyframes bubble-anim {
-          0% { transform: translate(-50%, -50%) scale(0.5); opacity: 0; }
-          50% { opacity: 0.8; }
-          100% { transform: translate(-50%, -150%) scale(1.2); opacity: 0; }
+
+        /* 气泡：上升 + 左右摇摆 */
+        @keyframes refined-bubble-rise {
+          0% { transform: translateY(0) scale(0.8); opacity: 0; }
+          20% { opacity: 0.7; }
+          100% { transform: translateY(-150px) scale(1.1); opacity: 0; }
+        }
+        @keyframes refined-bubble-wobble {
+          0% { margin-left: -5px; }
+          100% { margin-left: 5px; }
         }
       `}</style>
 
@@ -429,8 +476,7 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
                     )}
                     {activeTab === 'effects' && (
                         <div className="space-y-6">
-                            
-                            {/* ✨✨✨ 新增：点击特效选择器 ✨✨✨ */}
+                            {/* ✨✨✨ 点击特效选择器 ✨✨✨ */}
                             <div>
                                 <div className="text-xs text-slate-400 mb-3">鼠标点击特效：</div>
                                 <div className="grid grid-cols-4 gap-2">
@@ -457,7 +503,6 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
 
                             <div className="w-full h-px bg-slate-800"></div>
 
-                            {/* 开关类特效 (保持不变) */}
                             <div className="space-y-3">
                                 {[{ key: 'tilt', label: '3D 悬停视差' }, { key: 'glow', label: '鼠标跟随光晕' }, { key: 'noise', label: '胶片噪点质感' }].map((item) => (
                                     <div key={item.key} className="flex items-center justify-between">
@@ -466,22 +511,22 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
                                     </div>
                                 ))}
                             </div>
-                            
                             <div className="w-full h-px bg-slate-800"></div>
-                            
-                            {/* 滑动条类特效 (保持不变) */}
                             <div className="space-y-5">
                                 <div><div className="flex justify-between text-xs mb-2"><span className="text-slate-400">背景模糊度</span><span className="text-sky-400">{settings.bgBlur}px</span></div><input type="range" min="0" max="20" step="1" value={settings.bgBlur} onChange={(e) => updateSetting('bgBlur', parseInt(e.target.value))} className="w-full h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-sky-500" /></div>
                                 <div><div className="flex justify-between text-xs mb-2"><span className="text-slate-400">网站卡片不透明度</span><span className="text-sky-400">{Math.round(settings.cardOpacity * 100)}%</span></div><input type="range" min="0" max="1.0" step="0.05" value={settings.cardOpacity} onChange={(e) => updateSetting('cardOpacity', parseFloat(e.target.value))} className="w-full h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-sky-500" /></div>
                                 <div><div className="flex justify-between text-xs mb-2"><span className="text-slate-400">公告板不透明度</span><span className="text-sky-400">{Math.round(settings.boardOpacity * 100)}%</span></div><input type="range" min="0" max="1.0" step="0.05" value={settings.boardOpacity} onChange={(e) => updateSetting('boardOpacity', parseFloat(e.target.value))} className="w-full h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-sky-500" /></div>
                                 <div><div className="flex justify-between text-xs mb-2"><span className="text-slate-400">界面磨砂感 (Blur)</span><span className="text-sky-400">{settings.uiBlur}px</span></div><input type="range" min="0" max="40" step="2" value={settings.uiBlur} onChange={(e) => updateSetting('uiBlur', parseInt(e.target.value))} className="w-full h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-sky-500" /></div>
-                                
-                                {/* 描述颜色选择器 (保持不变) */}
                                 <div className="flex items-center justify-between p-3 rounded-xl bg-slate-900/50 border border-slate-800/50">
                                     <span className="text-sm font-medium text-slate-200">描述文字颜色</span>
                                     <div className="flex items-center gap-3">
                                         <span className="text-xs text-slate-500 font-mono">{settings.descColor}</span>
-                                        <input type="color" value={settings.descColor} onChange={(e) => updateSetting('descColor', e.target.value)} className="w-8 h-8 rounded cursor-pointer bg-transparent border-0 p-0" />
+                                        <input 
+                                            type="color" 
+                                            value={settings.descColor}
+                                            onChange={(e) => updateSetting('descColor', e.target.value)}
+                                            className="w-8 h-8 rounded cursor-pointer bg-transparent border-0 p-0" 
+                                        />
                                     </div>
                                 </div>
                             </div>
