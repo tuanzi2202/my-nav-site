@@ -1,7 +1,7 @@
 // app/components/ClientHome.tsx
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 
 // --- 类型定义 ---
@@ -30,8 +30,10 @@ type ClientHomeProps = {
 
 type ThemeMode = 'default' | 'slideshow'
 type TransitionEffect = 'fade' | 'zoom' | 'pan'
+// ✨ 新增：壁纸来源类型
+type WallpaperSource = 'smart' | 'custom'
 
-// --- 壁纸配置 ---
+// --- 预设壁纸配置 (智能推荐用) ---
 const WALLPAPER_CONFIG = {
   morning: [
     "/wallpapers/morning/1.jpg",
@@ -63,6 +65,7 @@ function getTimeSlot(): 'morning' | 'afternoon' | 'night' {
 
 export default function ClientHome({ links, categoriesData, currentCategory, searchQuery, announcement }: ClientHomeProps) {
   const router = useRouter()
+  const fileInputRef = useRef<HTMLInputElement>(null) // 用于触发文件上传点击
   
   // --- 状态管理 ---
   const [settings, setSettings] = useState({
@@ -70,23 +73,27 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
     glow: false,
     tilt: false,
     themeMode: 'slideshow' as ThemeMode,
-    bgBlur: 0,          // 默认背景清晰
-    cardOpacity: 0.1,   // ✨ 修改点：默认 10% 不透明度
-    boardOpacity: 0.1,  // ✨ 修改点：默认 10% 不透明度
-    uiBlur: 2,          // 默认微磨砂
-    slideshowEffect: 'fade' as TransitionEffect // 默认柔和淡入
+    bgBlur: 0,
+    cardOpacity: 0.1,
+    boardOpacity: 0.1,
+    uiBlur: 2,
+    slideshowEffect: 'fade' as TransitionEffect,
+    // ✨ 新增状态
+    wallpaperSource: 'smart' as WallpaperSource, // 'smart' or 'custom'
+    customWallpapers: [] as string[]            // 存放自定义壁纸路径的数组
   })
   
   const [showSettings, setShowSettings] = useState(false)
   const [activeTab, setActiveTab] = useState<'effects' | 'theme'>('theme')
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 })
+  const [isUploading, setIsUploading] = useState(false) // 上传 loading 状态
   
   // 轮播相关状态
   const [currentWallpaperSet, setCurrentWallpaperSet] = useState<string[]>([])
   const [currentSlide, setCurrentSlide] = useState(0)
   const [timeSlotName, setTimeSlotName] = useState('')
 
-  // 初始化设置
+  // 初始化设置 (从 localStorage 读取)
   useEffect(() => {
     const saved = localStorage.getItem('nav_settings')
     if (saved) {
@@ -97,23 +104,45 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
         ...parsed, 
         themeMode: validMode,
         bgBlur: parsed.bgBlur ?? 0,
-        cardOpacity: parsed.cardOpacity ?? 0.1,  // ✨ 读取存档时也应用新默认值作为 fallback
-        boardOpacity: parsed.boardOpacity ?? 0.1, // ✨
+        cardOpacity: parsed.cardOpacity ?? 0.1,
+        boardOpacity: parsed.boardOpacity ?? 0.1,
         uiBlur: parsed.uiBlur ?? 2,
-        slideshowEffect: parsed.slideshowEffect ?? 'fade'
+        slideshowEffect: parsed.slideshowEffect ?? 'fade',
+        // ✨ 读取新状态，提供默认值
+        wallpaperSource: parsed.wallpaperSource ?? 'smart',
+        customWallpapers: parsed.customWallpapers ?? []
       }))
     }
   }, [])
 
-  // 初始化壁纸逻辑
+  // ✨✨✨ 核心逻辑修改：壁纸源切换 ✨✨✨
+  // 根据 settings.wallpaperSource 决定使用哪组壁纸
   useEffect(() => {
-    const slot = getTimeSlot()
-    setCurrentWallpaperSet(WALLPAPER_CONFIG[slot])
-    const slotMap = { morning: '早晨', afternoon: '午后', night: '深夜' }
-    setTimeSlotName(slotMap[slot])
-  }, [])
+    let newSet: string[] = []
+    let newSlotName = ''
 
-  // 保存设置
+    if (settings.wallpaperSource === 'custom' && settings.customWallpapers.length > 0) {
+        // 使用自定义壁纸
+        newSet = settings.customWallpapers
+        newSlotName = '自定义'
+    } else {
+        // 使用智能推荐 (fallback)
+        const slot = getTimeSlot()
+        newSet = WALLPAPER_CONFIG[slot]
+        const slotMap = { morning: '早晨', afternoon: '午后', night: '深夜' }
+        newSlotName = slotMap[slot]
+    }
+    
+    // 仅当壁纸组真正改变时才更新状态和重置索引
+    if (JSON.stringify(newSet) !== JSON.stringify(currentWallpaperSet)) {
+      setCurrentWallpaperSet(newSet)
+      setTimeSlotName(newSlotName)
+      setCurrentSlide(0) // 切换源后重置到第一张
+    }
+
+  }, [settings.wallpaperSource, settings.customWallpapers]) // 依赖项加入 source 和 custom array
+
+  // 保存设置到 localStorage
   const updateSetting = (key: keyof typeof settings, value: any) => {
     const newSettings = { ...settings, [key]: value }
     setSettings(newSettings)
@@ -122,19 +151,24 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
 
   // 轮播图计时器
   useEffect(() => {
-    if (settings.themeMode !== 'slideshow') return
+    if (settings.themeMode !== 'slideshow' || currentWallpaperSet.length <= 1) return // 一张图时不轮播
     const timer = setInterval(() => {
       setCurrentSlide(prev => (prev + 1) % currentWallpaperSet.length)
-      const newSlot = getTimeSlot()
-      const newSet = WALLPAPER_CONFIG[newSlot]
-      if (newSet !== currentWallpaperSet) {
-         setCurrentWallpaperSet(newSet)
-         const slotMap = { morning: '早晨', afternoon: '午后', night: '深夜' }
-         setTimeSlotName(slotMap[newSlot])
+      
+      // 如果是智能模式，顺便检查时间段
+      if (settings.wallpaperSource === 'smart') {
+          const newSlot = getTimeSlot()
+          const newSet = WALLPAPER_CONFIG[newSlot]
+          // 简单的引用比较，如果预设配置变了，说明跨时段了
+          if (newSet !== WALLPAPER_CONFIG[getTimeSlot()]) {
+            // 这里其实可以用更复杂的逻辑，但利用上面的 useEffect 依赖已足够
+            // 强制触发更新
+             updateSetting('wallpaperSource', 'smart')
+          }
       }
     }, 30000)
     return () => clearInterval(timer)
-  }, [settings.themeMode, currentWallpaperSet])
+  }, [settings.themeMode, currentWallpaperSet, settings.wallpaperSource])
 
   // 鼠标光晕
   useEffect(() => {
@@ -188,6 +222,46 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
     return `${baseClass} ${opacityClass} ${transformClass}`
   }
 
+  // ✨ 处理图片上传
+  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files
+    if (!files || files.length === 0) return
+
+    setIsUploading(true)
+    const formData = new FormData()
+    Array.from(files).forEach(file => formData.append('files', file))
+
+    try {
+      const res = await fetch('/api/upload', { method: 'POST', body: formData })
+      const data = await res.json()
+      if (data.paths) {
+        // 将新上传的图片追加到现有列表中
+        const newCustomWallpapers = [...settings.customWallpapers, ...data.paths]
+        updateSetting('customWallpapers', newCustomWallpapers)
+        // 如果当前不是自定义模式，自动切换过去
+        if (settings.wallpaperSource !== 'custom') {
+            updateSetting('wallpaperSource', 'custom')
+        }
+      }
+    } catch (error) {
+      console.error('Upload failed:', error)
+      alert('图片上传失败，请重试')
+    } finally {
+      setIsUploading(false)
+      if (fileInputRef.current) fileInputRef.current.value = '' // 清空 input
+    }
+  }
+
+  // ✨ 处理移除自定义图片
+  const handleRemoveCustomWallpaper = (pathToRemove: string) => {
+    const newCustomWallpapers = settings.customWallpapers.filter(path => path !== pathToRemove)
+    updateSetting('customWallpapers', newCustomWallpapers)
+    // 如果删光了，自动切回智能模式
+    if (newCustomWallpapers.length === 0) {
+        updateSetting('wallpaperSource', 'smart')
+    }
+  }
+
   return (
     <div className="relative min-h-screen text-slate-300 font-sans selection:bg-sky-500/30 overflow-hidden bg-[#0f172a]">
       <style jsx global>{`
@@ -207,9 +281,9 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
       </div>
 
       <div className={`fixed inset-0 z-0 transition-opacity duration-1000 ${settings.themeMode === 'slideshow' ? 'opacity-100' : 'opacity-0'}`}>
-        {currentWallpaperSet.map((wp, index) => (
+        {currentWallpaperSet.length > 0 ? currentWallpaperSet.map((wp, index) => (
           <div 
-            key={wp}
+            key={wp + index} // index needed for unique key if same image added twice
             className={getSlideStyle(index)}
             style={{ backgroundImage: `url(${wp})` }}
           >
@@ -217,11 +291,17 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
                 className="absolute inset-0 transition-all duration-500"
                 style={{ 
                     backdropFilter: `blur(${settings.bgBlur}px)`,
-                    backgroundColor: `rgba(0,0,0,${timeSlotName === '深夜' ? 0.4 : 0.2})` 
+                    // 如果是自定义模式，使用统一的淡遮罩；如果是智能模式，根据时段调整
+                    backgroundColor: `rgba(0,0,0,${settings.wallpaperSource === 'custom' ? 0.2 : (timeSlotName === '深夜' ? 0.4 : 0.2)})`
                 }}
              ></div>
           </div>
-        ))}
+        )) : (
+           /* 没有自定义壁纸时的 fallback 显示 */
+           <div className="absolute inset-0 bg-[#0f172a] flex items-center justify-center text-slate-500">
+               请在设置中上传壁纸
+           </div>
+        )}
       </div>
 
       {settings.noise && <div className="fixed inset-0 z-[1] pointer-events-none opacity-[0.04] bg-[url('https://grainy-gradients.vercel.app/noise.svg')]"></div>}
@@ -229,11 +309,8 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
 
       {/* --- 主界面 --- */}
       <div className="relative z-10 flex h-screen">
-        {/* 左侧侧边栏 */}
-        <aside 
-            className="w-64 border-r border-slate-800/40 bg-slate-900/60 flex-col hidden md:flex h-full transition-all duration-300"
-            style={{ backdropFilter: `blur(${settings.uiBlur}px)` }}
-        >
+        {/* 左侧侧边栏 (保持不变) */}
+        <aside className="w-64 border-r border-slate-800/40 bg-slate-900/60 flex-col hidden md:flex h-full transition-all duration-300" style={{ backdropFilter: `blur(${settings.uiBlur}px)` }}>
           <div className="p-8">
             <h1 className="text-3xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-sky-400 to-indigo-400">Oasis</h1>
             <p className="text-xs text-slate-500 mt-2 font-medium tracking-wide uppercase">Your Digital Sanctuary</p>
@@ -258,7 +335,7 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
           </div>
         </aside>
 
-        {/* 右侧内容区 */}
+        {/* 右侧内容区 (保持不变) */}
         <main className="flex-1 overflow-y-auto custom-scrollbar p-6 md:p-10 relative">
           <header className="md:hidden mb-8 flex justify-between items-center bg-slate-900/80 backdrop-blur p-4 rounded-xl border border-slate-800 sticky top-0 z-50 shadow-lg">
                <h1 className="text-xl font-bold text-white">Oasis</h1>
@@ -341,9 +418,10 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
       </div>
 
       <button onClick={() => setShowSettings(true)} className="fixed bottom-6 right-6 z-50 p-3 bg-slate-800/80 backdrop-blur border border-slate-700 rounded-full text-slate-400 hover:text-white hover:bg-slate-700 hover:border-sky-500/50 shadow-lg hover:shadow-sky-500/20 transition-all duration-300 group">
-        <svg className="w-6 h-6 group-hover:rotate-90 transition-transform duration-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+        <svg className="w-6 h-6 group-hover:rotate-90 transition-transform duration-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
       </button>
 
+      {/* --- 设置面板 --- */}
       {showSettings && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200" onClick={() => setShowSettings(false)}>
             <div className="bg-[#0f172a] border border-slate-700 w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
@@ -351,41 +429,72 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
                     <button onClick={() => setActiveTab('theme')} className={`flex-1 py-3 text-sm font-medium transition-colors ${activeTab === 'theme' ? 'bg-slate-800 text-sky-400' : 'text-slate-500 hover:text-slate-300'}`}>主题背景</button>
                     <button onClick={() => setActiveTab('effects')} className={`flex-1 py-3 text-sm font-medium transition-colors ${activeTab === 'effects' ? 'bg-slate-800 text-sky-400' : 'text-slate-500 hover:text-slate-300'}`}>视觉特效</button>
                 </div>
-                <div className="p-6">
+                <div className="p-6 overflow-y-auto custom-scrollbar max-h-[70vh]">
                     {activeTab === 'theme' && (
-                        <div className="space-y-4">
-                            <div className="text-sm text-slate-400 mb-2">选择背景模式：</div>
-                            <button onClick={() => updateSetting('themeMode', 'default')} className={`w-full flex items-center p-3 rounded-xl border transition-all ${settings.themeMode === 'default' ? 'border-sky-500 bg-sky-500/10 text-white' : 'border-slate-800 bg-slate-900/50 text-slate-400 hover:border-slate-700'}`}>
-                                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-sky-900 to-[#0f172a] border border-slate-600 mr-3"></div>
-                                <div className="text-left"><div className="font-medium">默认深色</div><div className="text-[10px] opacity-70">极简深蓝径向渐变</div></div>
-                            </button>
-                            <button onClick={() => updateSetting('themeMode', 'slideshow')} className={`w-full flex items-center p-3 rounded-xl border transition-all ${settings.themeMode === 'slideshow' ? 'border-sky-500 bg-sky-500/10 text-white' : 'border-slate-800 bg-slate-900/50 text-slate-400 hover:border-slate-700'}`}>
-                                <div className="w-8 h-8 rounded-full bg-gradient-to-r from-orange-400 to-sky-500 border border-slate-600 mr-3 flex items-center justify-center relative overflow-hidden"><div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1470252649378-9c29740c9fa8?q=80&w=100&auto=format&fit=crop')] bg-cover"></div></div>
-                                <div className="text-left"><div className="font-medium">智能轮播</div><div className="text-[10px] opacity-70">根据时间段自动切换风景</div></div>
-                            </button>
-                            
-                            {/* ✨✨✨ 修复：找回了轮播切换效果选择器 ✨✨✨ */}
+                        <div className="space-y-6">
+                            {/* 模式选择 */}
+                            <div>
+                                <div className="text-sm text-slate-400 mb-3">选择背景模式：</div>
+                                <div className="grid grid-cols-2 gap-3">
+                                    <button onClick={() => updateSetting('themeMode', 'default')} className={`flex items-center justify-center p-3 rounded-xl border transition-all ${settings.themeMode === 'default' ? 'border-sky-500 bg-sky-500/10 text-white' : 'border-slate-800 bg-slate-900/50 text-slate-400 hover:border-slate-700'}`}>
+                                        <span className="text-sm font-medium">默认深色</span>
+                                    </button>
+                                    <button onClick={() => updateSetting('themeMode', 'slideshow')} className={`flex items-center justify-center p-3 rounded-xl border transition-all ${settings.themeMode === 'slideshow' ? 'border-sky-500 bg-sky-500/10 text-white' : 'border-slate-800 bg-slate-900/50 text-slate-400 hover:border-slate-700'}`}>
+                                        <span className="text-sm font-medium">动态轮播</span>
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* 轮播设置 (仅在轮播模式显示) */}
                             {settings.themeMode === 'slideshow' && (
-                                <div className="mt-4 pt-4 border-t border-slate-800">
-                                    <div className="text-xs text-slate-400 mb-3">切换动画效果：</div>
-                                    <div className="grid grid-cols-3 gap-2">
-                                        {[
-                                            { id: 'fade', label: '柔和淡入' },
-                                            { id: 'zoom', label: '呼吸缩放' },
-                                            { id: 'pan', label: '全景运镜' },
-                                        ].map((effect) => (
-                                            <button
-                                                key={effect.id}
-                                                onClick={() => updateSetting('slideshowEffect', effect.id)}
-                                                className={`py-2 text-xs rounded-lg border transition-all ${
-                                                    settings.slideshowEffect === effect.id
-                                                        ? 'bg-sky-500/20 border-sky-500 text-sky-400 font-medium'
-                                                        : 'bg-slate-800 border-slate-700 text-slate-400 hover:bg-slate-700'
-                                                }`}
-                                            >
-                                                {effect.label}
-                                            </button>
-                                        ))}
+                                <div className="space-y-6 pt-4 border-t border-slate-800">
+                                    {/* 壁纸来源 */}
+                                    <div>
+                                        <div className="text-xs text-slate-400 mb-3">壁纸来源：</div>
+                                        <div className="flex bg-slate-900 p-1 rounded-lg border border-slate-800">
+                                            <button onClick={() => updateSetting('wallpaperSource', 'smart')} className={`flex-1 py-2 text-xs rounded-md transition ${settings.wallpaperSource === 'smart' ? 'bg-slate-800 text-sky-400 shadow' : 'text-slate-500 hover:text-slate-300'}`}>智能推荐 (分时段)</button>
+                                            <button onClick={() => updateSetting('wallpaperSource', 'custom')} className={`flex-1 py-2 text-xs rounded-md transition ${settings.wallpaperSource === 'custom' ? 'bg-slate-800 text-sky-400 shadow' : 'text-slate-500 hover:text-slate-300'}`}>自定义上传</button>
+                                        </div>
+                                    </div>
+
+                                    {/* 自定义上传区域 */}
+                                    {settings.wallpaperSource === 'custom' && (
+                                        <div className="space-y-4">
+                                            {/* 上传按钮 */}
+                                            <div className="flex justify-center">
+                                                <input ref={fileInputRef} type="file" accept="image/*" multiple className="hidden" onChange={handleUpload} />
+                                                <button onClick={() => fileInputRef.current?.click()} disabled={isUploading} className="flex items-center gap-2 px-4 py-2 bg-sky-600 hover:bg-sky-500 disabled:bg-slate-700 text-white text-sm rounded-lg transition-colors">
+                                                    {isUploading ? <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> : <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>}
+                                                    <span>{isUploading ? '正在上传...' : '选择图片 (支持多选)'}</span>
+                                                </button>
+                                            </div>
+                                            
+                                            {/* 已上传图片预览 */}
+                                            {settings.customWallpapers.length > 0 ? (
+                                                <div className="grid grid-cols-3 gap-2 p-2 bg-slate-900/50 rounded-xl border border-slate-800/50 max-h-48 overflow-y-auto custom-scrollbar">
+                                                    {settings.customWallpapers.map((path, idx) => (
+                                                        <div key={path + idx} className="relative group aspect-square rounded-lg overflow-hidden border border-slate-700">
+                                                            <img src={path} alt="custom wallpaper" className="w-full h-full object-cover" />
+                                                            <button onClick={(e) => { e.stopPropagation(); handleRemoveCustomWallpaper(path); }} className="absolute top-1 right-1 p-1 bg-red-500/80 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
+                                                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                                                            </button>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            ) : (
+                                                <p className="text-center text-xs text-slate-500 py-4 border-2 border-dashed border-slate-800 rounded-xl">暂无自定义壁纸</p>
+                                            )}
+                                        </div>
+                                    )}
+
+                                    {/* 轮播动画选择 */}
+                                    <div>
+                                        <div className="text-xs text-slate-400 mb-3">切换动画效果：</div>
+                                        <div className="grid grid-cols-3 gap-2">
+                                            {[{ id: 'fade', label: '柔和淡入' }, { id: 'zoom', label: '呼吸缩放' }, { id: 'pan', label: '全景运镜' }].map((effect) => (
+                                                <button key={effect.id} onClick={() => updateSetting('slideshowEffect', effect.id)} className={`py-2 text-xs rounded-lg border transition-all ${settings.slideshowEffect === effect.id ? 'bg-sky-500/20 border-sky-500 text-sky-400 font-medium' : 'bg-slate-800 border-slate-700 text-slate-400 hover:bg-slate-700'}`}>{effect.label}</button>
+                                            ))}
+                                        </div>
                                     </div>
                                 </div>
                             )}
