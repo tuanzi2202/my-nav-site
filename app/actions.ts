@@ -171,3 +171,22 @@ export async function deleteSmartWallpaper(formData: FormData) {
   revalidatePath('/admin')
   revalidatePath('/')
 }
+
+// 更新智能主题
+export async function updateSmartWallpaper(formData: FormData) {
+  const id = formData.get('id') as string
+  const name = formData.get('name') as string
+  const morning = formData.get('morning') as string
+  const afternoon = formData.get('afternoon') as string
+  const night = formData.get('night') as string
+
+  if (!id || !name) return
+
+  await prisma.smartWallpaper.update({
+    where: { id: parseInt(id) },
+    data: { name, morning, afternoon, night }
+  })
+
+  revalidatePath('/admin')
+  revalidatePath('/')
+}

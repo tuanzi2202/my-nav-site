@@ -2,23 +2,24 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { addLink, deleteLink, updateLink, getCategories, autoSyncCategories, reorderCategories, deleteCategoryConfig, updateAnnouncement, addSmartWallpaper, deleteSmartWallpaper } from '../actions'
+// ✨ 引入 updateSmartWallpaper
+import { addLink, deleteLink, updateLink, getCategories, autoSyncCategories, reorderCategories, deleteCategoryConfig, updateAnnouncement, addSmartWallpaper, deleteSmartWallpaper, updateSmartWallpaper } from '../actions'
 
 type LinkItem = { id: number; title: string; url: string; description: string | null; category: string; isRecommended: boolean; createdAt: Date }
 type CategoryItem = { id: number; name: string; sortOrder: number }
 type ThemeItem = { id: number; name: string; morning: string; afternoon: string; night: string }
 
-// ✨ props 增加 initialThemes
 export default function AdminClient({ initialLinks, initialAnnouncement, initialThemes }: { initialLinks: LinkItem[], initialAnnouncement: string, initialThemes: ThemeItem[] }) {
-  // ✨ Tab 增加 'themes'
   const [activeTab, setActiveTab] = useState<'links' | 'categories' | 'settings' | 'themes'>('links')
   const [categories, setCategories] = useState<CategoryItem[]>([])
   const [announcement, setAnnouncement] = useState(initialAnnouncement)
-  // ✨ 主题列表状态（虽然主要是服务端传来的，但删除后需要更新 UI，这里简单起见依赖 revalidatePath 刷新页面，或者手动维护 list）
-  // 实际上 revalidatePath 会刷新页面数据，所以直接用 initialThemes 也可以，但为了即时反馈，建议配合 router.refresh()，这里简化处理直接用 props
   
   const [searchQuery, setSearchQuery] = useState('')
   const [editingLink, setEditingLink] = useState<LinkItem | null>(null)
+  
+  // ✨ 新增：正在编辑的主题状态
+  const [editingTheme, setEditingTheme] = useState<ThemeItem | null>(null)
+  
   const [filterCategory, setFilterCategory] = useState('All')
   
   const [draggingItem, setDraggingItem] = useState<number | null>(null)
@@ -33,7 +34,7 @@ export default function AdminClient({ initialLinks, initialAnnouncement, initial
     init()
   }, [])
 
-  // 拖拽逻辑 (保持不变)
+  // 拖拽逻辑
   const handleDragStart = (e: React.DragEvent, position: number) => { setDraggingItem(position); dragOverItem.current = position }
   const handleDragEnter = (e: React.DragEvent, position: number) => { dragOverItem.current = position }
   const handleDragEnd = async () => {
@@ -58,6 +59,12 @@ export default function AdminClient({ initialLinks, initialAnnouncement, initial
   async function handleAdd(formData: FormData) { await addLink(formData); const form = document.getElementById('add-form') as HTMLFormElement; if (form) form.reset(); const data = await getCategories(); setCategories(data); }
   async function handleUpdate(formData: FormData) { await updateLink(formData); setEditingLink(null); const data = await getCategories(); setCategories(data); }
   async function handleUpdateAnnouncement(formData: FormData) { await updateAnnouncement(formData); alert('公告已更新！') }
+  
+  // ✨ 处理主题更新
+  async function handleUpdateTheme(formData: FormData) {
+    await updateSmartWallpaper(formData)
+    setEditingTheme(null)
+  }
 
   return (
     <div>
@@ -67,7 +74,6 @@ export default function AdminClient({ initialLinks, initialAnnouncement, initial
         <div className="flex bg-slate-900 p-1 rounded-lg border border-slate-800 overflow-x-auto">
             <button onClick={() => setActiveTab('links')} className={`px-4 py-2 text-sm rounded-md transition whitespace-nowrap ${activeTab === 'links' ? 'bg-slate-800 text-white shadow' : 'text-slate-500 hover:text-slate-300'}`}>资源管理</button>
             <button onClick={() => setActiveTab('categories')} className={`px-4 py-2 text-sm rounded-md transition whitespace-nowrap ${activeTab === 'categories' ? 'bg-slate-800 text-white shadow' : 'text-slate-500 hover:text-slate-300'}`}>分类排序</button>
-            {/* ✨ 新增 Tab */}
             <button onClick={() => setActiveTab('themes')} className={`px-4 py-2 text-sm rounded-md transition whitespace-nowrap ${activeTab === 'themes' ? 'bg-slate-800 text-white shadow' : 'text-slate-500 hover:text-slate-300'}`}>主题管理</button>
             <button onClick={() => setActiveTab('settings')} className={`px-4 py-2 text-sm rounded-md transition whitespace-nowrap ${activeTab === 'settings' ? 'bg-slate-800 text-white shadow' : 'text-slate-500 hover:text-slate-300'}`}>全局配置</button>
         </div>
@@ -110,9 +116,28 @@ export default function AdminClient({ initialLinks, initialAnnouncement, initial
         </div>
       )}
 
-      {/* ✨ Tab D: 主题管理 (新增) ✨ */}
+      {/* ✨ Tab D: 主题管理 (升级版) ✨ */}
       {activeTab === 'themes' && (
         <div className="space-y-8">
+            {/* ✨ 1. 图床工具箱引导 */}
+            <div className="bg-sky-900/20 border border-sky-800/50 rounded-xl p-4 flex items-start gap-4">
+                <div className="p-2 bg-sky-900/40 rounded-lg text-sky-400">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                </div>
+                <div>
+                    <h3 className="text-sm font-bold text-sky-200 mb-1">图片链接哪里找？</h3>
+                    <p className="text-xs text-slate-400 mb-2">如果您有本地图片想要制作成轮播主题，推荐使用免费图床工具生成 HTTPS 链接。</p>
+                    <a 
+                        href="https://postimages.org/" 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 text-xs bg-sky-600 hover:bg-sky-500 text-white px-3 py-1.5 rounded-md transition"
+                    >
+                        前往 Postimages 上传图片 <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
+                    </a>
+                </div>
+            </div>
+
             <div className="bg-slate-900/50 border border-slate-800/60 rounded-2xl p-6">
                 <h2 className="text-lg font-semibold text-slate-100 mb-5">添加智能轮播主题</h2>
                 <form action={addSmartWallpaper} className="space-y-4">
@@ -147,12 +172,14 @@ export default function AdminClient({ initialLinks, initialAnnouncement, initial
                             <tr key={theme.id} className="hover:bg-slate-800/30">
                                 <td className="p-5 font-medium text-slate-200">{theme.name}</td>
                                 <td className="p-5 text-xs text-slate-500">
-                                    <span className="text-orange-300">早: {theme.morning.split('\n').length}</span> <span className="mx-1">/</span> 
-                                    <span className="text-sky-300">午: {theme.afternoon.split('\n').length}</span> <span className="mx-1">/</span> 
-                                    <span className="text-indigo-300">晚: {theme.night.split('\n').length}</span>
+                                    <span className="text-orange-300">早: {theme.morning.split(/[\n,]/).filter(s=>s.trim()).length}</span> <span className="mx-1">/</span> 
+                                    <span className="text-sky-300">午: {theme.afternoon.split(/[\n,]/).filter(s=>s.trim()).length}</span> <span className="mx-1">/</span> 
+                                    <span className="text-indigo-300">晚: {theme.night.split(/[\n,]/).filter(s=>s.trim()).length}</span>
                                 </td>
                                 <td className="p-5 text-right">
-                                    <form action={deleteSmartWallpaper}>
+                                    {/* ✨ 编辑按钮 */}
+                                    <button onClick={() => setEditingTheme(theme)} className="text-sky-400 hover:text-sky-300 text-sm mr-3">编辑</button>
+                                    <form action={deleteSmartWallpaper} className="inline">
                                         <input type="hidden" name="id" value={theme.id} />
                                         <button className="text-red-400 hover:text-red-300 text-sm">删除</button>
                                     </form>
@@ -179,7 +206,7 @@ export default function AdminClient({ initialLinks, initialAnnouncement, initial
         </div>
       )}
 
-      {/* 编辑弹窗 (保持不变) */}
+      {/* 资源编辑弹窗 (保持不变) */}
       {editingLink && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
           <div className="bg-[#0f172a] border border-slate-700 w-full max-w-2xl rounded-2xl p-6 shadow-2xl">
@@ -194,6 +221,42 @@ export default function AdminClient({ initialLinks, initialAnnouncement, initial
               </div>
               <textarea name="description" defaultValue={editingLink.description || ''} className="w-full bg-slate-800 border-slate-700 rounded-xl p-3 text-white h-24" />
               <div className="flex justify-end gap-3"><button type="button" onClick={() => setEditingLink(null)} className="px-5 py-2.5 rounded-xl text-slate-300 hover:bg-slate-800">取消</button><button type="submit" className="px-6 py-2.5 rounded-xl bg-sky-600 hover:bg-sky-500 text-white">保存</button></div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ✨ 新增：主题编辑弹窗 ✨ */}
+      {editingTheme && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-[#0f172a] border border-slate-700 w-full max-w-2xl rounded-2xl p-6 shadow-2xl animate-in zoom-in-95">
+            <div className="flex justify-between items-center mb-6">
+                <h2 className="text-xl font-bold text-white">编辑主题</h2>
+                <button onClick={() => setEditingTheme(null)} className="text-slate-500 hover:text-white">✕</button>
+            </div>
+            <form action={handleUpdateTheme} className="space-y-4">
+                <input type="hidden" name="id" value={editingTheme.id} />
+                <div className="grid grid-cols-1 gap-4">
+                    <input name="name" defaultValue={editingTheme.name} placeholder="主题名称" required className="bg-slate-800 border border-slate-700 rounded-xl p-3 text-slate-200 focus:outline-none focus:border-indigo-500" />
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                        <label className="text-xs text-orange-400 mb-1 block">早晨</label>
+                        <textarea name="morning" defaultValue={editingTheme.morning} className="w-full bg-slate-800 border border-slate-700 rounded-xl p-3 text-slate-200 text-xs h-32 focus:outline-none focus:border-orange-500" />
+                    </div>
+                    <div>
+                        <label className="text-xs text-sky-400 mb-1 block">午后</label>
+                        <textarea name="afternoon" defaultValue={editingTheme.afternoon} className="w-full bg-slate-800 border border-slate-700 rounded-xl p-3 text-slate-200 text-xs h-32 focus:outline-none focus:border-sky-500" />
+                    </div>
+                    <div>
+                        <label className="text-xs text-indigo-400 mb-1 block">深夜</label>
+                        <textarea name="night" defaultValue={editingTheme.night} className="w-full bg-slate-800 border border-slate-700 rounded-xl p-3 text-slate-200 text-xs h-32 focus:outline-none focus:border-indigo-500" />
+                    </div>
+                </div>
+                <div className="flex justify-end gap-3 pt-2">
+                    <button type="button" onClick={() => setEditingTheme(null)} className="px-5 py-2.5 rounded-xl text-slate-300 hover:bg-slate-800 transition">取消</button>
+                    <button type="submit" className="px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-medium shadow-lg transition">保存修改</button>
+                </div>
             </form>
           </div>
         </div>
