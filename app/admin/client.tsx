@@ -26,7 +26,6 @@ export default function AdminClient({
   const [categories, setCategories] = useState<CategoryItem[]>([])
   const [announcement, setAnnouncement] = useState(initialAnnouncement)
   
-  // 默认值兜底
   const defaultUISettings = {
     themeMode: 'slideshow',
     wallpaperSource: 'smart',
@@ -62,7 +61,6 @@ export default function AdminClient({
     init()
   }, [])
 
-  // --- 拖拽逻辑 ---
   const handleDragStart = (e: React.DragEvent, position: number) => { setDraggingItem(position); dragOverItem.current = position }
   const handleDragEnter = (e: React.DragEvent, position: number) => { dragOverItem.current = position }
   const handleDragEnd = async () => {
@@ -76,7 +74,6 @@ export default function AdminClient({
     await reorderCategories(updates.map(c => ({ id: c.id, sortOrder: c.sortOrder })));
   }
 
-  // --- 链接管理逻辑 ---
   const categoryOptions = Array.from(new Set([...initialLinks.map(l => l.category), ...categories.map(c => c.name)]))
   const filteredLinks = initialLinks.filter(link => {
     const q = searchQuery.toLowerCase()
@@ -87,7 +84,7 @@ export default function AdminClient({
 
   async function handleAdd(formData: FormData) { await addLink(formData); const form = document.getElementById('add-form') as HTMLFormElement; if (form) form.reset(); const data = await getCategories(); setCategories(data); }
   async function handleUpdate(formData: FormData) { await updateLink(formData); setEditingLink(null); const data = await getCategories(); setCategories(data); }
-  async function handleUpdateAnnouncement(formData: FormData) { await updateAnnouncement(formData); alert('公告已发布！') }
+  async function handleUpdateAnnouncement(formData: FormData) { await updateAnnouncement(formData); alert('公告已更新！') }
   async function handleUpdateTheme(formData: FormData) { await updateSmartWallpaper(formData); setEditingTheme(null) }
   
   const updateGlobalState = (key: string, value: any) => {
@@ -159,38 +156,39 @@ export default function AdminClient({
         </div>
       )}
 
-      {/* Tab C: 主题管理 */}
+      {/* ✨ Tab D: 主题管理 (更新：带详细引导的蓝色卡片) ✨ */}
       {activeTab === 'themes' && (
         <div className="space-y-8">
-            {/* ✨ 图片资源引导卡片 ✨ */}
-            <div className="bg-sky-900/20 border border-sky-800/50 rounded-xl p-6 flex flex-col md:flex-row md:items-start gap-5">
-                <div className="p-3 bg-sky-900/40 rounded-xl text-sky-400 shrink-0">
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-                </div>
-                <div className="flex-1">
-                    <h3 className="text-base font-bold text-sky-200 mb-2">图片链接哪里找？</h3>
-                    <p className="text-sm text-slate-400 mb-4 leading-relaxed">
-                        如果您有本地图片想要制作成轮播主题，需要先将其上传到网络。推荐使用免费图床工具生成 HTTPS 链接，或直接去壁纸站复制链接。
-                    </p>
-                    <div className="flex flex-wrap gap-3">
-                        <a 
-                            href="https://postimages.org/" 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-2 text-sm bg-slate-800 hover:bg-sky-600 text-slate-200 hover:text-white px-4 py-2 rounded-lg transition border border-slate-700 hover:border-sky-500"
-                        >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
-                            Postimages (上传本地图片)
-                        </a>
-                        <a 
-                            href="https://wallhere.com" 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-2 text-sm bg-slate-800 hover:bg-sky-600 text-slate-200 hover:text-white px-4 py-2 rounded-lg transition border border-slate-700 hover:border-sky-500"
-                        >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-                            Wallhere (右键图片 &rarr; 复制地址)
-                        </a>
+            {/* 蓝色引导卡片 */}
+            <div className="bg-sky-900/20 border border-sky-800/50 rounded-xl p-6">
+                <h3 className="text-base font-bold text-sky-200 mb-4 flex items-center gap-2">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                    图片链接哪里找？
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* 方式一：本地上传 */}
+                    <div className="bg-slate-900/50 p-4 rounded-lg border border-slate-800">
+                        <div className="flex justify-between items-start">
+                            <div>
+                                <h4 className="text-sm font-bold text-sky-100 mb-1">方式 A：本地图片</h4>
+                                <p className="text-xs text-slate-400 mb-3 leading-relaxed">上传图片后，复制 <strong>"Direct Link"</strong></p>
+                            </div>
+                            <a href="https://postimages.org/" target="_blank" rel="noopener noreferrer" className="text-xs bg-sky-600 hover:bg-sky-500 text-white px-3 py-1.5 rounded-md transition flex items-center gap-1">
+                                去上传 <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
+                            </a>
+                        </div>
+                    </div>
+                    {/* 方式二：网络图片 */}
+                    <div className="bg-slate-900/50 p-4 rounded-lg border border-slate-800">
+                        <div className="flex justify-between items-start">
+                             <div>
+                                <h4 className="text-sm font-bold text-sky-100 mb-1">方式 B：网络壁纸</h4>
+                                <p className="text-xs text-slate-400 mb-3 leading-relaxed">右键图片 &rarr; 选择 <strong>"复制图片地址"</strong></p>
+                             </div>
+                             <a href="https://wallhere.com" target="_blank" rel="noopener noreferrer" className="text-xs bg-slate-700 hover:bg-slate-600 text-slate-200 px-3 py-1.5 rounded-md transition flex items-center gap-1">
+                                找壁纸 <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                             </a>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -223,14 +221,14 @@ export default function AdminClient({
         </div>
       )}
 
-      {/* Tab E: 公告发布 (含历史记录) */}
+      {/* Tab E: 公告发布 */}
       {activeTab === 'announcement' && (
         <div className="max-w-4xl mx-auto space-y-8">
             <div className="bg-slate-900/50 border border-slate-800/60 rounded-2xl p-8 shadow-xl">
                 <h2 className="text-xl font-bold text-white mb-6 flex items-center gap-2"><svg className="w-6 h-6 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"></path></svg>前台公告管理</h2>
                 <form action={handleUpdateAnnouncement} className="space-y-6">
                     <div><label className="block text-sm text-slate-400 mb-2">公告内容</label><textarea name="content" value={announcement} onChange={(e) => setAnnouncement(e.target.value)} className="w-full bg-slate-950 border border-slate-700 rounded-xl p-4 text-slate-200 h-32 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/50 transition-all resize-none leading-relaxed" placeholder="请输入要在首页显示的公告内容..." /><p className="text-xs text-slate-500 mt-2">支持普通文本，换行请直接回车。</p></div>
-                    <button type="submit" className="w-full bg-indigo-600 hover:bg-indigo-500 text-white p-3 rounded-xl font-medium shadow-lg shadow-indigo-500/20 transition-all transform active:scale-95">发布公告</button>
+                    <button type="submit" className="w-full bg-indigo-600 hover:bg-indigo-500 text-white p-3 rounded-xl font-medium shadow-lg shadow-indigo-500/20 transition-all transform active:scale-95">更新公告</button>
                 </form>
                 
                 {/* 历史记录 */}
@@ -312,7 +310,7 @@ export default function AdminClient({
         </div>
       )}
 
-      {/* 编辑弹窗 (Theme) */}
+      {/* 主题编辑弹窗 */}
       {editingTheme && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-[#0f172a] border border-slate-700 w-full max-w-2xl rounded-2xl p-6 shadow-2xl animate-in zoom-in-95">
