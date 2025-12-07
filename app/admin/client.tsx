@@ -2,7 +2,6 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-// ✨ 引入 updateSmartWallpaper
 import { addLink, deleteLink, updateLink, getCategories, autoSyncCategories, reorderCategories, deleteCategoryConfig, updateAnnouncement, addSmartWallpaper, deleteSmartWallpaper, updateSmartWallpaper } from '../actions'
 
 type LinkItem = { id: number; title: string; url: string; description: string | null; category: string; isRecommended: boolean; createdAt: Date }
@@ -17,9 +16,7 @@ export default function AdminClient({ initialLinks, initialAnnouncement, initial
   const [searchQuery, setSearchQuery] = useState('')
   const [editingLink, setEditingLink] = useState<LinkItem | null>(null)
   
-  // ✨ 新增：正在编辑的主题状态
   const [editingTheme, setEditingTheme] = useState<ThemeItem | null>(null)
-  
   const [filterCategory, setFilterCategory] = useState('All')
   
   const [draggingItem, setDraggingItem] = useState<number | null>(null)
@@ -34,7 +31,6 @@ export default function AdminClient({ initialLinks, initialAnnouncement, initial
     init()
   }, [])
 
-  // 拖拽逻辑
   const handleDragStart = (e: React.DragEvent, position: number) => { setDraggingItem(position); dragOverItem.current = position }
   const handleDragEnter = (e: React.DragEvent, position: number) => { dragOverItem.current = position }
   const handleDragEnd = async () => {
@@ -60,7 +56,6 @@ export default function AdminClient({ initialLinks, initialAnnouncement, initial
   async function handleUpdate(formData: FormData) { await updateLink(formData); setEditingLink(null); const data = await getCategories(); setCategories(data); }
   async function handleUpdateAnnouncement(formData: FormData) { await updateAnnouncement(formData); alert('公告已更新！') }
   
-  // ✨ 处理主题更新
   async function handleUpdateTheme(formData: FormData) {
     await updateSmartWallpaper(formData)
     setEditingTheme(null)
@@ -116,34 +111,35 @@ export default function AdminClient({ initialLinks, initialAnnouncement, initial
         </div>
       )}
 
-      {/* ✨ Tab D: 主题管理 (升级版) ✨ */}
+      {/* Tab D: 主题管理 */}
       {activeTab === 'themes' && (
         <div className="space-y-8">
-            {/* ✨ 1. 图床工具箱引导 */}
             <div className="bg-sky-900/20 border border-sky-800/50 rounded-xl p-4 flex items-start gap-4">
                 <div className="p-2 bg-sky-900/40 rounded-lg text-sky-400">
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
                 </div>
                 <div>
                     <h3 className="text-sm font-bold text-sky-200 mb-1">图片链接哪里找？</h3>
-                    <p className="text-xs text-slate-400 mb-2">如果您有本地图片想要制作成轮播主题，推荐使用免费图床工具生成 HTTPS 链接。</p>
-                    <a 
-                        href="https://postimages.org/" 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 text-xs bg-sky-600 hover:bg-sky-500 text-white px-3 py-1.5 rounded-md transition"
-                    >
-                        前往 Postimages 上传图片 <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
-                    </a>
-                    <p className="text-xs text-slate-400 mt-3 mb-2">或者去壁纸站寻找灵感：</p>
-                    <a 
-                        href="https://wallhere.com" 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 text-xs bg-slate-700 hover:bg-slate-600 text-slate-200 px-3 py-1.5 rounded-md transition"
-                    >
-                        Wallhere 壁纸库 (右键图片 -> 复制图片地址) <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
-                    </a>
+                    <p className="text-xs text-slate-400 mb-2">推荐使用 Postimages 或 Wallhere。</p>
+                    <div className="flex gap-2">
+                        <a 
+                            href="https://postimages.org/" 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 text-xs bg-slate-700 hover:bg-slate-600 text-slate-200 px-3 py-1.5 rounded-md transition"
+                        >
+                            Postimages (上传本地图片) <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
+                        </a>
+                        {/* ✨ 修复点：使用 &rarr; 替换 -> */}
+                        <a 
+                            href="https://wallhere.com" 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 text-xs bg-slate-700 hover:bg-slate-600 text-slate-200 px-3 py-1.5 rounded-md transition"
+                        >
+                            Wallhere 壁纸库 (右键图片 &rarr; 复制图片地址) <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
+                        </a>
+                    </div>
                 </div>
             </div>
 
@@ -186,7 +182,6 @@ export default function AdminClient({ initialLinks, initialAnnouncement, initial
                                     <span className="text-indigo-300">晚: {theme.night.split(/[\n,]/).filter(s=>s.trim()).length}</span>
                                 </td>
                                 <td className="p-5 text-right">
-                                    {/* ✨ 编辑按钮 */}
                                     <button onClick={() => setEditingTheme(theme)} className="text-sky-400 hover:text-sky-300 text-sm mr-3">编辑</button>
                                     <form action={deleteSmartWallpaper} className="inline">
                                         <input type="hidden" name="id" value={theme.id} />
@@ -215,7 +210,7 @@ export default function AdminClient({ initialLinks, initialAnnouncement, initial
         </div>
       )}
 
-      {/* 资源编辑弹窗 (保持不变) */}
+      {/* 编辑弹窗 */}
       {editingLink && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
           <div className="bg-[#0f172a] border border-slate-700 w-full max-w-2xl rounded-2xl p-6 shadow-2xl">
@@ -235,7 +230,7 @@ export default function AdminClient({ initialLinks, initialAnnouncement, initial
         </div>
       )}
 
-      {/* ✨ 新增：主题编辑弹窗 ✨ */}
+      {/* 主题编辑弹窗 */}
       {editingTheme && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-[#0f172a] border border-slate-700 w-full max-w-2xl rounded-2xl p-6 shadow-2xl animate-in zoom-in-95">
