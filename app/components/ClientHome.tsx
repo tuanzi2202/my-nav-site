@@ -88,13 +88,12 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
   const [currentSlide, setCurrentSlide] = useState(0)
   const [timeSlotName, setTimeSlotName] = useState('')
   
-  // ✨✨✨ 修复点：加载用户本地个性化设置 ✨✨✨
+  // 加载用户本地个性化设置
   useEffect(() => {
     const saved = localStorage.getItem('nav_settings')
     if (saved) {
       try {
         const parsed = JSON.parse(saved)
-        // 👇 这里的 (prev: any) 是关键修复，防止 TS 报错
         setSettings((prev: any) => ({ ...prev, ...parsed }))
       } catch (e) { console.error(e) }
     }
@@ -181,7 +180,6 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
         reader.onload = (event) => { 
             const base64String = event.target?.result as string; 
             if (base64String) { 
-                // 👇 修复点：同样添加 (prev: any) 类型断言
                 setSettings((prev: any) => { 
                     try { 
                         const newSettings = { ...prev, customWallpapers: [...prev.customWallpapers, base64String], wallpaperSource: 'custom' as WallpaperSource }; 
@@ -199,7 +197,8 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
   }
   
   const handleRemoveCustomWallpaper = (targetIndex: number) => { 
-      const newCustomWallpapers = settings.customWallpapers.filter((_, idx) => idx !== targetIndex); 
+      // ✨ 修复点：显式声明参数类型 (_: string, idx: number)
+      const newCustomWallpapers = settings.customWallpapers.filter((_: string, idx: number) => idx !== targetIndex); 
       const newSettings = { ...settings, customWallpapers: newCustomWallpapers };
       if (newCustomWallpapers.length === 0) { newSettings.wallpaperSource = 'smart' }
       setSettings(newSettings);
