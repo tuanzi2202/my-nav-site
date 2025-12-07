@@ -1,17 +1,19 @@
 // app/admin/page.tsx
 import { PrismaClient } from '@prisma/client'
 import AdminClient from './client'
-import { getAnnouncement, getSmartWallpapers } from '../actions' // ✨
+// ✨ 引入 getUISettings
+import { getAnnouncement, getSmartWallpapers, getUISettings } from '../actions'
 
 export const dynamic = 'force-dynamic'
 
 const prisma = new PrismaClient()
 
 export default async function AdminPage() {
-  const [links, announcement, smartThemes] = await Promise.all([
+  const [links, announcement, smartThemes, uiSettings] = await Promise.all([
     prisma.link.findMany({ orderBy: { createdAt: 'desc' } }),
     getAnnouncement(),
-    getSmartWallpapers() // ✨ 获取所有智能主题
+    getSmartWallpapers(),
+    getUISettings() // ✨ 获取当前数据库里的 UI 配置
   ])
 
   return (
@@ -20,7 +22,8 @@ export default async function AdminPage() {
         <AdminClient 
             initialLinks={links} 
             initialAnnouncement={announcement}
-            initialThemes={smartThemes} // ✨ 传递给 Client
+            initialThemes={smartThemes}
+            initialGlobalSettings={uiSettings} // ✨ 传给 Client
         />
       </div>
     </div>

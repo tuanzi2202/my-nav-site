@@ -214,3 +214,35 @@ export async function getUISettings() {
     return null
   }
 }
+
+// ✨ 更新全局 UI 默认配置
+export async function updateGlobalUISettings(formData: FormData) {
+  // 解析表单数据
+  const settings = {
+    themeMode: formData.get('themeMode'),
+    wallpaperSource: formData.get('wallpaperSource'),
+    // 数值类型需要转换
+    bgBlur: Number(formData.get('bgBlur')),
+    cardOpacity: Number(formData.get('cardOpacity')),
+    boardOpacity: Number(formData.get('boardOpacity')),
+    uiBlur: Number(formData.get('uiBlur')),
+    slideshowInterval: Number(formData.get('slideshowInterval')),
+    slideshowEffect: formData.get('slideshowEffect'),
+    // 布尔值处理
+    noise: formData.get('noise') === 'on',
+    glow: formData.get('glow') === 'on',
+    tilt: formData.get('tilt') === 'on',
+    // 保持一些不需要配置的字段默认值
+    customWallpapers: [], 
+    activeThemeId: 'default'
+  }
+
+  await prisma.globalConfig.upsert({
+    where: { key: 'ui_settings' },
+    update: { value: JSON.stringify(settings) },
+    create: { key: 'ui_settings', value: JSON.stringify(settings) }
+  })
+
+  revalidatePath('/') // 刷新首页，让新用户立即看到效果
+  revalidatePath('/admin')
+}
