@@ -64,7 +64,7 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
   const router = useRouter()
   const fileInputRef = useRef<HTMLInputElement>(null)
   
-  // --- 默认兜底设置 ---
+  // ✨ 1. 定义硬编码的默认值 (兜底用)
   const defaultSettings = {
     noise: false, glow: false, tilt: false,
     themeMode: 'slideshow' as ThemeMode,
@@ -76,8 +76,10 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
     slideshowInterval: 30
   }
 
-  // --- 状态管理 ---
+  // ✨ 2. 状态管理
+  // 注意：这里先用服务端配置初始化，避免 Hydration Mismatch 报错
   const [settings, setSettings] = useState({ ...defaultSettings, ...initialSettings })
+  const [isMounted, setIsMounted] = useState(false) // 标记组件是否已在浏览器加载
   
   const [showSettings, setShowSettings] = useState(false)
   const [activeTab, setActiveTab] = useState<'effects' | 'theme'>('theme')
@@ -88,15 +90,18 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
   const [currentSlide, setCurrentSlide] = useState(0)
   const [timeSlotName, setTimeSlotName] = useState('')
   
-  // 加载用户本地个性化设置
+  // ✨ 3. 核心修复：在组件挂载后，强制读取 LocalStorage 覆盖状态
   useEffect(() => {
+    setIsMounted(true)
     const saved = localStorage.getItem('nav_settings')
     if (saved) {
       try {
         const parsed = JSON.parse(saved)
-        // 显式类型断言
+        // 强制使用本地配置覆盖当前状态
         setSettings((prev: any) => ({ ...prev, ...parsed }))
-      } catch (e) { console.error(e) }
+      } catch (e) { 
+        console.error("Failed to load local settings", e) 
+      }
     }
   }, [])
 
@@ -134,12 +139,16 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
         }
     }
     
-    if (JSON.stringify(newSet) !== JSON.stringify(currentWallpaperSet)) {
-      setCurrentWallpaperSet(newSet)
-      setTimeSlotName(newSlotName)
-      setCurrentSlide(0)
+    // 只有当 isMounted 为 true 时（即确保已经读取了本地配置后），才更新壁纸
+    // 这样可以防止先显示默认壁纸，然后闪烁变成本地壁纸
+    if (isMounted) {
+      if (JSON.stringify(newSet) !== JSON.stringify(currentWallpaperSet)) {
+        setCurrentWallpaperSet(newSet)
+        setTimeSlotName(newSlotName)
+        setCurrentSlide(0)
+      }
     }
-  }, [settings.wallpaperSource, settings.customWallpapers, settings.activeThemeId, smartThemes])
+  }, [settings.wallpaperSource, settings.customWallpapers, settings.activeThemeId, smartThemes, isMounted])
 
   // 轮播计时器
   useEffect(() => {
@@ -198,13 +207,16 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
   }
   
   const handleRemoveCustomWallpaper = (targetIndex: number) => { 
-      // ✨ 修复点：显式声明 filter 参数类型
       const newCustomWallpapers = settings.customWallpapers.filter((_: string, idx: number) => idx !== targetIndex); 
       const newSettings = { ...settings, customWallpapers: newCustomWallpapers };
       if (newCustomWallpapers.length === 0) { newSettings.wallpaperSource = 'smart' }
       setSettings(newSettings);
       localStorage.setItem('nav_settings', JSON.stringify(newSettings));
   }
+
+  // ✨ 为了避免样式闪烁，可以选择在未挂载时只渲染一个简单的 Loading 或默认状态
+  // 但为了 SEO 和用户体验，通常我们直接渲染，然后让 useEffect 更新。
+  // 这里的关键是：useEffect 更新 settings 后，会触发重渲染，应用用户的设置。
 
   return (
     <div className="relative min-h-screen text-slate-300 font-sans selection:bg-sky-500/30 overflow-hidden bg-[#0f172a]">
@@ -213,6 +225,7 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
         input[type=range] { -webkit-appearance: none; background: transparent; } input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; height: 16px; width: 16px; border-radius: 50%; background: #38bdf8; cursor: pointer; margin-top: -6px; box-shadow: 0 0 10px rgba(56,189,248,0.5); } input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 4px; cursor: pointer; background: #334155; border-radius: 2px; }
       `}</style>
 
+      {/* 背景层 */}
       <div className={`fixed inset-0 z-0 transition-opacity duration-1000 ${settings.themeMode === 'default' ? 'opacity-100' : 'opacity-0'}`}><div className="absolute inset-0 bg-[#0f172a] bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-sky-900/20 via-[#0f172a] to-[#0f172a]"></div></div>
       <div className={`fixed inset-0 z-0 transition-opacity duration-1000 ${settings.themeMode === 'slideshow' ? 'opacity-100' : 'opacity-0'}`}>
         {currentWallpaperSet.length > 0 ? currentWallpaperSet.map((wp: string, index: number) => (
@@ -319,6 +332,7 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
                                                 <input ref={fileInputRef} type="file" accept="image/*" multiple className="hidden" onChange={handleFileSelect} />
                                                 <button onClick={() => fileInputRef.current?.click()} className="flex items-center gap-2 px-4 py-2 bg-sky-600 hover:bg-sky-500 text-white text-sm rounded-lg transition-colors"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg><span>选择图片 (支持多选)</span></button>
                                             </div>
+                                            {/* ✨✨✨ 修改点：移除了 Wallhere 提示文本 ✨✨✨ */}
                                             {errorMsg && <p className="text-xs text-red-400 text-center">{errorMsg}</p>}
                                             {settings.customWallpapers.length > 0 ? (
                                                 <div className="grid grid-cols-3 gap-2 p-2 bg-slate-900/50 rounded-xl border border-slate-800/50 max-h-48 overflow-y-auto custom-scrollbar">
