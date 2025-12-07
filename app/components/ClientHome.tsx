@@ -91,6 +91,9 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
   const [currentWallpaperSet, setCurrentWallpaperSet] = useState<string[]>([])
   const [currentSlide, setCurrentSlide] = useState(0)
   const [timeSlotName, setTimeSlotName] = useState('')
+
+  // ✨✨✨ 右键菜单状态 ✨✨✨
+  const [contextMenu, setContextMenu] = useState<{ x: number, y: number, show: boolean } | null>(null)
   
   // 加载用户本地个性化设置
   useEffect(() => {
@@ -104,6 +107,25 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
     }
   }, [])
 
+  // ✨✨✨ 右键菜单事件监听 ✨✨✨
+  useEffect(() => {
+    const handleContextMenu = (e: MouseEvent) => {
+      e.preventDefault() // 阻止默认右键菜单
+      setContextMenu({ x: e.clientX, y: e.clientY, show: true })
+    }
+
+    const handleClick = () => {
+      if (contextMenu?.show) setContextMenu(null) // 点击任意处关闭
+    }
+
+    window.addEventListener('contextmenu', handleContextMenu)
+    window.addEventListener('click', handleClick)
+    return () => {
+      window.removeEventListener('contextmenu', handleContextMenu)
+      window.removeEventListener('click', handleClick)
+    }
+  }, [contextMenu])
+
   // 保存设置到本地
   const updateSetting = (key: keyof typeof settings, value: any) => {
     try {
@@ -116,26 +138,27 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
     }
   }
 
-  // ✨✨✨ 核心逻辑：精致版鼠标点击特效 ✨✨✨
+  // ... (点击特效代码保持不变) ...
   useEffect(() => {
     if (settings.clickEffect === 'none') return
 
     const handleClick = (e: MouseEvent) => {
+      // 只有不是右键点击时才触发特效 (button 2 是右键)
+      if (e.button === 2) return
+
       const x = e.clientX
       const y = e.clientY
       const container = document.createElement('div')
       container.className = 'fixed pointer-events-none z-[9999] top-0 left-0 w-full h-full overflow-hidden'
       document.body.appendChild(container)
 
-      // 1. 多重波纹冲击 (Ripple Shockwave)
       if (settings.clickEffect === 'ripple') {
-        const count = 3; // 生成3个波纹
+        const count = 3; 
         for (let i = 0; i < count; i++) {
             const ripple = document.createElement('div')
             ripple.className = 'absolute rounded-full border-2 border-sky-400/60 bg-sky-400/10 shadow-[0_0_15px_rgba(56,189,248,0.3)] will-change-transform'
             ripple.style.left = `${x}px`
             ripple.style.top = `${y}px`
-            // 随机大小和延迟，制造层次感
             const size = 20 + i * 15
             ripple.style.width = `${size}px`
             ripple.style.height = `${size}px`
@@ -147,61 +170,46 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
         setTimeout(() => container.remove(), 1200)
       }
 
-      // 2. 重力粒子爆炸 (Gravity Particles)
       if (settings.clickEffect === 'particles') {
-        const count = 16; // 增加粒子数量
+        const count = 16;
         const colors = ['#38bdf8', '#818cf8', '#c084fc', '#22d3ee', '#ffffff']
         for (let i = 0; i < count; i++) {
           const particle = document.createElement('div')
-          // 随机圆形或方形粒子
           const isCircle = Math.random() > 0.3
           particle.className = `absolute will-change-transform ${isCircle ? 'rounded-full' : 'rounded-sm'} shadow-sm`
           particle.style.left = `${x}px`
           particle.style.top = `${y}px`
           particle.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)]
-          
-          // 随机大小
           const size = Math.random() * 4 + 3 + 'px'
           particle.style.width = size
           particle.style.height = size
-          
-          // 物理参数：角度、距离、初速度、旋转
           const angle = Math.random() * Math.PI * 2
-          const velocity = 80 + Math.random() * 100 // 爆发力
+          const velocity = 80 + Math.random() * 100 
           const tx = Math.cos(angle) * velocity
-          const ty = Math.sin(angle) * velocity - 50 // 初始向上冲
+          const ty = Math.sin(angle) * velocity - 50 
           const rotation = Math.random() * 360
-          
           particle.style.setProperty('--tx', `${tx}px`)
           particle.style.setProperty('--ty', `${ty}px`)
           particle.style.setProperty('--r', `${rotation}deg`)
-          
-          // 使用 ease-out 让初始爆发快，然后受重力影响
           particle.style.animation = `refined-particle 1s cubic-bezier(0.215, 0.61, 0.355, 1) forwards`
           container.appendChild(particle)
         }
         setTimeout(() => container.remove(), 1100)
       }
 
-      // 3. 梦幻气泡群 (Dreamy Bubbles)
       if (settings.clickEffect === 'bubble') {
-         const count = 5; // 生成气泡群
+         const count = 5; 
          for(let i = 0; i < count; i++) {
             const bubble = document.createElement('div')
-            // 增加高光质感
             bubble.className = 'absolute rounded-full border border-sky-300/40 bg-gradient-to-br from-white/40 to-transparent shadow-[inset_0_0_10px_rgba(255,255,255,0.3)] backdrop-blur-[1px] will-change-transform'
             bubble.style.left = `${x}px`
             bubble.style.top = `${y}px`
-            
-            // 随机大小、偏移和延迟
             const size = Math.random() * 25 + 10
             bubble.style.width = `${size}px`
             bubble.style.height = `${size}px`
             const xOffset = (Math.random() - 0.5) * 40
             bubble.style.marginLeft = `-${size/2 + xOffset}px`
             bubble.style.marginTop = `-${size/2}px`
-            
-            // 组合动画：上升 + 摇摆
             const delay = Math.random() * 0.3
             const duration = 1.2 + Math.random() * 0.5
             bubble.style.animation = `refined-bubble-rise ${duration}s ease-in forwards ${delay}s, refined-bubble-wobble ${duration*1.5}s ease-in-out infinite alternate ${delay}s`
@@ -215,7 +223,7 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
     return () => window.removeEventListener('click', handleClick)
   }, [settings.clickEffect])
 
-  // 壁纸源计算逻辑
+  // ... (壁纸逻辑保持不变) ...
   useEffect(() => {
     let newSet: string[] = []
     let newSlotName = ''
@@ -303,43 +311,41 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
       localStorage.setItem('nav_settings', JSON.stringify(newSettings));
   }
 
+  // ✨✨✨ 环形菜单配置 ✨✨✨
+  const menuItems = [
+    { label: '首页', icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>, action: () => router.push('/') },
+    { label: '前进', icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>, action: () => router.forward() },
+    { label: '刷新', icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>, action: () => window.location.reload() },
+    { label: '后台', icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>, action: () => router.push('/admin') },
+    { label: '后退', icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>, action: () => router.back() },
+    { label: '顶部', icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 10l7-7m0 0l7 7m-7-7v18"></path></svg>, action: () => window.scrollTo({ top: 0, behavior: 'smooth' }) },
+  ]
+
   return (
     <div className="relative min-h-screen text-slate-300 font-sans selection:bg-sky-500/30 overflow-hidden bg-[#0f172a]">
-      {/* ✨ 精致版动画定义 */}
+      {/* ✨ 精致版动画定义 + 轮盘动画 */}
       <style jsx global>{`
         .custom-scrollbar::-webkit-scrollbar { width: 5px; } .custom-scrollbar::-webkit-scrollbar-track { background: transparent; } .custom-scrollbar::-webkit-scrollbar-thumb { background-color: rgba(71, 85, 105, 0.4); border-radius: 20px; } .custom-scrollbar::-webkit-scrollbar-thumb:hover { background-color: rgba(71, 85, 105, 0.8); }
         input[type=range] { -webkit-appearance: none; background: transparent; } input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; height: 16px; width: 16px; border-radius: 50%; background: #38bdf8; cursor: pointer; margin-top: -6px; box-shadow: 0 0 10px rgba(56,189,248,0.5); } input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 4px; cursor: pointer; background: #334155; border-radius: 2px; }
 
-        /* 波纹：更强的爆发力和边缘感 */
-        @keyframes refined-ripple {
-          0% { transform: scale(0); opacity: 1; border-width: 4px; }
-          50% { opacity: 0.5; }
-          100% { transform: scale(2.5); opacity: 0; border-width: 1px; }
-        }
+        @keyframes refined-ripple { 0% { transform: scale(0); opacity: 1; border-width: 4px; } 50% { opacity: 0.5; } 100% { transform: scale(2.5); opacity: 0; border-width: 1px; } }
+        @keyframes refined-particle { 0% { transform: translate(0, 0) rotate(0deg) scale(1); opacity: 1; } 60% { opacity: 0.8; } 100% { transform: translate(var(--tx), calc(var(--ty) + 100px)) rotate(var(--r)) scale(0); opacity: 0; } }
+        @keyframes refined-bubble-rise { 0% { transform: translateY(0) scale(0.8); opacity: 0; } 20% { opacity: 0.7; } 100% { transform: translateY(-150px) scale(1.1); opacity: 0; } }
+        @keyframes refined-bubble-wobble { 0% { margin-left: -5px; } 100% { margin-left: 5px; } }
 
-        /* 粒子：带重力和旋转的抛物线 */
-        @keyframes refined-particle {
-          0% { transform: translate(0, 0) rotate(0deg) scale(1); opacity: 1; }
-          60% { opacity: 0.8; }
-          100% { 
-            /* ty 增加一个正值模拟重力下坠 */
-            transform: translate(var(--tx), calc(var(--ty) + 100px)) rotate(var(--r)) scale(0); 
-            opacity: 0; 
-          }
+        /* 轮盘菜单动画：从中心位置，旋转并放大弹出 */
+        @keyframes radial-popup {
+          0% { transform: translate(0, 0) scale(0) rotate(-90deg); opacity: 0; }
+          70% { opacity: 1; }
+          100% { transform: translate(var(--tx), var(--ty)) scale(1) rotate(0deg); opacity: 1; }
         }
-
-        /* 气泡：上升 + 左右摇摆 */
-        @keyframes refined-bubble-rise {
-          0% { transform: translateY(0) scale(0.8); opacity: 0; }
-          20% { opacity: 0.7; }
-          100% { transform: translateY(-150px) scale(1.1); opacity: 0; }
-        }
-        @keyframes refined-bubble-wobble {
-          0% { margin-left: -5px; }
-          100% { margin-left: 5px; }
+        @keyframes scale-in {
+          0% { transform: translate(-50%, -50%) scale(0); }
+          100% { transform: translate(-50%, -50%) scale(1); }
         }
       `}</style>
 
+      {/* ... (背景、噪声、光晕保持不变) ... */}
       <div className={`fixed inset-0 z-0 transition-opacity duration-1000 ${settings.themeMode === 'default' ? 'opacity-100' : 'opacity-0'}`}><div className="absolute inset-0 bg-[#0f172a] bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-sky-900/20 via-[#0f172a] to-[#0f172a]"></div></div>
       <div className={`fixed inset-0 z-0 transition-opacity duration-1000 ${settings.themeMode === 'slideshow' ? 'opacity-100' : 'opacity-0'}`}>
         {currentWallpaperSet.length > 0 ? currentWallpaperSet.map((wp: string, index: number) => (
@@ -351,6 +357,51 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
 
       {settings.noise && <div className="fixed inset-0 z-[1] pointer-events-none opacity-[0.04] bg-[url('https://grainy-gradients.vercel.app/noise.svg')]"></div>}
       {settings.glow && <div className="fixed z-0 pointer-events-none w-[600px] h-[600px] bg-sky-500/10 rounded-full blur-[80px] transition-transform duration-75 will-change-transform" style={{ left: mousePos.x - 300, top: mousePos.y - 300 }} />}
+
+      {/* ✨✨✨ 环形右键菜单渲染 ✨✨✨ */}
+      {contextMenu?.show && (
+        <div 
+          className="fixed z-[9999]" 
+          style={{ left: contextMenu.x, top: contextMenu.y }}
+        >
+          <div className="relative group">
+             {/* 中心圆点 */}
+             <div className="absolute -translate-x-1/2 -translate-y-1/2 w-10 h-10 bg-slate-900/80 rounded-full border border-sky-500/50 backdrop-blur-md shadow-lg flex items-center justify-center pointer-events-none" style={{ animation: 'scale-in 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards' }}>
+                <span className="w-1.5 h-1.5 bg-sky-400 rounded-full shadow-[0_0_8px_rgba(56,189,248,0.8)]"></span>
+             </div>
+
+             {/* 菜单项 */}
+             {menuItems.map((item, i) => {
+                const radius = 70; // 半径
+                // 角度计算：从12点钟(-90deg)开始，顺时针排列
+                const angle = (i * 60 - 90) * (Math.PI / 180);
+                const x = Math.cos(angle) * radius;
+                const y = Math.sin(angle) * radius;
+                const delay = i * 0.04; // 顺序弹出延迟
+
+                return (
+                  <button
+                    key={i}
+                    title={item.label}
+                    onClick={(e) => { e.stopPropagation(); item.action(); setContextMenu(null); }}
+                    className="absolute w-12 h-12 -ml-6 -mt-6 bg-slate-800/90 border border-slate-600 rounded-full flex items-center justify-center shadow-xl text-slate-300 hover:bg-sky-600 hover:text-white hover:border-sky-400 hover:scale-110 transition-all duration-200 group"
+                    style={{
+                      '--tx': `${x}px`,
+                      '--ty': `${y}px`,
+                      animation: `radial-popup 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards ${delay}s`,
+                      opacity: 0,
+                      transform: 'translate(0,0) scale(0)'
+                    } as React.CSSProperties}
+                  >
+                     {item.icon}
+                     {/* 悬停显示文字标签 */}
+                     <span className="absolute opacity-0 group-hover:opacity-100 transition-opacity text-[10px] bg-black/70 px-2 py-0.5 rounded -bottom-6 whitespace-nowrap pointer-events-none">{item.label}</span>
+                  </button>
+                )
+             })}
+          </div>
+        </div>
+      )}
 
       <div className="relative z-10 flex h-screen">
         <aside className="w-64 border-r border-slate-800/40 bg-slate-900/60 flex-col hidden md:flex h-full transition-all duration-300" style={{ backdropFilter: `blur(${settings.uiBlur}px)` }}>
@@ -364,6 +415,8 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
           <div className="p-4 border-t border-slate-800/50"><button onClick={() => router.push('/admin')} className="w-full flex items-center justify-center gap-2 text-xs font-medium text-slate-500 hover:text-sky-400 transition py-2 rounded-lg hover:bg-slate-800/50">管理控制台</button></div>
         </aside>
 
+        {/* ... (Main Content 保持不变，为了节省篇幅我省略了中间未修改的部分，请保留原有的 main 区域代码) ... */}
+        
         <main className="flex-1 overflow-y-auto custom-scrollbar p-6 md:p-10 relative">
           <header className="md:hidden mb-8 flex justify-between items-center bg-slate-900/80 backdrop-blur p-4 rounded-xl border border-slate-800 sticky top-0 z-50 shadow-lg"><h1 className="text-xl font-bold text-white">Oasis</h1><button onClick={() => router.push('/admin')} className="text-xs bg-slate-800 px-3 py-1.5 rounded-full text-sky-400">Admin</button></header>
           <div className="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-6">
@@ -402,6 +455,7 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
         <svg className="w-6 h-6 group-hover:rotate-90 transition-transform duration-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
       </button>
 
+      {/* ... (设置面板代码保持不变) ... */}
       {showSettings && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200" onClick={() => setShowSettings(false)}>
             <div className="bg-[#0f172a] border border-slate-700 w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
@@ -476,7 +530,6 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
                     )}
                     {activeTab === 'effects' && (
                         <div className="space-y-6">
-                            {/* ✨✨✨ 点击特效选择器 ✨✨✨ */}
                             <div>
                                 <div className="text-xs text-slate-400 mb-3">鼠标点击特效：</div>
                                 <div className="grid grid-cols-4 gap-2">
