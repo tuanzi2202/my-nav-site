@@ -314,7 +314,7 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
         @keyframes refined-ripple {
           0% { transform: scale(0); opacity: 1; border-width: 4px; }
           50% { opacity: 0.5; }
-          100% { transform: scale(4); opacity: 0; border-width: 1px; }
+          100% { transform: scale(2.5); opacity: 0; border-width: 1px; }
         }
 
         /* 粒子：带重力和旋转的抛物线 */
