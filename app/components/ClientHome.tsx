@@ -331,14 +331,14 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
       localStorage.setItem('nav_settings', JSON.stringify(newSettings));
   }
 
-  // ✨✨✨ 环形菜单配置 ✨✨✨
+  // ✨✨✨ 环形菜单配置 (功能默认全空，文字直接在圆圈内) ✨✨✨
   const menuItems = [
-    { label: '首页', icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>, action: () => router.push('/') },
-    { label: '前进', icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>, action: () => router.forward() },
-    { label: '刷新', icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>, action: () => window.location.reload() },
-    { label: '后台', icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>, action: () => router.push('/admin') },
-    { label: '后退', icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>, action: () => router.back() },
-    { label: '顶部', icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 10l7-7m0 0l7 7m-7-7v18"></path></svg>, action: () => window.scrollTo({ top: 0, behavior: 'smooth' }) },
+    { label: '首页', action: () => {} },
+    { label: '前进', action: () => {} },
+    { label: '刷新', action: () => {} },
+    { label: '后台', action: () => {} },
+    { label: '后退', action: () => {} },
+    { label: '顶部', action: () => {} },
   ]
 
   return (
@@ -404,16 +404,14 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
                   <button
                     key={i}
                     onClick={(e) => { e.stopPropagation(); item.action(); closeMenu(); }}
-                    className="absolute w-14 h-14 -ml-7 -mt-7 bg-slate-900/60 border border-white/10 rounded-full flex items-center justify-center shadow-2xl text-slate-200 hover:bg-sky-600/90 hover:text-white hover:border-sky-400 hover:scale-110 transition-all duration-300 backdrop-blur-xl group"
+                    className="absolute w-14 h-14 -ml-7 -mt-7 bg-slate-900/60 border border-white/10 rounded-full flex items-center justify-center shadow-2xl hover:bg-sky-600/90 hover:border-sky-400 hover:scale-110 transition-all duration-300 backdrop-blur-xl group"
                     style={{
-                      // 按钮直接定位在最终位置，靠容器旋转来实现螺旋效果
                       left: x,
                       top: y,
                     }}
                   >
-                     {item.icon}
-                     {/* 悬停显示文字标签 (玻璃拟态风格) */}
-                     <span className="absolute opacity-0 group-hover:opacity-100 transition-opacity duration-300 text-[10px] text-slate-100 bg-slate-900/80 px-2.5 py-1 rounded-full -bottom-8 whitespace-nowrap pointer-events-none backdrop-blur-md border border-white/10 shadow-lg translate-y-1 group-hover:translate-y-0 transform">
+                     {/* 纯文本，居中显示 */}
+                     <span className="text-xs font-medium text-slate-200 group-hover:text-white pointer-events-none">
                         {item.label}
                      </span>
                   </button>
