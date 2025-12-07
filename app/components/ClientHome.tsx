@@ -42,14 +42,12 @@ type ThemeMode = 'default' | 'slideshow'
 type TransitionEffect = 'fade' | 'zoom' | 'pan'
 type WallpaperSource = 'smart' | 'custom'
 
-// --- 默认壁纸配置 ---
 const DEFAULT_WALLPAPER_CONFIG = {
   morning: ["/wallpapers/morning/1.jpg", "/wallpapers/morning/2.jpg", "/wallpapers/morning/3.jpg"],
   afternoon: ["/wallpapers/afternoon/1.jpg", "/wallpapers/afternoon/2.jpg", "/wallpapers/afternoon/3.jpg"],
   night: ["/wallpapers/night/1.jpg", "/wallpapers/night/2.jpg", "/wallpapers/night/3.jpg"]
 }
 
-// 工具函数
 function formatUrl(url: string) { if (!url) return '#'; const cleanUrl = url.trim(); if (!cleanUrl.startsWith('http')) return `https://${cleanUrl}`; return cleanUrl; }
 function getFaviconUrl(rawUrl: string) { try { const hostname = new URL(formatUrl(rawUrl)).hostname; return `https://www.google.com/s2/favicons?domain=${hostname}&sz=128`; } catch { return "https://www.google.com/s2/favicons?domain=google.com&sz=128"; } }
 
@@ -64,7 +62,6 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
   const router = useRouter()
   const fileInputRef = useRef<HTMLInputElement>(null)
   
-  // --- 默认兜底设置 ---
   const defaultSettings = {
     noise: false, glow: false, tilt: false,
     themeMode: 'slideshow' as ThemeMode,
@@ -76,19 +73,15 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
     slideshowInterval: 30
   }
 
-  // --- 状态管理 ---
   const [settings, setSettings] = useState({ ...defaultSettings, ...initialSettings })
-  
   const [showSettings, setShowSettings] = useState(false)
   const [activeTab, setActiveTab] = useState<'effects' | 'theme'>('theme')
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 })
   const [errorMsg, setErrorMsg] = useState('')
-  
   const [currentWallpaperSet, setCurrentWallpaperSet] = useState<string[]>([])
   const [currentSlide, setCurrentSlide] = useState(0)
   const [timeSlotName, setTimeSlotName] = useState('')
   
-  // 加载用户本地个性化设置
   useEffect(() => {
     const saved = localStorage.getItem('nav_settings')
     if (saved) {
@@ -99,7 +92,6 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
     }
   }, [])
 
-  // 保存设置到本地
   const updateSetting = (key: keyof typeof settings, value: any) => {
     try {
         const newSettings = { ...settings, [key]: value }
@@ -111,11 +103,9 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
     }
   }
 
-  // 壁纸源计算逻辑
   useEffect(() => {
     let newSet: string[] = []
     let newSlotName = ''
-
     if (settings.wallpaperSource === 'custom' && settings.customWallpapers.length > 0) {
         newSet = settings.customWallpapers
         newSlotName = '自定义'
@@ -124,7 +114,6 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
         const slotMap = { morning: '早晨', afternoon: '午后', night: '深夜' }
         newSlotName = slotMap[slot]
         const selectedTheme = smartThemes.find(t => String(t.id) === String(settings.activeThemeId))
-        
         if (selectedTheme) {
             const raw = selectedTheme[slot]
             newSet = raw.split(/[\n,]/).map(s => s.trim()).filter(s => s)
@@ -132,7 +121,6 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
             newSet = DEFAULT_WALLPAPER_CONFIG[slot]
         }
     }
-    
     if (JSON.stringify(newSet) !== JSON.stringify(currentWallpaperSet)) {
       setCurrentWallpaperSet(newSet)
       setTimeSlotName(newSlotName)
@@ -140,7 +128,6 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
     }
   }, [settings.wallpaperSource, settings.customWallpapers, settings.activeThemeId, smartThemes])
 
-  // 轮播计时器
   useEffect(() => {
     if (settings.themeMode !== 'slideshow' || currentWallpaperSet.length <= 1) return
     const timer = setInterval(() => {
@@ -149,7 +136,6 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
     return () => clearInterval(timer)
   }, [settings.themeMode, currentWallpaperSet, settings.slideshowInterval])
 
-  // 鼠标光晕
   useEffect(() => {
     if (!settings.glow) return
     const handleMouseMove = (e: MouseEvent) => { setMousePos({ x: e.clientX, y: e.clientY }) }
@@ -197,7 +183,7 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
   }
   
   const handleRemoveCustomWallpaper = (targetIndex: number) => { 
-      // ✨ 修复点：显式声明参数类型 (_: string, idx: number)
+      // ✨ 修复点：显式添加类型标注
       const newCustomWallpapers = settings.customWallpapers.filter((_: string, idx: number) => idx !== targetIndex); 
       const newSettings = { ...settings, customWallpapers: newCustomWallpapers };
       if (newCustomWallpapers.length === 0) { newSettings.wallpaperSource = 'smart' }
