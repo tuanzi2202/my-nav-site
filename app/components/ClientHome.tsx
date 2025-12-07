@@ -92,7 +92,7 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
   const [currentSlide, setCurrentSlide] = useState(0)
   const [timeSlotName, setTimeSlotName] = useState('')
 
-  // ✨✨✨ 右键菜单状态管理 (新增 isClosing) ✨✨✨
+  // ✨✨✨ 右键菜单状态管理 ✨✨✨
   const [contextMenu, setContextMenu] = useState<{ x: number, y: number, show: boolean } | null>(null)
   const [isClosing, setIsClosing] = useState(false)
   
@@ -129,7 +129,6 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
         closeMenu()
       } else {
         // 如果没打开，直接打开
-        // 重置关闭状态以防万一
         setIsClosing(false)
         setContextMenu({ x: e.clientX, y: e.clientY, show: true })
       }
@@ -354,17 +353,17 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
         @keyframes refined-bubble-rise { 0% { transform: translateY(0) scale(0.8); opacity: 0; } 20% { opacity: 0.7; } 100% { transform: translateY(-150px) scale(1.1); opacity: 0; } }
         @keyframes refined-bubble-wobble { 0% { margin-left: -5px; } 100% { margin-left: 5px; } }
 
-        /* 打开动画：顺时针旋转弹出 */
+        /* 打开动画：顺时针快速螺旋弹出 (2圈) */
         @keyframes radial-popup {
-          0% { transform: translate(0, 0) scale(0) rotate(-90deg); opacity: 0; }
-          70% { opacity: 1; }
+          0% { transform: translate(0, 0) scale(0) rotate(-720deg); opacity: 0; }
+          50% { opacity: 1; }
           100% { transform: translate(var(--tx), var(--ty)) scale(1) rotate(0deg); opacity: 1; }
         }
         
-        /* 关闭动画：逆时针旋转缩小回中心 */
+        /* 关闭动画：逆时针螺旋缩小回中心 */
         @keyframes radial-popup-out {
           0% { transform: translate(var(--tx), var(--ty)) scale(1) rotate(0deg); opacity: 1; }
-          100% { transform: translate(0, 0) scale(0) rotate(-90deg); opacity: 0; }
+          100% { transform: translate(0, 0) scale(0) rotate(-720deg); opacity: 0; }
         }
       `}</style>
 
@@ -409,9 +408,10 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
                     style={{
                       '--tx': `${x}px`,
                       '--ty': `${y}px`,
-                      animation: `${animName} 0.4s ${timing} forwards ${delay}s`,
+                      animation: `${animName} 0.5s ${timing} forwards ${delay}s`,
                       opacity: 0,
-                      transform: isClosing ? `translate(${x}px, ${y}px) scale(1) rotate(0deg)` : 'translate(0,0) scale(0) rotate(-90deg)'
+                      // 在关闭时，保持位置为展开状态作为动画起点；在打开时，保持为收缩状态作为动画起点
+                      transform: isClosing ? `translate(${x}px, ${y}px) scale(1) rotate(0deg)` : 'translate(0,0) scale(0) rotate(-720deg)'
                     } as React.CSSProperties}
                   >
                      {item.icon}
