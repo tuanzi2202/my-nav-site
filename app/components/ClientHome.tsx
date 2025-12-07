@@ -73,13 +73,13 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
     wallpaperSource: 'smart' as WallpaperSource,
     customWallpapers: [] as string[],
     activeThemeId: 'default',
-    slideshowInterval: 30
+    slideshowInterval: 30,
+    descColor: '#94a3b8' // ✨ 新增默认描述颜色 (Slate-400)
   }
 
   // --- 状态管理 ---
-  // 1. 初始状态：使用数据库的 initialSettings 覆盖默认值，确保服务端渲染一致性
   const [settings, setSettings] = useState({ ...defaultSettings, ...initialSettings })
-  const [isLoaded, setIsLoaded] = useState(false) // ✨ 关键修复：标记是否已加载本地配置
+  const [isMounted, setIsMounted] = useState(false)
   
   const [showSettings, setShowSettings] = useState(false)
   const [activeTab, setActiveTab] = useState<'effects' | 'theme'>('theme')
@@ -90,39 +90,31 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
   const [currentSlide, setCurrentSlide] = useState(0)
   const [timeSlotName, setTimeSlotName] = useState('')
   
-  // ✨✨✨ 关键修复：组件挂载后，立即读取 LocalStorage 并强制覆盖状态 ✨✨✨
+  // 加载用户本地个性化设置
   useEffect(() => {
+    setIsMounted(true)
     const saved = localStorage.getItem('nav_settings')
     if (saved) {
       try {
         const parsed = JSON.parse(saved)
+        // 使用本地配置覆盖当前状态
         setSettings((prev: any) => ({ ...prev, ...parsed }))
-      } catch (e) { console.error("Load settings error", e) }
+      } catch (e) { 
+        console.error("Failed to load local settings", e) 
+      }
     }
-    setIsLoaded(true) // 标记加载完成，允许后续的保存操作
   }, [])
 
-  // ✨✨✨ 优化后的保存函数：支持部分更新，防止状态竞争 ✨✨✨
-  const updateSettings = (updates: Partial<typeof settings>) => {
-    setSettings((prev: any) => {
-      const newSettings = { ...prev, ...updates }
-      // 只有在已经加载过本地配置后，才允许写入 LocalStorage
-      // 防止页面刚打开时，用默认值覆盖了用户的本地缓存
-      if (isLoaded) {
-        try {
-          localStorage.setItem('nav_settings', JSON.stringify(newSettings))
-          setErrorMsg('')
-        } catch (e) {
-          setErrorMsg("浏览器存储空间不足")
-        }
-      }
-      return newSettings
-    })
-  }
-
-  // 单个属性更新的快捷方式
+  // 保存设置到本地
   const updateSetting = (key: keyof typeof settings, value: any) => {
-    updateSettings({ [key]: value })
+    try {
+        const newSettings = { ...settings, [key]: value }
+        setSettings(newSettings)
+        localStorage.setItem('nav_settings', JSON.stringify(newSettings))
+        setErrorMsg('')
+    } catch (e) { 
+        setErrorMsg("浏览器存储空间不足") 
+    }
   }
 
   // 壁纸源计算逻辑
@@ -147,12 +139,14 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
         }
     }
     
-    if (JSON.stringify(newSet) !== JSON.stringify(currentWallpaperSet)) {
-      setCurrentWallpaperSet(newSet)
-      setTimeSlotName(newSlotName)
-      setCurrentSlide(0)
+    if (isMounted) {
+      if (JSON.stringify(newSet) !== JSON.stringify(currentWallpaperSet)) {
+        setCurrentWallpaperSet(newSet)
+        setTimeSlotName(newSlotName)
+        setCurrentSlide(0)
+      }
     }
-  }, [settings.wallpaperSource, settings.customWallpapers, settings.activeThemeId, smartThemes, isLoaded]) // 增加 isLoaded 依赖
+  }, [settings.wallpaperSource, settings.customWallpapers, settings.activeThemeId, smartThemes, isMounted])
 
   // 轮播计时器
   useEffect(() => {
@@ -194,13 +188,15 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
         reader.onload = (event) => { 
             const base64String = event.target?.result as string; 
             if (base64String) { 
-                // ✨ 使用新的 updateSettings 进行合并更新
                 setSettings((prev: any) => { 
-                    const newCustomWallpapers = [...prev.customWallpapers, base64String]
-                    const updates = { customWallpapers: newCustomWallpapers, wallpaperSource: 'custom' as WallpaperSource }
-                    // 手动保存一次
-                    try { localStorage.setItem('nav_settings', JSON.stringify({ ...prev, ...updates })) } catch {}
-                    return { ...prev, ...updates }
+                    try { 
+                        const newSettings = { ...prev, customWallpapers: [...prev.customWallpapers, base64String], wallpaperSource: 'custom' as WallpaperSource }; 
+                        localStorage.setItem('nav_settings', JSON.stringify(newSettings)); 
+                        return newSettings 
+                    } catch (err) { 
+                        alert("浏览器存储空间已满"); 
+                        return prev 
+                    } 
                 }) 
             } 
         }; 
@@ -209,20 +205,11 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
   }
   
   const handleRemoveCustomWallpaper = (targetIndex: number) => { 
-      // ✨ 修复状态竞争：一次性计算所有新状态
-      setSettings((prev: any) => {
-        const newCustomWallpapers = prev.customWallpapers.filter((_: string, idx: number) => idx !== targetIndex);
-        const updates: any = { customWallpapers: newCustomWallpapers }
-        
-        // 如果删光了，自动切回智能模式
-        if (newCustomWallpapers.length === 0) {
-            updates.wallpaperSource = 'smart'
-        }
-        
-        const newSettings = { ...prev, ...updates }
-        try { localStorage.setItem('nav_settings', JSON.stringify(newSettings)) } catch {}
-        return newSettings
-      })
+      const newCustomWallpapers = settings.customWallpapers.filter((_: string, idx: number) => idx !== targetIndex); 
+      const newSettings = { ...settings, customWallpapers: newCustomWallpapers };
+      if (newCustomWallpapers.length === 0) { newSettings.wallpaperSource = 'smart' }
+      setSettings(newSettings);
+      localStorage.setItem('nav_settings', JSON.stringify(newSettings));
   }
 
   return (
@@ -232,7 +219,6 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
         input[type=range] { -webkit-appearance: none; background: transparent; } input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; height: 16px; width: 16px; border-radius: 50%; background: #38bdf8; cursor: pointer; margin-top: -6px; box-shadow: 0 0 10px rgba(56,189,248,0.5); } input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 4px; cursor: pointer; background: #334155; border-radius: 2px; }
       `}</style>
 
-      {/* 背景层 */}
       <div className={`fixed inset-0 z-0 transition-opacity duration-1000 ${settings.themeMode === 'default' ? 'opacity-100' : 'opacity-0'}`}><div className="absolute inset-0 bg-[#0f172a] bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-sky-900/20 via-[#0f172a] to-[#0f172a]"></div></div>
       <div className={`fixed inset-0 z-0 transition-opacity duration-1000 ${settings.themeMode === 'slideshow' ? 'opacity-100' : 'opacity-0'}`}>
         {currentWallpaperSet.length > 0 ? currentWallpaperSet.map((wp: string, index: number) => (
@@ -274,7 +260,20 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 pb-20">
             {links.map((link) => (
-              <a key={link.id} href={formatUrl(link.url)} target="_blank" rel="noopener noreferrer" onMouseMove={handleCardMouseMove} onMouseLeave={handleCardMouseLeave} className="group relative backdrop-blur-md border border-white/10 rounded-2xl p-6 hover:border-sky-500/30 hover:shadow-2xl hover:shadow-sky-500/10 transition-all duration-300 flex flex-col h-full overflow-hidden" style={{ transformStyle: 'preserve-3d', backgroundColor: `rgba(15, 23, 42, ${settings.cardOpacity})`, backdropFilter: `blur(${settings.uiBlur}px)` }}>
+              <a 
+                key={link.id} 
+                href={formatUrl(link.url)} 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                onMouseMove={handleCardMouseMove}
+                onMouseLeave={handleCardMouseLeave}
+                className="group relative backdrop-blur-md border border-white/10 rounded-2xl p-6 hover:border-sky-500/30 hover:shadow-2xl hover:shadow-sky-500/10 transition-all duration-300 flex flex-col h-full overflow-hidden"
+                style={{ 
+                    transformStyle: 'preserve-3d',
+                    backgroundColor: `rgba(15, 23, 42, ${settings.cardOpacity})`,
+                    backdropFilter: `blur(${settings.uiBlur}px)`
+                }}
+              >
                 <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
                 <div className="absolute top-0 right-0 w-20 h-20 bg-sky-500/10 blur-[40px] rounded-full -mr-10 -mt-10 pointer-events-none group-hover:bg-sky-500/20 transition-all duration-500"></div>
                 <div className="flex items-start justify-between mb-5 relative z-10 translate-z-10" style={{ transform: 'translateZ(20px)' }}>
@@ -282,7 +281,17 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
                   <span className="text-[10px] font-medium tracking-wide bg-slate-800/60 text-slate-400 px-2.5 py-1 rounded-md border border-slate-700/50 backdrop-blur-sm">{link.category}</span>
                 </div>
                 <h3 className="text-lg font-bold text-slate-200 group-hover:text-sky-400 transition-colors line-clamp-1 mb-2 tracking-tight translate-z-10" style={{ transform: 'translateZ(10px)' }}>{link.title}</h3>
-                {link.description && <p className="text-sm text-slate-500 line-clamp-2 leading-relaxed flex-1 group-hover:text-slate-400 transition-colors">{link.description}</p>}
+                
+                {/* ✨✨✨ 修改点：使用自定义颜色 ✨✨✨ */}
+                {link.description && (
+                    <p 
+                        className="text-sm line-clamp-2 leading-relaxed flex-1 transition-colors"
+                        style={{ color: settings.descColor || '#94a3b8' }} // 使用配置的颜色，默认 fallback
+                    >
+                        {link.description}
+                    </p>
+                )}
+                
                 <div className="absolute bottom-4 right-4 opacity-0 group-hover:opacity-100 transition-all transform translate-y-2 group-hover:translate-y-0 text-sky-500"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path></svg></div>
               </a>
             ))}
@@ -339,7 +348,6 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
                                                 <input ref={fileInputRef} type="file" accept="image/*" multiple className="hidden" onChange={handleFileSelect} />
                                                 <button onClick={() => fileInputRef.current?.click()} className="flex items-center gap-2 px-4 py-2 bg-sky-600 hover:bg-sky-500 text-white text-sm rounded-lg transition-colors"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg><span>选择图片 (支持多选)</span></button>
                                             </div>
-                                            {/* ✨✨✨ 修改点：移除了 Wallhere 提示文本 ✨✨✨ */}
                                             {errorMsg && <p className="text-xs text-red-400 text-center">{errorMsg}</p>}
                                             {settings.customWallpapers.length > 0 ? (
                                                 <div className="grid grid-cols-3 gap-2 p-2 bg-slate-900/50 rounded-xl border border-slate-800/50 max-h-48 overflow-y-auto custom-scrollbar">

@@ -26,6 +26,7 @@ export default function AdminClient({
   const [categories, setCategories] = useState<CategoryItem[]>([])
   const [announcement, setAnnouncement] = useState(initialAnnouncement)
   
+  // 默认值兜底
   const defaultUISettings = {
     themeMode: 'slideshow',
     wallpaperSource: 'smart',
@@ -35,6 +36,7 @@ export default function AdminClient({
     uiBlur: 2,
     slideshowInterval: 30,
     slideshowEffect: 'fade',
+    descColor: '#94a3b8', // ✨ 新增默认颜色
     noise: false,
     glow: false,
     tilt: false,
@@ -156,38 +158,25 @@ export default function AdminClient({
         </div>
       )}
 
-      {/* ✨ Tab D: 主题管理 (更新：带详细引导的蓝色卡片) ✨ */}
+      {/* Tab D: 主题管理 */}
       {activeTab === 'themes' && (
         <div className="space-y-8">
-            {/* 蓝色引导卡片 */}
             <div className="bg-sky-900/20 border border-sky-800/50 rounded-xl p-6">
                 <h3 className="text-base font-bold text-sky-200 mb-4 flex items-center gap-2">
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
                     图片链接哪里找？
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {/* 方式一：本地上传 */}
                     <div className="bg-slate-900/50 p-4 rounded-lg border border-slate-800">
                         <div className="flex justify-between items-start">
-                            <div>
-                                <h4 className="text-sm font-bold text-sky-100 mb-1">方式 A：本地图片</h4>
-                                <p className="text-xs text-slate-400 mb-3 leading-relaxed">上传图片后，复制 <strong>"Direct Link"</strong></p>
-                            </div>
-                            <a href="https://postimages.org/" target="_blank" rel="noopener noreferrer" className="text-xs bg-sky-600 hover:bg-sky-500 text-white px-3 py-1.5 rounded-md transition flex items-center gap-1">
-                                去上传 <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
-                            </a>
+                            <div><h4 className="text-sm font-bold text-sky-100 mb-1">方式 A：本地图片</h4><p className="text-xs text-slate-400 mb-3 leading-relaxed">上传图片后，复制 <strong>"Direct Link"</strong></p></div>
+                            <a href="https://postimages.org/" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs bg-sky-600 hover:bg-sky-500 text-white px-3 py-1.5 rounded-md transition">去上传 <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg></a>
                         </div>
                     </div>
-                    {/* 方式二：网络图片 */}
                     <div className="bg-slate-900/50 p-4 rounded-lg border border-slate-800">
                         <div className="flex justify-between items-start">
-                             <div>
-                                <h4 className="text-sm font-bold text-sky-100 mb-1">方式 B：网络壁纸</h4>
-                                <p className="text-xs text-slate-400 mb-3 leading-relaxed">右键图片 &rarr; 选择 <strong>"复制图片地址"</strong></p>
-                             </div>
-                             <a href="https://wallhere.com" target="_blank" rel="noopener noreferrer" className="text-xs bg-slate-700 hover:bg-slate-600 text-slate-200 px-3 py-1.5 rounded-md transition flex items-center gap-1">
-                                找壁纸 <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-                             </a>
+                             <div><h4 className="text-sm font-bold text-sky-100 mb-1">方式 B：网络壁纸</h4><p className="text-xs text-slate-400 mb-3 leading-relaxed">右键图片 &rarr; 选择 <strong>"复制图片地址"</strong></p></div>
+                             <a href="https://wallhere.com" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs bg-slate-700 hover:bg-slate-600 text-slate-200 px-3 py-1.5 rounded-md transition">找壁纸 <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg></a>
                         </div>
                     </div>
                 </div>
@@ -231,13 +220,11 @@ export default function AdminClient({
                     <button type="submit" className="w-full bg-indigo-600 hover:bg-indigo-500 text-white p-3 rounded-xl font-medium shadow-lg shadow-indigo-500/20 transition-all transform active:scale-95">更新公告</button>
                 </form>
                 
-                {/* 历史记录 */}
                 <div className="mt-8 pt-6 border-t border-slate-800">
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="text-sm font-bold text-slate-300">发布历史</h3>
                     <button type="button" onClick={() => setShowHistory(!showHistory)} className="text-xs text-slate-500 hover:text-indigo-400 transition">{showHistory ? '收起' : '展开'}</button>
                   </div>
-                  
                   {showHistory && (
                     <div className="space-y-2 max-h-60 overflow-y-auto custom-scrollbar bg-slate-950/30 p-2 rounded-xl">
                       {initialHistory && initialHistory.length > 0 ? initialHistory.map((item) => (
@@ -256,7 +243,7 @@ export default function AdminClient({
         </div>
       )}
 
-      {/* Tab F: 全局视觉 */}
+      {/* ✨ Tab F: 全局视觉 (包含新颜色选择器) ✨ */}
       {activeTab === 'design' && (
         <div className="max-w-4xl mx-auto">
             <div className="bg-slate-900/50 border border-slate-800/60 rounded-2xl p-8 shadow-xl">
@@ -264,7 +251,6 @@ export default function AdminClient({
                     <svg className="w-6 h-6 text-pink-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
                     默认视觉风格 (出厂设置)
                 </h2>
-                <p className="text-xs text-slate-500 mb-6">这里设置的是新访客看到的默认效果。用户个人的修改会覆盖这些设置。</p>
                 
                 <form action={handleSaveGlobalUI} className="space-y-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -277,6 +263,22 @@ export default function AdminClient({
                         <div className="space-y-4">
                             <div><label className="text-xs text-slate-400 mb-2 block">默认背景模式</label><select name="themeMode" defaultValue={globalSettings.themeMode} onChange={(e) => updateGlobalState('themeMode', e.target.value)} className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-pink-500"><option value="default">纯色深蓝</option><option value="slideshow">动态轮播</option></select></div>
                             <div><label className="text-xs text-slate-400 mb-2 block">轮播切换动画</label><select name="slideshowEffect" defaultValue={globalSettings.slideshowEffect} onChange={(e) => updateGlobalState('slideshowEffect', e.target.value)} className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-pink-500"><option value="fade">柔和淡入</option><option value="zoom">呼吸缩放</option><option value="pan">全景运镜</option></select></div>
+                            
+                            {/* ✨ 新增：描述文本颜色选择器 ✨ */}
+                            <div className="flex items-center justify-between bg-slate-950/50 p-3 rounded-lg border border-slate-800">
+                              <label className="text-xs text-slate-400">描述文字颜色</label>
+                              <div className="flex items-center gap-3">
+                                <span className="text-xs text-slate-500 font-mono">{globalSettings.descColor}</span>
+                                <input 
+                                  type="color" 
+                                  name="descColor" 
+                                  defaultValue={globalSettings.descColor}
+                                  onChange={(e) => updateGlobalState('descColor', e.target.value)}
+                                  className="w-6 h-6 rounded cursor-pointer bg-transparent border-0 p-0" 
+                                />
+                              </div>
+                            </div>
+
                             <div className="flex flex-wrap gap-4 pt-2">
                                 <label className="flex items-center gap-2 text-sm text-slate-300 cursor-pointer"><input type="checkbox" name="tilt" defaultChecked={globalSettings.tilt} className="accent-pink-500" /> 3D视差</label>
                                 <label className="flex items-center gap-2 text-sm text-slate-300 cursor-pointer"><input type="checkbox" name="glow" defaultChecked={globalSettings.glow} className="accent-pink-500" /> 鼠标光晕</label>
