@@ -1,7 +1,7 @@
-// app/page.tsx (局部修改，请完全覆盖)
+// app/page.tsx
 import { PrismaClient } from '@prisma/client'
 import ClientHome from './components/ClientHome'
-import { getAnnouncement } from './actions' // ✨ 引入
+import { getAnnouncement, getSmartWallpapers } from './actions'
 
 export const dynamic = 'force-dynamic'
 const prisma = new PrismaClient()
@@ -38,10 +38,11 @@ export default async function Home(props: Props) {
     else if (currentCategory !== 'All') { whereCondition.category = currentCategory }
   }
 
-  // ✨ 并行获取链接和公告
-  const [links, announcement] = await Promise.all([
+  // ✨ 新增: 获取智能主题列表
+  const [links, announcement, smartThemes] = await Promise.all([
       prisma.link.findMany({ where: whereCondition, orderBy: { createdAt: 'desc' } }),
-      getAnnouncement()
+      getAnnouncement(),
+      getSmartWallpapers()
   ])
 
   return (
@@ -50,7 +51,8 @@ export default async function Home(props: Props) {
       categoriesData={categoriesData} 
       currentCategory={currentCategory}
       searchQuery={searchQuery}
-      announcement={announcement} // ✨ 传递公告
+      announcement={announcement}
+      smartThemes={smartThemes} // ✨ 传递
     />
   )
 }

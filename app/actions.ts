@@ -140,3 +140,34 @@ export async function getAnnouncement() {
   // 默认文案
   return config?.value || '欢迎来到 MyNav！这是默认公告，请去后台编辑。'
 }
+
+// --- 智能壁纸主题管理 ---
+
+export async function getSmartWallpapers() {
+  return await prisma.smartWallpaper.findMany({
+    orderBy: { createdAt: 'desc' }
+  })
+}
+
+export async function addSmartWallpaper(formData: FormData) {
+  const name = formData.get('name') as string
+  const morning = formData.get('morning') as string
+  const afternoon = formData.get('afternoon') as string
+  const night = formData.get('night') as string
+
+  if (!name) return
+
+  await prisma.smartWallpaper.create({
+    data: { name, morning, afternoon, night }
+  })
+
+  revalidatePath('/admin')
+  revalidatePath('/')
+}
+
+export async function deleteSmartWallpaper(formData: FormData) {
+  const id = formData.get('id') as string
+  await prisma.smartWallpaper.delete({ where: { id: parseInt(id) } })
+  revalidatePath('/admin')
+  revalidatePath('/')
+}

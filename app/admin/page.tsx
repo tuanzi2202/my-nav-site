@@ -1,18 +1,17 @@
 // app/admin/page.tsx
 import { PrismaClient } from '@prisma/client'
 import AdminClient from './client'
-// ✨ 引入获取公告的方法
-import { getAnnouncement } from '../actions'
+import { getAnnouncement, getSmartWallpapers } from '../actions' // ✨
 
 export const dynamic = 'force-dynamic'
 
 const prisma = new PrismaClient()
 
 export default async function AdminPage() {
-  // 并行获取数据
-  const [links, announcement] = await Promise.all([
+  const [links, announcement, smartThemes] = await Promise.all([
     prisma.link.findMany({ orderBy: { createdAt: 'desc' } }),
-    getAnnouncement() // ✨ 获取公告
+    getAnnouncement(),
+    getSmartWallpapers() // ✨ 获取所有智能主题
   ])
 
   return (
@@ -20,7 +19,8 @@ export default async function AdminPage() {
       <div className="max-w-5xl mx-auto">
         <AdminClient 
             initialLinks={links} 
-            initialAnnouncement={announcement} // ✨ 传递给客户端
+            initialAnnouncement={announcement}
+            initialThemes={smartThemes} // ✨ 传递给 Client
         />
       </div>
     </div>

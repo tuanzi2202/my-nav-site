@@ -30,3 +30,12 @@ model GlobalConfig {
   key   String @unique // 例如: "announcement"
   value String // 存储公告内容
 }
+
+model SmartWallpaper {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique // 主题名称，如 "默认风景", "二次元", "极简"
+  morning   String   // 存 JSON 字符串或用逗号分隔的 URL
+  afternoon String
+  night     String
+  createdAt DateTime @default(now())
+}
