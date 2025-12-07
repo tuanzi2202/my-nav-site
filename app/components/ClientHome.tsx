@@ -354,14 +354,14 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
       {settings.noise && <div className="fixed inset-0 z-[1] pointer-events-none opacity-[0.04] bg-[url('https://grainy-gradients.vercel.app/noise.svg')]"></div>}
       {settings.glow && <div className="fixed z-0 pointer-events-none w-[600px] h-[600px] bg-sky-500/10 rounded-full blur-[80px] transition-transform duration-75 will-change-transform" style={{ left: mousePos.x - 300, top: mousePos.y - 300 }} />}
 
-      {/* ✨✨✨ 环形右键菜单渲染 (优化版) ✨✨✨ */}
+      {/* ✨✨✨ 环形右键菜单渲染 (无中心点版) ✨✨✨ */}
       {contextMenu?.show && (
         <div 
           className="fixed z-[9999]" 
           style={{ left: contextMenu.x, top: contextMenu.y }}
         >
           <div className="relative group">
-             {/* 菜单项 */}
+             {/* 仅保留菜单项，移除所有中心元素 */}
              {menuItems.map((item, i) => {
                 const radius = 80; // 半径
                 // 角度计算：从12点钟(-90deg)开始，顺时针排列
