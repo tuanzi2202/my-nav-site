@@ -353,17 +353,16 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
         @keyframes refined-bubble-rise { 0% { transform: translateY(0) scale(0.8); opacity: 0; } 20% { opacity: 0.7; } 100% { transform: translateY(-150px) scale(1.1); opacity: 0; } }
         @keyframes refined-bubble-wobble { 0% { margin-left: -5px; } 100% { margin-left: 5px; } }
 
-        /* 打开动画：顺时针快速螺旋弹出 (2圈) */
-        @keyframes radial-popup {
-          0% { transform: translate(0, 0) scale(0) rotate(-720deg); opacity: 0; }
-          50% { opacity: 1; }
-          100% { transform: translate(var(--tx), var(--ty)) scale(1) rotate(0deg); opacity: 1; }
+        /* 打开动画：容器整体旋转放大 (螺旋弹出) */
+        @keyframes wheel-open {
+          0% { transform: scale(0) rotate(-720deg); opacity: 0; }
+          100% { transform: scale(1) rotate(0deg); opacity: 1; }
         }
         
-        /* 关闭动画：逆时针螺旋缩小回中心 */
-        @keyframes radial-popup-out {
-          0% { transform: translate(var(--tx), var(--ty)) scale(1) rotate(0deg); opacity: 1; }
-          100% { transform: translate(0, 0) scale(0) rotate(-720deg); opacity: 0; }
+        /* 关闭动画：容器整体旋转缩小 (螺旋消失) */
+        @keyframes wheel-close {
+          0% { transform: scale(1) rotate(0deg); opacity: 1; }
+          100% { transform: scale(0) rotate(-720deg); opacity: 0; }
         }
       `}</style>
 
@@ -380,25 +379,26 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
       {settings.noise && <div className="fixed inset-0 z-[1] pointer-events-none opacity-[0.04] bg-[url('https://grainy-gradients.vercel.app/noise.svg')]"></div>}
       {settings.glow && <div className="fixed z-0 pointer-events-none w-[600px] h-[600px] bg-sky-500/10 rounded-full blur-[80px] transition-transform duration-75 will-change-transform" style={{ left: mousePos.x - 300, top: mousePos.y - 300 }} />}
 
-      {/* ✨✨✨ 环形右键菜单渲染 (支持双向动画) ✨✨✨ */}
+      {/* ✨✨✨ 环形右键菜单渲染 (容器级螺旋动画) ✨✨✨ */}
       {contextMenu?.show && (
         <div 
           className="fixed z-[9999]" 
           style={{ left: contextMenu.x, top: contextMenu.y }}
         >
-          <div className="relative group">
+          {/* 将动画应用到这个包裹所有按钮的容器上 */}
+          <div 
+            className="relative group"
+            style={{
+              animation: `${isClosing ? 'wheel-close' : 'wheel-open'} 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards`,
+              transformOrigin: 'center center'
+            }}
+          >
              {menuItems.map((item, i) => {
                 const radius = 80;
+                // 角度计算：从12点钟(-90deg)开始，顺时针排列
                 const angle = (i * 60 - 90) * (Math.PI / 180);
                 const x = Math.cos(angle) * radius;
                 const y = Math.sin(angle) * radius;
-                
-                // ✨ 动画逻辑：
-                // 打开时：顺时针延迟 (i * 0.04)
-                // 关闭时：逆时针延迟 (倒序播放，看起来像同时收回但有层次)
-                const animName = isClosing ? 'radial-popup-out' : 'radial-popup'
-                const timing = isClosing ? 'ease-in' : 'cubic-bezier(0.34, 1.56, 0.64, 1)'
-                const delay = isClosing ? (menuItems.length - 1 - i) * 0.04 : i * 0.04
 
                 return (
                   <button
@@ -406,15 +406,13 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
                     onClick={(e) => { e.stopPropagation(); item.action(); closeMenu(); }}
                     className="absolute w-14 h-14 -ml-7 -mt-7 bg-slate-900/60 border border-white/10 rounded-full flex items-center justify-center shadow-2xl text-slate-200 hover:bg-sky-600/90 hover:text-white hover:border-sky-400 hover:scale-110 transition-all duration-300 backdrop-blur-xl group"
                     style={{
-                      '--tx': `${x}px`,
-                      '--ty': `${y}px`,
-                      animation: `${animName} 0.5s ${timing} forwards ${delay}s`,
-                      opacity: 0,
-                      // 在关闭时，保持位置为展开状态作为动画起点；在打开时，保持为收缩状态作为动画起点
-                      transform: isClosing ? `translate(${x}px, ${y}px) scale(1) rotate(0deg)` : 'translate(0,0) scale(0) rotate(-720deg)'
-                    } as React.CSSProperties}
+                      // 按钮直接定位在最终位置，靠容器旋转来实现螺旋效果
+                      left: x,
+                      top: y,
+                    }}
                   >
                      {item.icon}
+                     {/* 悬停显示文字标签 (玻璃拟态风格) */}
                      <span className="absolute opacity-0 group-hover:opacity-100 transition-opacity duration-300 text-[10px] text-slate-100 bg-slate-900/80 px-2.5 py-1 rounded-full -bottom-8 whitespace-nowrap pointer-events-none backdrop-blur-md border border-white/10 shadow-lg translate-y-1 group-hover:translate-y-0 transform">
                         {item.label}
                      </span>
