@@ -429,6 +429,35 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
                     )}
                     {activeTab === 'effects' && (
                         <div className="space-y-6">
+                            
+                            {/* ✨✨✨ 新增：点击特效选择器 ✨✨✨ */}
+                            <div>
+                                <div className="text-xs text-slate-400 mb-3">鼠标点击特效：</div>
+                                <div className="grid grid-cols-4 gap-2">
+                                    {[
+                                        { id: 'none', label: '关闭' },
+                                        { id: 'ripple', label: '波纹' },
+                                        { id: 'particles', label: '粒子' },
+                                        { id: 'bubble', label: '气泡' },
+                                    ].map((effect) => (
+                                        <button
+                                            key={effect.id}
+                                            onClick={() => updateSetting('clickEffect', effect.id)}
+                                            className={`py-2 text-[10px] rounded-lg border transition-all ${
+                                                settings.clickEffect === effect.id
+                                                    ? 'bg-sky-500/20 border-sky-500 text-sky-400 font-medium'
+                                                    : 'bg-slate-800 border-slate-700 text-slate-400 hover:bg-slate-700'
+                                            }`}
+                                        >
+                                            {effect.label}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div className="w-full h-px bg-slate-800"></div>
+
+                            {/* 开关类特效 (保持不变) */}
                             <div className="space-y-3">
                                 {[{ key: 'tilt', label: '3D 悬停视差' }, { key: 'glow', label: '鼠标跟随光晕' }, { key: 'noise', label: '胶片噪点质感' }].map((item) => (
                                     <div key={item.key} className="flex items-center justify-between">
@@ -437,23 +466,22 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
                                     </div>
                                 ))}
                             </div>
+                            
                             <div className="w-full h-px bg-slate-800"></div>
+                            
+                            {/* 滑动条类特效 (保持不变) */}
                             <div className="space-y-5">
                                 <div><div className="flex justify-between text-xs mb-2"><span className="text-slate-400">背景模糊度</span><span className="text-sky-400">{settings.bgBlur}px</span></div><input type="range" min="0" max="20" step="1" value={settings.bgBlur} onChange={(e) => updateSetting('bgBlur', parseInt(e.target.value))} className="w-full h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-sky-500" /></div>
                                 <div><div className="flex justify-between text-xs mb-2"><span className="text-slate-400">网站卡片不透明度</span><span className="text-sky-400">{Math.round(settings.cardOpacity * 100)}%</span></div><input type="range" min="0" max="1.0" step="0.05" value={settings.cardOpacity} onChange={(e) => updateSetting('cardOpacity', parseFloat(e.target.value))} className="w-full h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-sky-500" /></div>
                                 <div><div className="flex justify-between text-xs mb-2"><span className="text-slate-400">公告板不透明度</span><span className="text-sky-400">{Math.round(settings.boardOpacity * 100)}%</span></div><input type="range" min="0" max="1.0" step="0.05" value={settings.boardOpacity} onChange={(e) => updateSetting('boardOpacity', parseFloat(e.target.value))} className="w-full h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-sky-500" /></div>
                                 <div><div className="flex justify-between text-xs mb-2"><span className="text-slate-400">界面磨砂感 (Blur)</span><span className="text-sky-400">{settings.uiBlur}px</span></div><input type="range" min="0" max="40" step="2" value={settings.uiBlur} onChange={(e) => updateSetting('uiBlur', parseInt(e.target.value))} className="w-full h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-sky-500" /></div>
-                                {/* ✨✨✨ 描述文字颜色选择器 ✨✨✨ */}
+                                
+                                {/* 描述颜色选择器 (保持不变) */}
                                 <div className="flex items-center justify-between p-3 rounded-xl bg-slate-900/50 border border-slate-800/50">
                                     <span className="text-sm font-medium text-slate-200">描述文字颜色</span>
                                     <div className="flex items-center gap-3">
                                         <span className="text-xs text-slate-500 font-mono">{settings.descColor}</span>
-                                        <input 
-                                            type="color" 
-                                            value={settings.descColor}
-                                            onChange={(e) => updateSetting('descColor', e.target.value)}
-                                            className="w-8 h-8 rounded cursor-pointer bg-transparent border-0 p-0" 
-                                        />
+                                        <input type="color" value={settings.descColor} onChange={(e) => updateSetting('descColor', e.target.value)} className="w-8 h-8 rounded cursor-pointer bg-transparent border-0 p-0" />
                                     </div>
                                 </div>
                             </div>
