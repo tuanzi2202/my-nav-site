@@ -117,16 +117,23 @@ export async function deleteCategoryConfig(formData: FormData) {
 
 // --- 全局配置管理 ---
 
-// 更新公告
+// 更新公告 (同时存档)
 export async function updateAnnouncement(formData: FormData) {
   const content = formData.get('content') as string
   
-  // 使用 upsert: 有则更新，无则创建
+  // 更新当前显示的公告
   await prisma.globalConfig.upsert({
     where: { key: 'announcement' },
     update: { value: content },
     create: { key: 'announcement', value: content }
   })
+
+  // 写入历史记录 (存档)
+  if (content.trim()) { // 非空才存
+    await prisma.announcementHistory.create({
+      data: { content }
+    })
+  }
 
   revalidatePath('/admin')
   revalidatePath('/')
@@ -139,6 +146,14 @@ export async function getAnnouncement() {
   })
   // 默认文案
   return config?.value || '欢迎来到 MyNav！这是默认公告，请去后台编辑。'
+}
+
+// 获取历史记录 (取最近 20 条)
+export async function getAnnouncementHistory() {
+  return await prisma.announcementHistory.findMany({
+    orderBy: { createdAt: 'desc' },
+    take: 20
+  })
 }
 
 // --- 智能壁纸主题管理 ---

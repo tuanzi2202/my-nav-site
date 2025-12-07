@@ -1,19 +1,20 @@
 // app/admin/page.tsx
 import { PrismaClient } from '@prisma/client'
 import AdminClient from './client'
-// ✨ 引入 getUISettings
-import { getAnnouncement, getSmartWallpapers, getUISettings } from '../actions'
+// ✨ 引入 getAnnouncementHistory
+import { getAnnouncement, getSmartWallpapers, getUISettings, getAnnouncementHistory } from '../actions'
 
 export const dynamic = 'force-dynamic'
 
 const prisma = new PrismaClient()
 
 export default async function AdminPage() {
-  const [links, announcement, smartThemes, uiSettings] = await Promise.all([
+  const [links, announcement, smartThemes, uiSettings, announcementHistory] = await Promise.all([
     prisma.link.findMany({ orderBy: { createdAt: 'desc' } }),
     getAnnouncement(),
     getSmartWallpapers(),
-    getUISettings() // ✨ 获取当前数据库里的 UI 配置
+    getUISettings(),
+    getAnnouncementHistory() // ✨ 获取历史记录
   ])
 
   return (
@@ -23,7 +24,8 @@ export default async function AdminPage() {
             initialLinks={links} 
             initialAnnouncement={announcement}
             initialThemes={smartThemes}
-            initialGlobalSettings={uiSettings} // ✨ 传给 Client
+            initialGlobalSettings={uiSettings}
+            initialHistory={announcementHistory} // ✨ 传递给 Client
         />
       </div>
     </div>

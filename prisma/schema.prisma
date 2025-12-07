@@ -39,3 +39,10 @@ model SmartWallpaper {
   night     String
   createdAt DateTime @default(now())
 }
+
+// ✨ 新增：公告历史记录表
+model AnnouncementHistory {
+  id        Int      @id @default(autoincrement())
+  content   String   // 历史内容
+  createdAt DateTime @default(now()) // 存档时间
+}

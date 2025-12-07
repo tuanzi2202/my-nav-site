@@ -7,8 +7,22 @@ import { addLink, deleteLink, updateLink, getCategories, autoSyncCategories, reo
 type LinkItem = { id: number; title: string; url: string; description: string | null; category: string; isRecommended: boolean; createdAt: Date }
 type CategoryItem = { id: number; name: string; sortOrder: number }
 type ThemeItem = { id: number; name: string; morning: string; afternoon: string; night: string }
+// ✨ 新增历史记录类型
+type HistoryItem = { id: number; content: string; createdAt: Date }
 
-export default function AdminClient({ initialLinks, initialAnnouncement, initialThemes, initialGlobalSettings }: { initialLinks: LinkItem[], initialAnnouncement: string, initialThemes: ThemeItem[], initialGlobalSettings: any }) {
+export default function AdminClient({ 
+  initialLinks, 
+  initialAnnouncement, 
+  initialThemes, 
+  initialGlobalSettings, 
+  initialHistory 
+}: { 
+  initialLinks: LinkItem[], 
+  initialAnnouncement: string, 
+  initialThemes: ThemeItem[], 
+  initialGlobalSettings: any,
+  initialHistory: HistoryItem[] // ✨ 接收历史记录
+}) {
   const [activeTab, setActiveTab] = useState<'links' | 'categories' | 'settings' | 'themes'>('links')
   const [categories, setCategories] = useState<CategoryItem[]>([])
   const [announcement, setAnnouncement] = useState(initialAnnouncement)
@@ -37,6 +51,9 @@ export default function AdminClient({ initialLinks, initialAnnouncement, initial
   
   const [draggingItem, setDraggingItem] = useState<number | null>(null)
   const dragOverItem = useRef<number | null>(null)
+  
+  // ✨ 控制历史记录面板展开/收起
+  const [showHistory, setShowHistory] = useState(false)
 
   useEffect(() => {
     async function init() {
@@ -136,12 +153,12 @@ export default function AdminClient({ initialLinks, initialAnnouncement, initial
         </div>
       )}
 
-      {/* Tab D: 主题管理 */}
+      {/* Tab C: 主题管理 */}
       {activeTab === 'themes' && (
         <div className="space-y-8">
             <div className="bg-sky-900/20 border border-sky-800/50 rounded-xl p-4 flex items-start gap-4">
                 <div className="p-2 bg-sky-900/40 rounded-lg text-sky-400"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg></div>
-                <div><h3 className="text-sm font-bold text-sky-200 mb-1">图片链接哪里找？</h3><p className="text-xs text-slate-400 mb-2">推荐使用 Postimages 或 Wallhere。</p><div className="flex gap-2"><a href="https://postimages.org/" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs bg-slate-700 hover:bg-slate-600 text-slate-200 px-3 py-1.5 rounded-md transition">Postimages <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg></a><a href="https://wallhere.com" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs bg-slate-700 hover:bg-slate-600 text-slate-200 px-3 py-1.5 rounded-md transition">Wallhere <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg></a></div></div>
+                <div><h3 className="text-sm font-bold text-sky-200 mb-1">图片链接哪里找？</h3><p className="text-xs text-slate-400 mb-2">推荐使用 Postimages 或 Wallhere。</p><div className="flex gap-2"><a href="https://postimages.org/" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs bg-slate-700 hover:bg-slate-600 text-slate-200 px-3 py-1.5 rounded-md transition">Postimages (上传本地图片) <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg></a><a href="https://wallhere.com" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs bg-slate-700 hover:bg-slate-600 text-slate-200 px-3 py-1.5 rounded-md transition">Wallhere 壁纸库 (右键图片 &rarr; 复制图片地址) <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg></a></div></div>
             </div>
             <div className="bg-slate-900/50 border border-slate-800/60 rounded-2xl p-6">
                 <h2 className="text-lg font-semibold text-slate-100 mb-5">添加智能轮播主题</h2>
@@ -156,7 +173,7 @@ export default function AdminClient({ initialLinks, initialAnnouncement, initial
                 </form>
             </div>
             <div className="bg-slate-900/50 border border-slate-800/60 rounded-2xl overflow-hidden">
-                <table className="w-full text-left"><thead className="bg-slate-950/50 text-slate-400 text-xs uppercase"><tr><th className="p-5">主题名称</th><th className="p-5">预览</th><th className="p-5 text-right">操作</th></tr></thead>
+                <table className="w-full text-left"><thead className="bg-slate-950/50 text-slate-400 text-xs uppercase"><tr><th className="p-5">主题名称</th><th className="p-5">预览 (张数)</th><th className="p-5 text-right">操作</th></tr></thead>
                     <tbody className="divide-y divide-slate-800/50">
                         {initialThemes.map((theme) => (
                             <tr key={theme.id} className="hover:bg-slate-800/30">
@@ -171,7 +188,7 @@ export default function AdminClient({ initialLinks, initialAnnouncement, initial
         </div>
       )}
 
-      {/* ✨✨✨ Tab C: 全局配置 (升级版) ✨✨✨ */}
+      {/* Tab D: 全局配置 */}
       {activeTab === 'settings' && (
         <div className="max-w-4xl mx-auto space-y-8">
             
@@ -182,9 +199,39 @@ export default function AdminClient({ initialLinks, initialAnnouncement, initial
                     <div><label className="block text-sm text-slate-400 mb-2">公告内容</label><textarea name="content" value={announcement} onChange={(e) => setAnnouncement(e.target.value)} className="w-full bg-slate-950 border border-slate-700 rounded-xl p-4 text-slate-200 h-32 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/50 transition-all resize-none leading-relaxed" placeholder="请输入要在首页显示的公告内容..." /><p className="text-xs text-slate-500 mt-2">支持普通文本，换行请直接回车。</p></div>
                     <button type="submit" className="w-full bg-indigo-600 hover:bg-indigo-500 text-white p-3 rounded-xl font-medium shadow-lg shadow-indigo-500/20 transition-all transform active:scale-95">更新公告</button>
                 </form>
+                
+                {/* ✨✨✨ 新增：历史记录列表 ✨✨✨ */}
+                <div className="mt-8 pt-6 border-t border-slate-800">
+                  <button type="button" onClick={() => setShowHistory(!showHistory)} className="flex items-center text-sm text-slate-400 hover:text-white transition">
+                    <svg className={`w-4 h-4 mr-2 transition-transform ${showHistory ? 'rotate-90' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path></svg>
+                    查看历史发布记录
+                  </button>
+                  
+                  {showHistory && (
+                    <div className="mt-4 space-y-2 max-h-60 overflow-y-auto custom-scrollbar">
+                      {initialHistory.length > 0 ? initialHistory.map((item) => (
+                        <div key={item.id} className="flex items-center justify-between p-3 bg-slate-950/50 rounded-lg border border-slate-800 hover:border-slate-700 transition">
+                          <div>
+                            <div className="text-xs text-slate-500 mb-1">{new Date(item.createdAt).toLocaleString()}</div>
+                            <div className="text-sm text-slate-300 line-clamp-1">{item.content}</div>
+                          </div>
+                          <button 
+                            type="button"
+                            onClick={() => setAnnouncement(item.content)}
+                            className="text-xs bg-slate-800 hover:bg-indigo-600 text-slate-300 hover:text-white px-3 py-1.5 rounded transition"
+                          >
+                            恢复
+                          </button>
+                        </div>
+                      )) : (
+                        <p className="text-xs text-slate-500 text-center py-2">暂无历史记录</p>
+                      )}
+                    </div>
+                  )}
+                </div>
             </div>
 
-            {/* ✨ 全局视觉风格默认值设置 ✨ */}
+            {/* 全局视觉风格默认值设置 */}
             <div className="bg-slate-900/50 border border-slate-800/60 rounded-2xl p-8 shadow-xl">
                 <h2 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
                     <svg className="w-6 h-6 text-pink-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
