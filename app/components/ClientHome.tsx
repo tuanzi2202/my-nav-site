@@ -112,6 +112,7 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
   const closeMenu = () => {
     if (isClosing) return
     setIsClosing(true)
+    // 延迟 500ms 等待动画播放完毕后再销毁 DOM
     setTimeout(() => {
         setContextMenu(null)
         setIsClosing(false)
@@ -121,17 +122,20 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
   // ✨✨✨ 右键菜单事件监听 ✨✨✨
   useEffect(() => {
     const handleContextMenu = (e: MouseEvent) => {
-      e.preventDefault() 
+      e.preventDefault() // 阻止默认右键菜单
       
       if (contextMenu?.show && !isClosing) {
+        // 如果已经打开，则播放关闭动画
         closeMenu()
       } else {
+        // 如果没打开，直接打开
         setIsClosing(false)
         setContextMenu({ x: e.clientX, y: e.clientY, show: true })
       }
     }
 
     const handleClick = () => {
+      // 点击任意处关闭
       if (contextMenu?.show && !isClosing) closeMenu()
     }
 
@@ -327,14 +331,14 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
       localStorage.setItem('nav_settings', JSON.stringify(newSettings));
   }
 
-  // ✨✨✨ 环形菜单配置 (所有操作均为空) ✨✨✨
+  // ✨✨✨ 环形菜单配置 (自定义菜单项) ✨✨✨
   const menuItems = [
-    { label: '首页', action: () => {} },
-    { label: '前进', action: () => {} },
-    { label: '刷新', action: () => {} },
-    { label: '后台', action: () => {} },
-    { label: '后退', action: () => {} },
-    { label: '顶部', action: () => {} },
+    { label: '音乐', action: () => {} },
+    { label: '博客', action: () => {} },
+    { label: '看板娘', action: () => {} },
+    { label: '其他', action: () => {} },
+    { label: '其他', action: () => {} },
+    { label: '其他', action: () => {} },
   ]
 
   return (
@@ -467,6 +471,7 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
         <svg className="w-6 h-6 group-hover:rotate-90 transition-transform duration-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
       </button>
 
+      {/* ... (设置面板代码保持不变) ... */}
       {showSettings && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200" onClick={() => setShowSettings(false)}>
             <div className="bg-[#0f172a] border border-slate-700 w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
