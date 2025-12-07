@@ -74,7 +74,7 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
     customWallpapers: [] as string[],
     activeThemeId: 'default',
     slideshowInterval: 30,
-    descColor: '#94a3b8' // ✨ 新增默认描述颜色 (Slate-400)
+    descColor: '#94a3b8'
   }
 
   // --- 状态管理 ---
@@ -97,11 +97,8 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
     if (saved) {
       try {
         const parsed = JSON.parse(saved)
-        // 使用本地配置覆盖当前状态
         setSettings((prev: any) => ({ ...prev, ...parsed }))
-      } catch (e) { 
-        console.error("Failed to load local settings", e) 
-      }
+      } catch (e) { console.error(e) }
     }
   }, [])
 
@@ -260,20 +257,7 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 pb-20">
             {links.map((link) => (
-              <a 
-                key={link.id} 
-                href={formatUrl(link.url)} 
-                target="_blank" 
-                rel="noopener noreferrer" 
-                onMouseMove={handleCardMouseMove}
-                onMouseLeave={handleCardMouseLeave}
-                className="group relative backdrop-blur-md border border-white/10 rounded-2xl p-6 hover:border-sky-500/30 hover:shadow-2xl hover:shadow-sky-500/10 transition-all duration-300 flex flex-col h-full overflow-hidden"
-                style={{ 
-                    transformStyle: 'preserve-3d',
-                    backgroundColor: `rgba(15, 23, 42, ${settings.cardOpacity})`,
-                    backdropFilter: `blur(${settings.uiBlur}px)`
-                }}
-              >
+              <a key={link.id} href={formatUrl(link.url)} target="_blank" rel="noopener noreferrer" onMouseMove={handleCardMouseMove} onMouseLeave={handleCardMouseLeave} className="group relative backdrop-blur-md border border-white/10 rounded-2xl p-6 hover:border-sky-500/30 hover:shadow-2xl hover:shadow-sky-500/10 transition-all duration-300 flex flex-col h-full overflow-hidden" style={{ transformStyle: 'preserve-3d', backgroundColor: `rgba(15, 23, 42, ${settings.cardOpacity})`, backdropFilter: `blur(${settings.uiBlur}px)` }}>
                 <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
                 <div className="absolute top-0 right-0 w-20 h-20 bg-sky-500/10 blur-[40px] rounded-full -mr-10 -mt-10 pointer-events-none group-hover:bg-sky-500/20 transition-all duration-500"></div>
                 <div className="flex items-start justify-between mb-5 relative z-10 translate-z-10" style={{ transform: 'translateZ(20px)' }}>
@@ -281,17 +265,7 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
                   <span className="text-[10px] font-medium tracking-wide bg-slate-800/60 text-slate-400 px-2.5 py-1 rounded-md border border-slate-700/50 backdrop-blur-sm">{link.category}</span>
                 </div>
                 <h3 className="text-lg font-bold text-slate-200 group-hover:text-sky-400 transition-colors line-clamp-1 mb-2 tracking-tight translate-z-10" style={{ transform: 'translateZ(10px)' }}>{link.title}</h3>
-                
-                {/* ✨✨✨ 修改点：使用自定义颜色 ✨✨✨ */}
-                {link.description && (
-                    <p 
-                        className="text-sm line-clamp-2 leading-relaxed flex-1 transition-colors"
-                        style={{ color: settings.descColor || '#94a3b8' }} // 使用配置的颜色，默认 fallback
-                    >
-                        {link.description}
-                    </p>
-                )}
-                
+                {link.description && <p className="text-sm line-clamp-2 leading-relaxed flex-1 transition-colors" style={{ color: settings.descColor }}>{link.description}</p>}
                 <div className="absolute bottom-4 right-4 opacity-0 group-hover:opacity-100 transition-all transform translate-y-2 group-hover:translate-y-0 text-sky-500"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path></svg></div>
               </a>
             ))}
@@ -392,6 +366,19 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
                                 <div><div className="flex justify-between text-xs mb-2"><span className="text-slate-400">网站卡片不透明度</span><span className="text-sky-400">{Math.round(settings.cardOpacity * 100)}%</span></div><input type="range" min="0" max="1.0" step="0.05" value={settings.cardOpacity} onChange={(e) => updateSetting('cardOpacity', parseFloat(e.target.value))} className="w-full h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-sky-500" /></div>
                                 <div><div className="flex justify-between text-xs mb-2"><span className="text-slate-400">公告板不透明度</span><span className="text-sky-400">{Math.round(settings.boardOpacity * 100)}%</span></div><input type="range" min="0" max="1.0" step="0.05" value={settings.boardOpacity} onChange={(e) => updateSetting('boardOpacity', parseFloat(e.target.value))} className="w-full h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-sky-500" /></div>
                                 <div><div className="flex justify-between text-xs mb-2"><span className="text-slate-400">界面磨砂感 (Blur)</span><span className="text-sky-400">{settings.uiBlur}px</span></div><input type="range" min="0" max="40" step="2" value={settings.uiBlur} onChange={(e) => updateSetting('uiBlur', parseInt(e.target.value))} className="w-full h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-sky-500" /></div>
+                                {/* ✨✨✨ 新增：描述文字颜色选择器 ✨✨✨ */}
+                                <div className="flex items-center justify-between p-3 rounded-xl bg-slate-900/50 border border-slate-800/50">
+                                    <span className="text-sm font-medium text-slate-200">描述文字颜色</span>
+                                    <div className="flex items-center gap-3">
+                                        <span className="text-xs text-slate-500 font-mono">{settings.descColor}</span>
+                                        <input 
+                                            type="color" 
+                                            value={settings.descColor}
+                                            onChange={(e) => updateSetting('descColor', e.target.value)}
+                                            className="w-8 h-8 rounded cursor-pointer bg-transparent border-0 p-0" 
+                                        />
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     )}
