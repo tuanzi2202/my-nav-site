@@ -339,10 +339,6 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
           70% { opacity: 1; }
           100% { transform: translate(var(--tx), var(--ty)) scale(1) rotate(0deg); opacity: 1; }
         }
-        @keyframes scale-in {
-          0% { transform: translate(-50%, -50%) scale(0); }
-          100% { transform: translate(-50%, -50%) scale(1); }
-        }
       `}</style>
 
       {/* ... (背景、噪声、光晕保持不变) ... */}
@@ -358,21 +354,16 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
       {settings.noise && <div className="fixed inset-0 z-[1] pointer-events-none opacity-[0.04] bg-[url('https://grainy-gradients.vercel.app/noise.svg')]"></div>}
       {settings.glow && <div className="fixed z-0 pointer-events-none w-[600px] h-[600px] bg-sky-500/10 rounded-full blur-[80px] transition-transform duration-75 will-change-transform" style={{ left: mousePos.x - 300, top: mousePos.y - 300 }} />}
 
-      {/* ✨✨✨ 环形右键菜单渲染 ✨✨✨ */}
+      {/* ✨✨✨ 环形右键菜单渲染 (优化版) ✨✨✨ */}
       {contextMenu?.show && (
         <div 
           className="fixed z-[9999]" 
           style={{ left: contextMenu.x, top: contextMenu.y }}
         >
           <div className="relative group">
-             {/* 中心圆点 */}
-             <div className="absolute -translate-x-1/2 -translate-y-1/2 w-10 h-10 bg-slate-900/80 rounded-full border border-sky-500/50 backdrop-blur-md shadow-lg flex items-center justify-center pointer-events-none" style={{ animation: 'scale-in 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards' }}>
-                <span className="w-1.5 h-1.5 bg-sky-400 rounded-full shadow-[0_0_8px_rgba(56,189,248,0.8)]"></span>
-             </div>
-
              {/* 菜单项 */}
              {menuItems.map((item, i) => {
-                const radius = 70; // 半径
+                const radius = 75; // 半径
                 // 角度计算：从12点钟(-90deg)开始，顺时针排列
                 const angle = (i * 60 - 90) * (Math.PI / 180);
                 const x = Math.cos(angle) * radius;
@@ -382,20 +373,21 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
                 return (
                   <button
                     key={i}
-                    title={item.label}
                     onClick={(e) => { e.stopPropagation(); item.action(); setContextMenu(null); }}
-                    className="absolute w-12 h-12 -ml-6 -mt-6 bg-slate-800/90 border border-slate-600 rounded-full flex items-center justify-center shadow-xl text-slate-300 hover:bg-sky-600 hover:text-white hover:border-sky-400 hover:scale-110 transition-all duration-200 group"
+                    className="absolute w-12 h-12 -ml-6 -mt-6 bg-slate-900/60 border border-white/10 rounded-full flex items-center justify-center shadow-2xl text-slate-200 hover:bg-sky-600/90 hover:text-white hover:border-sky-400 hover:scale-110 transition-all duration-300 backdrop-blur-md group"
                     style={{
                       '--tx': `${x}px`,
                       '--ty': `${y}px`,
                       animation: `radial-popup 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards ${delay}s`,
                       opacity: 0,
-                      transform: 'translate(0,0) scale(0)'
+                      transform: 'translate(0,0) scale(0) rotate(-90deg)'
                     } as React.CSSProperties}
                   >
                      {item.icon}
-                     {/* 悬停显示文字标签 */}
-                     <span className="absolute opacity-0 group-hover:opacity-100 transition-opacity text-[10px] bg-black/70 px-2 py-0.5 rounded -bottom-6 whitespace-nowrap pointer-events-none">{item.label}</span>
+                     {/* 悬停显示文字标签 (玻璃拟态风格) */}
+                     <span className="absolute opacity-0 group-hover:opacity-100 transition-opacity duration-300 text-[10px] text-slate-100 bg-slate-900/80 px-2.5 py-1 rounded-full -bottom-8 whitespace-nowrap pointer-events-none backdrop-blur border border-white/10 shadow-lg translate-y-1 group-hover:translate-y-0 transform">
+                        {item.label}
+                     </span>
                   </button>
                 )
              })}
@@ -415,8 +407,6 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
           <div className="p-4 border-t border-slate-800/50"><button onClick={() => router.push('/admin')} className="w-full flex items-center justify-center gap-2 text-xs font-medium text-slate-500 hover:text-sky-400 transition py-2 rounded-lg hover:bg-slate-800/50">管理控制台</button></div>
         </aside>
 
-        {/* ... (Main Content 保持不变，为了节省篇幅我省略了中间未修改的部分，请保留原有的 main 区域代码) ... */}
-        
         <main className="flex-1 overflow-y-auto custom-scrollbar p-6 md:p-10 relative">
           <header className="md:hidden mb-8 flex justify-between items-center bg-slate-900/80 backdrop-blur p-4 rounded-xl border border-slate-800 sticky top-0 z-50 shadow-lg"><h1 className="text-xl font-bold text-white">Oasis</h1><button onClick={() => router.push('/admin')} className="text-xs bg-slate-800 px-3 py-1.5 rounded-full text-sky-400">Admin</button></header>
           <div className="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-6">
