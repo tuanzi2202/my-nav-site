@@ -8,13 +8,12 @@ type LinkItem = { id: number; title: string; url: string; description: string | 
 type CategoryItem = { id: number; name: string; sortOrder: number }
 type ThemeItem = { id: number; name: string; morning: string; afternoon: string; night: string }
 
-// ✨ props 增加 initialGlobalSettings
 export default function AdminClient({ initialLinks, initialAnnouncement, initialThemes, initialGlobalSettings }: { initialLinks: LinkItem[], initialAnnouncement: string, initialThemes: ThemeItem[], initialGlobalSettings: any }) {
   const [activeTab, setActiveTab] = useState<'links' | 'categories' | 'settings' | 'themes'>('links')
   const [categories, setCategories] = useState<CategoryItem[]>([])
   const [announcement, setAnnouncement] = useState(initialAnnouncement)
   
-  // ✨ 全局 UI 设置状态 (给予默认值防止 null)
+  // 默认值兜底
   const defaultUISettings = {
     themeMode: 'slideshow',
     wallpaperSource: 'smart',
@@ -27,7 +26,7 @@ export default function AdminClient({ initialLinks, initialAnnouncement, initial
     noise: false,
     glow: false,
     tilt: false,
-    ...initialGlobalSettings // 覆盖默认值
+    ...initialGlobalSettings
   }
   const [globalSettings, setGlobalSettings] = useState(defaultUISettings)
 
@@ -35,6 +34,7 @@ export default function AdminClient({ initialLinks, initialAnnouncement, initial
   const [editingLink, setEditingLink] = useState<LinkItem | null>(null)
   const [editingTheme, setEditingTheme] = useState<ThemeItem | null>(null)
   const [filterCategory, setFilterCategory] = useState('All')
+  
   const [draggingItem, setDraggingItem] = useState<number | null>(null)
   const dragOverItem = useRef<number | null>(null)
 
@@ -47,7 +47,6 @@ export default function AdminClient({ initialLinks, initialAnnouncement, initial
     init()
   }, [])
 
-  // 拖拽逻辑 (保持不变)
   const handleDragStart = (e: React.DragEvent, position: number) => { setDraggingItem(position); dragOverItem.current = position }
   const handleDragEnter = (e: React.DragEvent, position: number) => { dragOverItem.current = position }
   const handleDragEnd = async () => {
@@ -74,31 +73,22 @@ export default function AdminClient({ initialLinks, initialAnnouncement, initial
   async function handleUpdateAnnouncement(formData: FormData) { await updateAnnouncement(formData); alert('公告已更新！') }
   async function handleUpdateTheme(formData: FormData) { await updateSmartWallpaper(formData); setEditingTheme(null) }
   
-  // ✨ 处理全局 UI 设置更新 (本地状态更新)
   const updateGlobalState = (key: string, value: any) => {
-    setGlobalSettings(prev => ({ ...prev, [key]: value }))
+    setGlobalSettings((prev: any) => ({ ...prev, [key]: value }))
   }
 
-  // ✨ 提交全局 UI 设置
   async function handleSaveGlobalUI(formData: FormData) {
-     // Checkbox 不选中不会提交，所以需要手动补全状态
      if (!formData.get('noise')) formData.append('noise', 'off'); 
-     if (formData.get('noise') === 'on') formData.set('noise', 'on');
-     
      if (!formData.get('glow')) formData.append('glow', 'off');
      if (!formData.get('tilt')) formData.append('tilt', 'off');
-
      await updateGlobalUISettings(formData);
-     alert('默认视觉风格已更新！新用户访问将看到此效果。');
+     alert('默认视觉风格已更新！');
   }
 
   return (
     <div>
-      <style jsx global>{`
-        input[type=range] { -webkit-appearance: none; background: transparent; } input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; height: 16px; width: 16px; border-radius: 50%; background: #6366f1; cursor: pointer; margin-top: -6px; box-shadow: 0 0 10px rgba(99,102,241,0.5); } input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 4px; cursor: pointer; background: #334155; border-radius: 2px; }
-      `}</style>
+      <style jsx global>{`input[type=range] { -webkit-appearance: none; background: transparent; } input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; height: 16px; width: 16px; border-radius: 50%; background: #6366f1; cursor: pointer; margin-top: -6px; box-shadow: 0 0 10px rgba(99,102,241,0.5); } input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 4px; cursor: pointer; background: #334155; border-radius: 2px; }`}</style>
       
-      {/* Header */}
       <header className="flex flex-col md:flex-row md:justify-between md:items-center mb-8 border-b border-slate-800/60 pb-6 gap-4">
         <div><h1 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-sky-400 to-indigo-400">控制台</h1><p className="text-xs text-slate-500 mt-1">Admin Dashboard</p></div>
         <div className="flex bg-slate-900 p-1 rounded-lg border border-slate-800 overflow-x-auto">
@@ -138,7 +128,7 @@ export default function AdminClient({ initialLinks, initialAnnouncement, initial
         </>
       )}
 
-      {/* Tab B: 分类排序 (保持不变) */}
+      {/* Tab B: 分类排序 */}
       {activeTab === 'categories' && (
         <div className="space-y-6">
             <div className="bg-blue-900/20 p-4 rounded-xl border border-blue-900/50"><h3 className="text-blue-200 font-bold">拖拽排序</h3><p className="text-xs text-blue-400 mt-1">按住下方的分类卡片拖动即可调整前台显示顺序。</p></div>
@@ -146,12 +136,12 @@ export default function AdminClient({ initialLinks, initialAnnouncement, initial
         </div>
       )}
 
-      {/* Tab C: 主题管理 (保持不变) */}
+      {/* Tab D: 主题管理 */}
       {activeTab === 'themes' && (
         <div className="space-y-8">
             <div className="bg-sky-900/20 border border-sky-800/50 rounded-xl p-4 flex items-start gap-4">
                 <div className="p-2 bg-sky-900/40 rounded-lg text-sky-400"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg></div>
-                <div><h3 className="text-sm font-bold text-sky-200 mb-1">图片链接哪里找？</h3><p className="text-xs text-slate-400 mb-2">推荐使用 Postimages 或 Wallhere。</p><div className="flex gap-2"><a href="https://postimages.org/" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs bg-slate-700 hover:bg-slate-600 text-slate-200 px-3 py-1.5 rounded-md transition">Postimages (上传本地图片) <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg></a><a href="https://wallhere.com" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs bg-slate-700 hover:bg-slate-600 text-slate-200 px-3 py-1.5 rounded-md transition">Wallhere 壁纸库 (右键图片 &rarr; 复制图片地址) <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg></a></div></div>
+                <div><h3 className="text-sm font-bold text-sky-200 mb-1">图片链接哪里找？</h3><p className="text-xs text-slate-400 mb-2">推荐使用 Postimages 或 Wallhere。</p><div className="flex gap-2"><a href="https://postimages.org/" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs bg-slate-700 hover:bg-slate-600 text-slate-200 px-3 py-1.5 rounded-md transition">Postimages <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg></a><a href="https://wallhere.com" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs bg-slate-700 hover:bg-slate-600 text-slate-200 px-3 py-1.5 rounded-md transition">Wallhere <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg></a></div></div>
             </div>
             <div className="bg-slate-900/50 border border-slate-800/60 rounded-2xl p-6">
                 <h2 className="text-lg font-semibold text-slate-100 mb-5">添加智能轮播主题</h2>
@@ -166,13 +156,12 @@ export default function AdminClient({ initialLinks, initialAnnouncement, initial
                 </form>
             </div>
             <div className="bg-slate-900/50 border border-slate-800/60 rounded-2xl overflow-hidden">
-                <table className="w-full text-left">
-                    <thead className="bg-slate-950/50 text-slate-400 text-xs uppercase"><tr><th className="p-5">主题名称</th><th className="p-5">预览 (张数)</th><th className="p-5 text-right">操作</th></tr></thead>
+                <table className="w-full text-left"><thead className="bg-slate-950/50 text-slate-400 text-xs uppercase"><tr><th className="p-5">主题名称</th><th className="p-5">预览</th><th className="p-5 text-right">操作</th></tr></thead>
                     <tbody className="divide-y divide-slate-800/50">
                         {initialThemes.map((theme) => (
                             <tr key={theme.id} className="hover:bg-slate-800/30">
                                 <td className="p-5 font-medium text-slate-200">{theme.name}</td>
-                                <td className="p-5 text-xs text-slate-500"><span className="text-orange-300">早: {theme.morning.split(/[\n,]/).filter(s=>s.trim()).length}</span> <span className="mx-1">/</span> <span className="text-sky-300">午: {theme.afternoon.split(/[\n,]/).filter(s=>s.trim()).length}</span> <span className="mx-1">/</span> <span className="text-indigo-300">晚: {theme.night.split(/[\n,]/).filter(s=>s.trim()).length}</span></td>
+                                <td className="p-5 text-xs text-slate-500"><span className="text-orange-300">早: {theme.morning.split(/[\n,]/).filter(s=>s.trim()).length}</span> / <span className="text-sky-300">午: {theme.afternoon.split(/[\n,]/).filter(s=>s.trim()).length}</span> / <span className="text-indigo-300">晚: {theme.night.split(/[\n,]/).filter(s=>s.trim()).length}</span></td>
                                 <td className="p-5 text-right"><button onClick={() => setEditingTheme(theme)} className="text-sky-400 hover:text-sky-300 text-sm mr-3">编辑</button><form action={deleteSmartWallpaper} className="inline"><input type="hidden" name="id" value={theme.id} /><button className="text-red-400 hover:text-red-300 text-sm">删除</button></form></td>
                             </tr>
                         ))}
@@ -182,7 +171,7 @@ export default function AdminClient({ initialLinks, initialAnnouncement, initial
         </div>
       )}
 
-      {/* Tab C: 全局配置 (包含公告和 ✨ 新增的视觉设置) */}
+      {/* ✨✨✨ Tab C: 全局配置 (升级版) ✨✨✨ */}
       {activeTab === 'settings' && (
         <div className="max-w-4xl mx-auto space-y-8">
             
@@ -205,31 +194,15 @@ export default function AdminClient({ initialLinks, initialAnnouncement, initial
                 
                 <form action={handleSaveGlobalUI} className="space-y-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                        {/* 左侧：滑块 */}
                         <div className="space-y-4">
                             <div><div className="flex justify-between text-xs mb-2 text-slate-300"><span>背景模糊度</span><span>{globalSettings.bgBlur}px</span></div><input type="range" name="bgBlur" min="0" max="20" step="1" defaultValue={globalSettings.bgBlur} onChange={(e) => updateGlobalState('bgBlur', e.target.value)} className="w-full h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-pink-500" /></div>
                             <div><div className="flex justify-between text-xs mb-2 text-slate-300"><span>卡片透明度</span><span>{Math.round(globalSettings.cardOpacity * 100)}%</span></div><input type="range" name="cardOpacity" min="0" max="1" step="0.05" defaultValue={globalSettings.cardOpacity} onChange={(e) => updateGlobalState('cardOpacity', e.target.value)} className="w-full h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-pink-500" /></div>
                             <div><div className="flex justify-between text-xs mb-2 text-slate-300"><span>公告透明度</span><span>{Math.round(globalSettings.boardOpacity * 100)}%</span></div><input type="range" name="boardOpacity" min="0" max="1" step="0.05" defaultValue={globalSettings.boardOpacity} onChange={(e) => updateGlobalState('boardOpacity', e.target.value)} className="w-full h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-pink-500" /></div>
                             <div><div className="flex justify-between text-xs mb-2 text-slate-300"><span>界面磨砂感</span><span>{globalSettings.uiBlur}px</span></div><input type="range" name="uiBlur" min="0" max="40" step="2" defaultValue={globalSettings.uiBlur} onChange={(e) => updateGlobalState('uiBlur', e.target.value)} className="w-full h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-pink-500" /></div>
                         </div>
-
-                        {/* 右侧：选项 */}
                         <div className="space-y-4">
-                            <div>
-                                <label className="text-xs text-slate-400 mb-2 block">默认背景模式</label>
-                                <select name="themeMode" defaultValue={globalSettings.themeMode} onChange={(e) => updateGlobalState('themeMode', e.target.value)} className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-pink-500">
-                                    <option value="default">纯色深蓝</option>
-                                    <option value="slideshow">动态轮播</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label className="text-xs text-slate-400 mb-2 block">轮播切换动画</label>
-                                <select name="slideshowEffect" defaultValue={globalSettings.slideshowEffect} onChange={(e) => updateGlobalState('slideshowEffect', e.target.value)} className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-pink-500">
-                                    <option value="fade">柔和淡入</option>
-                                    <option value="zoom">呼吸缩放</option>
-                                    <option value="pan">全景运镜</option>
-                                </select>
-                            </div>
+                            <div><label className="text-xs text-slate-400 mb-2 block">默认背景模式</label><select name="themeMode" defaultValue={globalSettings.themeMode} onChange={(e) => updateGlobalState('themeMode', e.target.value)} className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-pink-500"><option value="default">纯色深蓝</option><option value="slideshow">动态轮播</option></select></div>
+                            <div><label className="text-xs text-slate-400 mb-2 block">轮播切换动画</label><select name="slideshowEffect" defaultValue={globalSettings.slideshowEffect} onChange={(e) => updateGlobalState('slideshowEffect', e.target.value)} className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-pink-500"><option value="fade">柔和淡入</option><option value="zoom">呼吸缩放</option><option value="pan">全景运镜</option></select></div>
                             <div className="flex flex-wrap gap-4 pt-2">
                                 <label className="flex items-center gap-2 text-sm text-slate-300 cursor-pointer"><input type="checkbox" name="tilt" defaultChecked={globalSettings.tilt} className="accent-pink-500" /> 3D视差</label>
                                 <label className="flex items-center gap-2 text-sm text-slate-300 cursor-pointer"><input type="checkbox" name="glow" defaultChecked={globalSettings.glow} className="accent-pink-500" /> 鼠标光晕</label>
