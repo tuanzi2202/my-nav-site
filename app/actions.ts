@@ -190,3 +190,27 @@ export async function updateSmartWallpaper(formData: FormData) {
   revalidatePath('/admin')
   revalidatePath('/')
 }
+
+// --- ✨ UI 配置持久化 ---
+
+export async function saveUISettings(settings: any) {
+  // 将设置对象转为 JSON 字符串存入数据库
+  await prisma.globalConfig.upsert({
+    where: { key: 'ui_settings' },
+    update: { value: JSON.stringify(settings) },
+    create: { key: 'ui_settings', value: JSON.stringify(settings) }
+  })
+  // 这里不调用 revalidatePath，避免 slider 拖动时页面频繁闪烁
+}
+
+export async function getUISettings() {
+  const config = await prisma.globalConfig.findUnique({
+    where: { key: 'ui_settings' }
+  })
+  if (!config) return null
+  try {
+    return JSON.parse(config.value)
+  } catch (e) {
+    return null
+  }
+}

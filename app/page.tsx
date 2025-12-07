@@ -1,7 +1,8 @@
 // app/page.tsx
 import { PrismaClient } from '@prisma/client'
 import ClientHome from './components/ClientHome'
-import { getAnnouncement, getSmartWallpapers } from './actions'
+// ✨ 引入新写的 getUISettings
+import { getAnnouncement, getSmartWallpapers, getUISettings } from './actions'
 
 export const dynamic = 'force-dynamic'
 const prisma = new PrismaClient()
@@ -38,11 +39,12 @@ export default async function Home(props: Props) {
     else if (currentCategory !== 'All') { whereCondition.category = currentCategory }
   }
 
-  // ✨ 新增: 获取智能主题列表
-  const [links, announcement, smartThemes] = await Promise.all([
+  // ✨ 并行获取所有数据，包括 UI 设置
+  const [links, announcement, smartThemes, uiSettings] = await Promise.all([
       prisma.link.findMany({ where: whereCondition, orderBy: { createdAt: 'desc' } }),
       getAnnouncement(),
-      getSmartWallpapers()
+      getSmartWallpapers(),
+      getUISettings()
   ])
 
   return (
@@ -52,7 +54,8 @@ export default async function Home(props: Props) {
       currentCategory={currentCategory}
       searchQuery={searchQuery}
       announcement={announcement}
-      smartThemes={smartThemes} // ✨ 传递
+      smartThemes={smartThemes}
+      initialSettings={uiSettings} // ✨ 注入数据库里的设置
     />
   )
 }

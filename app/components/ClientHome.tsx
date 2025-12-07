@@ -3,30 +3,13 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
+// ❌ 移除 saveUISettings，不再自动保存到数据库
+// import { saveUISettings } from '../actions' 
 
 // --- 类型定义 ---
-type LinkItem = {
-  id: number
-  title: string
-  url: string
-  description: string | null
-  category: string
-  isRecommended: boolean
-  createdAt: Date
-}
-
-type CategoryData = {
-  category: string
-  _count: { category: number }
-}
-
-type ThemeItem = {
-  id: number
-  name: string
-  morning: string
-  afternoon: string
-  night: string
-}
+type LinkItem = { id: number; title: string; url: string; description: string | null; category: string; isRecommended: boolean; createdAt: Date }
+type CategoryData = { category: string; _count: { category: number } }
+type ThemeItem = { id: number; name: string; morning: string; afternoon: string; night: string }
 
 type ClientHomeProps = {
   links: LinkItem[]
@@ -35,6 +18,7 @@ type ClientHomeProps = {
   searchQuery: string
   announcement: string
   smartThemes: ThemeItem[]
+  initialSettings: any // 这是数据库里的“出厂设置”
 }
 
 type ThemeMode = 'default' | 'slideshow'
@@ -59,78 +43,61 @@ function getTimeSlot(): 'morning' | 'afternoon' | 'night' {
   return 'night'
 }
 
-export default function ClientHome({ links, categoriesData, currentCategory, searchQuery, announcement, smartThemes }: ClientHomeProps) {
+export default function ClientHome({ links, categoriesData, currentCategory, searchQuery, announcement, smartThemes, initialSettings }: ClientHomeProps) {
   const router = useRouter()
   const fileInputRef = useRef<HTMLInputElement>(null)
   
-  // --- 状态管理 ---
-  const [settings, setSettings] = useState({
-    noise: false,
-    glow: false,
-    tilt: false,
+  // --- 默认兜底设置 (代码级默认值) ---
+  const defaultSettings = {
+    noise: false, glow: false, tilt: false,
     themeMode: 'slideshow' as ThemeMode,
-    bgBlur: 0,
-    cardOpacity: 0.1,
-    boardOpacity: 0.1,
-    uiBlur: 2,
+    bgBlur: 0, cardOpacity: 0.1, boardOpacity: 0.1, uiBlur: 2,
     slideshowEffect: 'fade' as TransitionEffect,
     wallpaperSource: 'smart' as WallpaperSource,
     customWallpapers: [] as string[],
     activeThemeId: 'default',
-    slideshowInterval: 30 // ✨ 新增：轮播间隔 (秒)，默认30s
-  })
+    slideshowInterval: 30
+  }
+
+  // --- 状态管理 ---
+  // 1. 先使用数据库传来的配置(initialSettings)作为初始状态，防止服务端渲染不匹配
+  const [settings, setSettings] = useState({ ...defaultSettings, ...initialSettings })
   
   const [showSettings, setShowSettings] = useState(false)
   const [activeTab, setActiveTab] = useState<'effects' | 'theme'>('theme')
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 })
   const [errorMsg, setErrorMsg] = useState('')
   
-  // 轮播相关状态
   const [currentWallpaperSet, setCurrentWallpaperSet] = useState<string[]>([])
   const [currentSlide, setCurrentSlide] = useState(0)
   const [timeSlotName, setTimeSlotName] = useState('')
   
-  // 新增：正在编辑的主题状态 (UI展示用，实际逻辑在AdminClient，这里仅为了类型完整性保留结构或暂时移除，
-  // 注意：ClientHome 是前台展示组件，通常不包含复杂的后台编辑逻辑。
-  // 但根据你的需求，你是在复用 ClientHome 还是 AdminClient？
-  // 之前的对话中，AdminClient 是后台，ClientHome 是前台。
-  // 这里的修改是针对 "设置面板" (前台 ClientHome) 和 "后台管理" (AdminClient) 的。
-  // 既然你是在“设置中”要求加入功能，那应该是前台 ClientHome。
-  // 但“主题管理面板”通常指后台。
-  // 为了不混淆，我将“自定义间隔”加在 ClientHome 的设置里。
-  // 而“Wallhere 引导”如果是在“主题管理”里，那应该是在 AdminClient。
-  // 但为了让你方便，我假设你想在 ClientHome 的“自定义”部分也看到引导，或者你指的是 AdminClient。
-  // **根据上下文，我将在 ClientHome 的设置面板（前台）增加间隔设置。**
-  // **同时，我会更新 AdminClient 的代码来增加 Wallhere 引导（因为那是主题管理的地方）。**
-  // 
-  // **为了一次性解决，下面我将提供 ClientHome.tsx (前台设置) 的代码。**
-  // **请注意：Wallhere 引导如果是给“后台管理”用的，请单独告诉我，或者我把它加在设置面板的“本地自定义”里。**
-  // 这里的代码是 app/components/ClientHome.tsx
-  
-  // 初始化设置
+  // ✨✨✨ 核心逻辑：加载用户本地个性化设置 ✨✨✨
   useEffect(() => {
+    // 浏览器加载完成后，读取 localStorage
     const saved = localStorage.getItem('nav_settings')
     if (saved) {
       try {
         const parsed = JSON.parse(saved)
-        const validMode = parsed.themeMode === 'static' ? 'default' : (parsed.themeMode || 'slideshow')
-        setSettings(prev => ({ 
-            ...prev, 
-            ...parsed, 
-            themeMode: validMode,
-            bgBlur: parsed.bgBlur ?? 0,
-            cardOpacity: parsed.cardOpacity ?? 0.1,
-            boardOpacity: parsed.boardOpacity ?? 0.1,
-            uiBlur: parsed.uiBlur ?? 2,
-            slideshowEffect: parsed.slideshowEffect ?? 'fade',
-            wallpaperSource: parsed.wallpaperSource ?? 'smart',
-            customWallpapers: parsed.customWallpapers ?? [],
-            activeThemeId: parsed.activeThemeId ?? 'default',
-            slideshowInterval: parsed.slideshowInterval ?? 30 // ✨ 读取间隔设置
-        }))
+        // 将本地设置覆盖在数据库设置之上
+        // 优先级：用户本地设置 > 数据库全局设置 > 代码默认值
+        setSettings(prev => ({ ...prev, ...parsed }))
       } catch (e) { console.error(e) }
     }
   }, [])
+
+  // ✨✨✨ 修改：保存设置只存本地，不存数据库 ✨✨✨
+  const updateSetting = (key: keyof typeof settings, value: any) => {
+    try {
+        const newSettings = { ...settings, [key]: value }
+        setSettings(newSettings)
+        // 只保存到浏览器
+        localStorage.setItem('nav_settings', JSON.stringify(newSettings))
+        setErrorMsg('')
+    } catch (e) { 
+        setErrorMsg("浏览器存储空间不足") 
+    }
+  }
 
   // 壁纸源计算逻辑
   useEffect(() => {
@@ -161,28 +128,19 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
     }
   }, [settings.wallpaperSource, settings.customWallpapers, settings.activeThemeId, smartThemes])
 
-  const updateSetting = (key: keyof typeof settings, value: any) => {
-    try {
-        const newSettings = { ...settings, [key]: value }
-        setSettings(newSettings)
-        localStorage.setItem('nav_settings', JSON.stringify(newSettings))
-        setErrorMsg('')
-    } catch (e) { setErrorMsg("浏览器存储空间不足") }
-  }
-
-  // 轮播计时器 (使用动态间隔)
+  // 轮播计时器
   useEffect(() => {
     if (settings.themeMode !== 'slideshow' || currentWallpaperSet.length <= 1) return
     const timer = setInterval(() => {
       setCurrentSlide(prev => (prev + 1) % currentWallpaperSet.length)
       if (settings.wallpaperSource === 'smart') {
-          // 简化的跨时段检查，依靠组件重渲染或手动触发
-          // 这里为了简单，不做强校验，依赖用户刷新或切换Tab触发更新
+          // 触发时间检查
       }
-    }, settings.slideshowInterval * 1000) // ✨ 使用动态间隔 (秒 -> 毫秒)
+    }, settings.slideshowInterval * 1000)
     return () => clearInterval(timer)
-  }, [settings.themeMode, currentWallpaperSet, settings.slideshowInterval]) // ✨ 依赖加入 slideshowInterval
+  }, [settings.themeMode, currentWallpaperSet, settings.slideshowInterval])
 
+  // 鼠标光晕
   useEffect(() => {
     if (!settings.glow) return
     const handleMouseMove = (e: MouseEvent) => { setMousePos({ x: e.clientX, y: e.clientY }) }
@@ -198,7 +156,6 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
   
   const getSlideStyle = (index: number) => {
     const isActive = index === currentSlide
-    // 动态调整过渡时间，如果间隔很短，过渡也要快一点，这里保持3秒慢速过渡更优雅
     const baseClass = "absolute inset-0 bg-cover bg-center bg-no-repeat transition-all duration-[3000ms] ease-in-out"
     let transformClass = ""
     const opacityClass = isActive ? "opacity-100" : "opacity-0"
@@ -210,10 +167,23 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
     const files = e.target.files; if (!files || files.length === 0) return;
     Array.from(files).forEach(file => {
         if (file.size > 1.5 * 1024 * 1024) { alert(`图片 ${file.name} 太大了`); return; }
-        const reader = new FileReader(); reader.onload = (event) => { const base64String = event.target?.result as string; if (base64String) { setSettings(prev => { try { const newSettings = { ...prev, customWallpapers: [...prev.customWallpapers, base64String], wallpaperSource: 'custom' as WallpaperSource }; localStorage.setItem('nav_settings', JSON.stringify(newSettings)); return newSettings } catch (err) { alert("浏览器存储空间已满"); return prev } }) } }; reader.readAsDataURL(file)
+        const reader = new FileReader(); reader.onload = (event) => { const base64String = event.target?.result as string; if (base64String) { 
+            // 这里我们手动调用 updateSetting 来保存到本地
+            const newCustomWallpapers = [...settings.customWallpapers, base64String];
+            const newSettings = { ...settings, customWallpapers: newCustomWallpapers, wallpaperSource: 'custom' as WallpaperSource };
+            setSettings(newSettings);
+            localStorage.setItem('nav_settings', JSON.stringify(newSettings));
+        } }; reader.readAsDataURL(file)
     }); if (fileInputRef.current) fileInputRef.current.value = ''
   }
-  const handleRemoveCustomWallpaper = (targetIndex: number) => { const newCustomWallpapers = settings.customWallpapers.filter((_, idx) => idx !== targetIndex); updateSetting('customWallpapers', newCustomWallpapers); if (newCustomWallpapers.length === 0) { updateSetting('wallpaperSource', 'smart') } }
+  const handleRemoveCustomWallpaper = (targetIndex: number) => { 
+      const newCustomWallpapers = settings.customWallpapers.filter((_, idx) => idx !== targetIndex); 
+      // 手动更新
+      const newSettings = { ...settings, customWallpapers: newCustomWallpapers };
+      if (newCustomWallpapers.length === 0) { newSettings.wallpaperSource = 'smart' }
+      setSettings(newSettings);
+      localStorage.setItem('nav_settings', JSON.stringify(newSettings));
+  }
 
   return (
     <div className="relative min-h-screen text-slate-300 font-sans selection:bg-sky-500/30 overflow-hidden bg-[#0f172a]">
@@ -222,7 +192,6 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
         input[type=range] { -webkit-appearance: none; background: transparent; } input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; height: 16px; width: 16px; border-radius: 50%; background: #38bdf8; cursor: pointer; margin-top: -6px; box-shadow: 0 0 10px rgba(56,189,248,0.5); } input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 4px; cursor: pointer; background: #334155; border-radius: 2px; }
       `}</style>
 
-      {/* 背景层 */}
       <div className={`fixed inset-0 z-0 transition-opacity duration-1000 ${settings.themeMode === 'default' ? 'opacity-100' : 'opacity-0'}`}><div className="absolute inset-0 bg-[#0f172a] bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-sky-900/20 via-[#0f172a] to-[#0f172a]"></div></div>
       <div className={`fixed inset-0 z-0 transition-opacity duration-1000 ${settings.themeMode === 'slideshow' ? 'opacity-100' : 'opacity-0'}`}>
         {currentWallpaperSet.length > 0 ? currentWallpaperSet.map((wp, index) => (
@@ -235,7 +204,6 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
       {settings.noise && <div className="fixed inset-0 z-[1] pointer-events-none opacity-[0.04] bg-[url('https://grainy-gradients.vercel.app/noise.svg')]"></div>}
       {settings.glow && <div className="fixed z-0 pointer-events-none w-[600px] h-[600px] bg-sky-500/10 rounded-full blur-[80px] transition-transform duration-75 will-change-transform" style={{ left: mousePos.x - 300, top: mousePos.y - 300 }} />}
 
-      {/* 主界面 */}
       <div className="relative z-10 flex h-screen">
         <aside className="w-64 border-r border-slate-800/40 bg-slate-900/60 flex-col hidden md:flex h-full transition-all duration-300" style={{ backdropFilter: `blur(${settings.uiBlur}px)` }}>
           <div className="p-8"><h1 className="text-3xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-sky-400 to-indigo-400">Oasis</h1><p className="text-xs text-slate-500 mt-2 font-medium tracking-wide uppercase">Your Digital Sanctuary</p></div>
@@ -330,17 +298,6 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
                                                 <input ref={fileInputRef} type="file" accept="image/*" multiple className="hidden" onChange={handleFileSelect} />
                                                 <button onClick={() => fileInputRef.current?.click()} className="flex items-center gap-2 px-4 py-2 bg-sky-600 hover:bg-sky-500 text-white text-sm rounded-lg transition-colors"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg><span>选择图片 (支持多选)</span></button>
                                             </div>
-                                            
-                                            {/* ✨✨✨ 新增：Wallhere 引导 ✨✨✨ */}
-                                            <div className="bg-slate-900/50 border border-slate-800 rounded-lg p-3 text-xs text-slate-400">
-                                                <div className="flex items-center gap-2 mb-1 text-sky-400 font-bold">
-                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                                                    <span>寻找壁纸？</span>
-                                                </div>
-                                                <p className="mb-2">推荐去 <a href="https://wallhere.com" target="_blank" rel="noopener noreferrer" className="text-sky-300 hover:underline">Wallhere.com</a> 寻找高质量 4K 壁纸。</p>
-                                                <p className="opacity-70">下载图片后，点击上方按钮选择上传即可。</p>
-                                            </div>
-
                                             {errorMsg && <p className="text-xs text-red-400 text-center">{errorMsg}</p>}
                                             {settings.customWallpapers.length > 0 ? (
                                                 <div className="grid grid-cols-3 gap-2 p-2 bg-slate-900/50 rounded-xl border border-slate-800/50 max-h-48 overflow-y-auto custom-scrollbar">
@@ -356,35 +313,29 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
                                     )}
 
                                     <div><div className="text-xs text-slate-400 mb-3">切换动画效果：</div><div className="grid grid-cols-3 gap-2">{[{ id: 'fade', label: '柔和淡入' }, { id: 'zoom', label: '呼吸缩放' }, { id: 'pan', label: '全景运镜' }].map((effect) => (<button key={effect.id} onClick={() => updateSetting('slideshowEffect', effect.id)} className={`py-2 text-xs rounded-lg border transition-all ${settings.slideshowEffect === effect.id ? 'bg-sky-500/20 border-sky-500 text-sky-400 font-medium' : 'bg-slate-800 border-slate-700 text-slate-400 hover:bg-slate-700'}`}>{effect.label}</button>))}</div></div>
-
-                                    {/* ✨✨✨ 新增：轮播间隔时间调节 ✨✨✨ */}
+                                    
                                     <div>
                                         <div className="flex justify-between text-xs mb-2">
                                             <span className="text-slate-400">轮播间隔时间</span>
                                             <span className="text-sky-400">{settings.slideshowInterval}秒</span>
                                         </div>
-                                        <input 
-                                            type="range" 
-                                            min="5" 
-                                            max="300" 
-                                            step="5" 
-                                            value={settings.slideshowInterval} 
-                                            onChange={(e) => updateSetting('slideshowInterval', parseInt(e.target.value))} 
-                                            className="w-full h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-sky-500" 
-                                        />
-                                        <div className="flex justify-between text-[10px] text-slate-600 mt-1">
-                                            <span>5s</span>
-                                            <span>5min</span>
-                                        </div>
+                                        <input type="range" min="5" max="300" step="5" value={settings.slideshowInterval} onChange={(e) => updateSetting('slideshowInterval', parseInt(e.target.value))} className="w-full h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-sky-500" />
+                                        <div className="flex justify-between text-[10px] text-slate-600 mt-1"><span>5s</span><span>5min</span></div>
                                     </div>
-
                                 </div>
                             )}
                         </div>
                     )}
                     {activeTab === 'effects' && (
                         <div className="space-y-6">
-                            <div className="space-y-3">{[{ key: 'tilt', label: '3D 悬停视差' }, { key: 'glow', label: '鼠标跟随光晕' }, { key: 'noise', label: '胶片噪点质感' }].map((item) => (<div key={item.key} className="flex items-center justify-between"><span className="text-sm text-slate-300">{item.label}</span><button onClick={() => updateSetting(item.key as keyof typeof settings, !settings[item.key as keyof typeof settings])} className={`w-10 h-5 flex items-center rounded-full transition-colors duration-300 ${settings[item.key as keyof typeof settings] ? 'bg-sky-600' : 'bg-slate-700'}`}><span className={`w-3.5 h-3.5 bg-white rounded-full shadow-md transform transition-transform duration-300 ${settings[item.key as keyof typeof settings] ? 'translate-x-5' : 'translate-x-1'}`} /></button></div>))}</div>
+                            <div className="space-y-3">
+                                {[{ key: 'tilt', label: '3D 悬停视差' }, { key: 'glow', label: '鼠标跟随光晕' }, { key: 'noise', label: '胶片噪点质感' }].map((item) => (
+                                    <div key={item.key} className="flex items-center justify-between">
+                                        <span className="text-sm text-slate-300">{item.label}</span>
+                                        <button onClick={() => updateSetting(item.key as keyof typeof settings, !settings[item.key as keyof typeof settings])} className={`w-10 h-5 flex items-center rounded-full transition-colors duration-300 ${settings[item.key as keyof typeof settings] ? 'bg-sky-600' : 'bg-slate-700'}`}><span className={`w-3.5 h-3.5 bg-white rounded-full shadow-md transform transition-transform duration-300 ${settings[item.key as keyof typeof settings] ? 'translate-x-5' : 'translate-x-1'}`} /></button>
+                                    </div>
+                                ))}
+                            </div>
                             <div className="w-full h-px bg-slate-800"></div>
                             <div className="space-y-5">
                                 <div><div className="flex justify-between text-xs mb-2"><span className="text-slate-400">背景模糊度</span><span className="text-sky-400">{settings.bgBlur}px</span></div><input type="range" min="0" max="20" step="1" value={settings.bgBlur} onChange={(e) => updateSetting('bgBlur', parseInt(e.target.value))} className="w-full h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-sky-500" /></div>
