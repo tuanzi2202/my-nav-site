@@ -64,7 +64,7 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
   const router = useRouter()
   const fileInputRef = useRef<HTMLInputElement>(null)
   
-  // ✨ 1. 定义硬编码的默认值 (兜底用)
+  // --- 默认兜底设置 ---
   const defaultSettings = {
     noise: false, glow: false, tilt: false,
     themeMode: 'slideshow' as ThemeMode,
@@ -76,10 +76,10 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
     slideshowInterval: 30
   }
 
-  // ✨ 2. 状态管理
-  // 注意：这里先用服务端配置初始化，避免 Hydration Mismatch 报错
+  // --- 状态管理 ---
+  // 1. 初始状态：使用数据库的 initialSettings 覆盖默认值，确保服务端渲染一致性
   const [settings, setSettings] = useState({ ...defaultSettings, ...initialSettings })
-  const [isMounted, setIsMounted] = useState(false) // 标记组件是否已在浏览器加载
+  const [isLoaded, setIsLoaded] = useState(false) // ✨ 关键修复：标记是否已加载本地配置
   
   const [showSettings, setShowSettings] = useState(false)
   const [activeTab, setActiveTab] = useState<'effects' | 'theme'>('theme')
@@ -90,31 +90,39 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
   const [currentSlide, setCurrentSlide] = useState(0)
   const [timeSlotName, setTimeSlotName] = useState('')
   
-  // ✨ 3. 核心修复：在组件挂载后，强制读取 LocalStorage 覆盖状态
+  // ✨✨✨ 关键修复：组件挂载后，立即读取 LocalStorage 并强制覆盖状态 ✨✨✨
   useEffect(() => {
-    setIsMounted(true)
     const saved = localStorage.getItem('nav_settings')
     if (saved) {
       try {
         const parsed = JSON.parse(saved)
-        // 强制使用本地配置覆盖当前状态
         setSettings((prev: any) => ({ ...prev, ...parsed }))
-      } catch (e) { 
-        console.error("Failed to load local settings", e) 
-      }
+      } catch (e) { console.error("Load settings error", e) }
     }
+    setIsLoaded(true) // 标记加载完成，允许后续的保存操作
   }, [])
 
-  // 保存设置到本地
+  // ✨✨✨ 优化后的保存函数：支持部分更新，防止状态竞争 ✨✨✨
+  const updateSettings = (updates: Partial<typeof settings>) => {
+    setSettings((prev: any) => {
+      const newSettings = { ...prev, ...updates }
+      // 只有在已经加载过本地配置后，才允许写入 LocalStorage
+      // 防止页面刚打开时，用默认值覆盖了用户的本地缓存
+      if (isLoaded) {
+        try {
+          localStorage.setItem('nav_settings', JSON.stringify(newSettings))
+          setErrorMsg('')
+        } catch (e) {
+          setErrorMsg("浏览器存储空间不足")
+        }
+      }
+      return newSettings
+    })
+  }
+
+  // 单个属性更新的快捷方式
   const updateSetting = (key: keyof typeof settings, value: any) => {
-    try {
-        const newSettings = { ...settings, [key]: value }
-        setSettings(newSettings)
-        localStorage.setItem('nav_settings', JSON.stringify(newSettings))
-        setErrorMsg('')
-    } catch (e) { 
-        setErrorMsg("浏览器存储空间不足") 
-    }
+    updateSettings({ [key]: value })
   }
 
   // 壁纸源计算逻辑
@@ -139,16 +147,12 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
         }
     }
     
-    // 只有当 isMounted 为 true 时（即确保已经读取了本地配置后），才更新壁纸
-    // 这样可以防止先显示默认壁纸，然后闪烁变成本地壁纸
-    if (isMounted) {
-      if (JSON.stringify(newSet) !== JSON.stringify(currentWallpaperSet)) {
-        setCurrentWallpaperSet(newSet)
-        setTimeSlotName(newSlotName)
-        setCurrentSlide(0)
-      }
+    if (JSON.stringify(newSet) !== JSON.stringify(currentWallpaperSet)) {
+      setCurrentWallpaperSet(newSet)
+      setTimeSlotName(newSlotName)
+      setCurrentSlide(0)
     }
-  }, [settings.wallpaperSource, settings.customWallpapers, settings.activeThemeId, smartThemes, isMounted])
+  }, [settings.wallpaperSource, settings.customWallpapers, settings.activeThemeId, smartThemes, isLoaded]) // 增加 isLoaded 依赖
 
   // 轮播计时器
   useEffect(() => {
@@ -190,15 +194,13 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
         reader.onload = (event) => { 
             const base64String = event.target?.result as string; 
             if (base64String) { 
+                // ✨ 使用新的 updateSettings 进行合并更新
                 setSettings((prev: any) => { 
-                    try { 
-                        const newSettings = { ...prev, customWallpapers: [...prev.customWallpapers, base64String], wallpaperSource: 'custom' as WallpaperSource }; 
-                        localStorage.setItem('nav_settings', JSON.stringify(newSettings)); 
-                        return newSettings 
-                    } catch (err) { 
-                        alert("浏览器存储空间已满"); 
-                        return prev 
-                    } 
+                    const newCustomWallpapers = [...prev.customWallpapers, base64String]
+                    const updates = { customWallpapers: newCustomWallpapers, wallpaperSource: 'custom' as WallpaperSource }
+                    // 手动保存一次
+                    try { localStorage.setItem('nav_settings', JSON.stringify({ ...prev, ...updates })) } catch {}
+                    return { ...prev, ...updates }
                 }) 
             } 
         }; 
@@ -207,16 +209,21 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
   }
   
   const handleRemoveCustomWallpaper = (targetIndex: number) => { 
-      const newCustomWallpapers = settings.customWallpapers.filter((_: string, idx: number) => idx !== targetIndex); 
-      const newSettings = { ...settings, customWallpapers: newCustomWallpapers };
-      if (newCustomWallpapers.length === 0) { newSettings.wallpaperSource = 'smart' }
-      setSettings(newSettings);
-      localStorage.setItem('nav_settings', JSON.stringify(newSettings));
+      // ✨ 修复状态竞争：一次性计算所有新状态
+      setSettings((prev: any) => {
+        const newCustomWallpapers = prev.customWallpapers.filter((_: string, idx: number) => idx !== targetIndex);
+        const updates: any = { customWallpapers: newCustomWallpapers }
+        
+        // 如果删光了，自动切回智能模式
+        if (newCustomWallpapers.length === 0) {
+            updates.wallpaperSource = 'smart'
+        }
+        
+        const newSettings = { ...prev, ...updates }
+        try { localStorage.setItem('nav_settings', JSON.stringify(newSettings)) } catch {}
+        return newSettings
+      })
   }
-
-  // ✨ 为了避免样式闪烁，可以选择在未挂载时只渲染一个简单的 Loading 或默认状态
-  // 但为了 SEO 和用户体验，通常我们直接渲染，然后让 useEffect 更新。
-  // 这里的关键是：useEffect 更新 settings 后，会触发重渲染，应用用户的设置。
 
   return (
     <div className="relative min-h-screen text-slate-300 font-sans selection:bg-sky-500/30 overflow-hidden bg-[#0f172a]">
