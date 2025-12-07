@@ -3,13 +3,30 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-// ❌ 移除 saveUISettings，不再自动保存到数据库
-// import { saveUISettings } from '../actions' 
 
 // --- 类型定义 ---
-type LinkItem = { id: number; title: string; url: string; description: string | null; category: string; isRecommended: boolean; createdAt: Date }
-type CategoryData = { category: string; _count: { category: number } }
-type ThemeItem = { id: number; name: string; morning: string; afternoon: string; night: string }
+type LinkItem = {
+  id: number
+  title: string
+  url: string
+  description: string | null
+  category: string
+  isRecommended: boolean
+  createdAt: Date
+}
+
+type CategoryData = {
+  category: string
+  _count: { category: number }
+}
+
+type ThemeItem = {
+  id: number
+  name: string
+  morning: string
+  afternoon: string
+  night: string
+}
 
 type ClientHomeProps = {
   links: LinkItem[]
@@ -18,7 +35,7 @@ type ClientHomeProps = {
   searchQuery: string
   announcement: string
   smartThemes: ThemeItem[]
-  initialSettings: any // 这是数据库里的“出厂设置”
+  initialSettings: any 
 }
 
 type ThemeMode = 'default' | 'slideshow'
@@ -47,7 +64,7 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
   const router = useRouter()
   const fileInputRef = useRef<HTMLInputElement>(null)
   
-  // --- 默认兜底设置 (代码级默认值) ---
+  // --- 默认兜底设置 ---
   const defaultSettings = {
     noise: false, glow: false, tilt: false,
     themeMode: 'slideshow' as ThemeMode,
@@ -60,7 +77,6 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
   }
 
   // --- 状态管理 ---
-  // 1. 先使用数据库传来的配置(initialSettings)作为初始状态，防止服务端渲染不匹配
   const [settings, setSettings] = useState({ ...defaultSettings, ...initialSettings })
   
   const [showSettings, setShowSettings] = useState(false)
@@ -72,26 +88,23 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
   const [currentSlide, setCurrentSlide] = useState(0)
   const [timeSlotName, setTimeSlotName] = useState('')
   
-  // ✨✨✨ 核心逻辑：加载用户本地个性化设置 ✨✨✨
+  // ✨✨✨ 修复点：加载用户本地个性化设置 ✨✨✨
   useEffect(() => {
-    // 浏览器加载完成后，读取 localStorage
     const saved = localStorage.getItem('nav_settings')
     if (saved) {
       try {
         const parsed = JSON.parse(saved)
-        // 将本地设置覆盖在数据库设置之上
-        // 优先级：用户本地设置 > 数据库全局设置 > 代码默认值
-        setSettings(prev => ({ ...prev, ...parsed }))
+        // 👇 这里的 (prev: any) 是关键修复，防止 TS 报错
+        setSettings((prev: any) => ({ ...prev, ...parsed }))
       } catch (e) { console.error(e) }
     }
   }, [])
 
-  // ✨✨✨ 修改：保存设置只存本地，不存数据库 ✨✨✨
+  // 保存设置到本地
   const updateSetting = (key: keyof typeof settings, value: any) => {
     try {
         const newSettings = { ...settings, [key]: value }
         setSettings(newSettings)
-        // 只保存到浏览器
         localStorage.setItem('nav_settings', JSON.stringify(newSettings))
         setErrorMsg('')
     } catch (e) { 
@@ -133,9 +146,6 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
     if (settings.themeMode !== 'slideshow' || currentWallpaperSet.length <= 1) return
     const timer = setInterval(() => {
       setCurrentSlide(prev => (prev + 1) % currentWallpaperSet.length)
-      if (settings.wallpaperSource === 'smart') {
-          // 触发时间检查
-      }
     }, settings.slideshowInterval * 1000)
     return () => clearInterval(timer)
   }, [settings.themeMode, currentWallpaperSet, settings.slideshowInterval])
@@ -167,18 +177,29 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
     const files = e.target.files; if (!files || files.length === 0) return;
     Array.from(files).forEach(file => {
         if (file.size > 1.5 * 1024 * 1024) { alert(`图片 ${file.name} 太大了`); return; }
-        const reader = new FileReader(); reader.onload = (event) => { const base64String = event.target?.result as string; if (base64String) { 
-            // 这里我们手动调用 updateSetting 来保存到本地
-            const newCustomWallpapers = [...settings.customWallpapers, base64String];
-            const newSettings = { ...settings, customWallpapers: newCustomWallpapers, wallpaperSource: 'custom' as WallpaperSource };
-            setSettings(newSettings);
-            localStorage.setItem('nav_settings', JSON.stringify(newSettings));
-        } }; reader.readAsDataURL(file)
+        const reader = new FileReader(); 
+        reader.onload = (event) => { 
+            const base64String = event.target?.result as string; 
+            if (base64String) { 
+                // 👇 修复点：同样添加 (prev: any) 类型断言
+                setSettings((prev: any) => { 
+                    try { 
+                        const newSettings = { ...prev, customWallpapers: [...prev.customWallpapers, base64String], wallpaperSource: 'custom' as WallpaperSource }; 
+                        localStorage.setItem('nav_settings', JSON.stringify(newSettings)); 
+                        return newSettings 
+                    } catch (err) { 
+                        alert("浏览器存储空间已满"); 
+                        return prev 
+                    } 
+                }) 
+            } 
+        }; 
+        reader.readAsDataURL(file)
     }); if (fileInputRef.current) fileInputRef.current.value = ''
   }
+  
   const handleRemoveCustomWallpaper = (targetIndex: number) => { 
       const newCustomWallpapers = settings.customWallpapers.filter((_, idx) => idx !== targetIndex); 
-      // 手动更新
       const newSettings = { ...settings, customWallpapers: newCustomWallpapers };
       if (newCustomWallpapers.length === 0) { newSettings.wallpaperSource = 'smart' }
       setSettings(newSettings);
