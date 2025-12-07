@@ -41,6 +41,8 @@ type ClientHomeProps = {
 type ThemeMode = 'default' | 'slideshow'
 type TransitionEffect = 'fade' | 'zoom' | 'pan'
 type WallpaperSource = 'smart' | 'custom'
+// ✨ 新增：点击特效类型
+type ClickEffectType = 'none' | 'ripple' | 'particles' | 'bubble'
 
 // --- 默认壁纸配置 ---
 const DEFAULT_WALLPAPER_CONFIG = {
@@ -74,7 +76,8 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
     customWallpapers: [] as string[],
     activeThemeId: 'default',
     slideshowInterval: 30,
-    descColor: '#94a3b8'
+    descColor: '#94a3b8',
+    clickEffect: 'ripple' as ClickEffectType // ✨ 新增：默认波纹特效
   }
 
   // --- 状态管理 ---
@@ -98,7 +101,7 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
       try {
         const parsed = JSON.parse(saved)
         setSettings((prev: any) => ({ ...prev, ...parsed }))
-      } catch (e) { console.error(e) }
+      } catch (e) { console.error("Failed to load local settings", e) }
     }
   }, [])
 
@@ -114,11 +117,76 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
     }
   }
 
+  // ✨✨✨ 核心逻辑：鼠标点击特效 ✨✨✨
+  useEffect(() => {
+    if (settings.clickEffect === 'none') return
+
+    const handleClick = (e: MouseEvent) => {
+      const x = e.clientX
+      const y = e.clientY
+
+      // 1. 波纹特效
+      if (settings.clickEffect === 'ripple') {
+        const ripple = document.createElement('div')
+        ripple.className = 'fixed rounded-full bg-white/30 pointer-events-none z-[9999]'
+        ripple.style.left = `${x}px`
+        ripple.style.top = `${y}px`
+        ripple.style.width = '10px'
+        ripple.style.height = '10px'
+        ripple.style.transform = 'translate(-50%, -50%)'
+        ripple.style.animation = 'ripple-anim 0.6s linear forwards'
+        document.body.appendChild(ripple)
+        setTimeout(() => ripple.remove(), 600)
+      }
+
+      // 2. 粒子爆炸特效
+      if (settings.clickEffect === 'particles') {
+        const colors = ['#38bdf8', '#818cf8', '#c084fc', '#ffffff']
+        for (let i = 0; i < 8; i++) {
+          const particle = document.createElement('div')
+          particle.className = 'fixed w-1.5 h-1.5 rounded-full pointer-events-none z-[9999]'
+          particle.style.left = `${x}px`
+          particle.style.top = `${y}px`
+          particle.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)]
+          
+          // 随机角度和距离
+          const angle = Math.random() * Math.PI * 2
+          const velocity = 50 + Math.random() * 50
+          const tx = Math.cos(angle) * velocity
+          const ty = Math.sin(angle) * velocity
+          
+          particle.style.setProperty('--tx', `${tx}px`)
+          particle.style.setProperty('--ty', `${ty}px`)
+          particle.style.animation = 'particle-anim 0.8s ease-out forwards'
+          
+          document.body.appendChild(particle)
+          setTimeout(() => particle.remove(), 800)
+        }
+      }
+
+      // 3. 气泡上升特效
+      if (settings.clickEffect === 'bubble') {
+         const bubble = document.createElement('div')
+         bubble.className = 'fixed pointer-events-none z-[9999] border border-sky-400/50 rounded-full'
+         bubble.style.left = `${x}px`
+         bubble.style.top = `${y}px`
+         bubble.style.width = '20px'
+         bubble.style.height = '20px'
+         bubble.style.transform = 'translate(-50%, -50%)'
+         bubble.style.animation = 'bubble-anim 1s ease-out forwards'
+         document.body.appendChild(bubble)
+         setTimeout(() => bubble.remove(), 1000)
+      }
+    }
+
+    window.addEventListener('click', handleClick)
+    return () => window.removeEventListener('click', handleClick)
+  }, [settings.clickEffect])
+
   // 壁纸源计算逻辑
   useEffect(() => {
     let newSet: string[] = []
     let newSlotName = ''
-
     if (settings.wallpaperSource === 'custom' && settings.customWallpapers.length > 0) {
         newSet = settings.customWallpapers
         newSlotName = '自定义'
@@ -127,7 +195,6 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
         const slotMap = { morning: '早晨', afternoon: '午后', night: '深夜' }
         newSlotName = slotMap[slot]
         const selectedTheme = smartThemes.find(t => String(t.id) === String(settings.activeThemeId))
-        
         if (selectedTheme) {
             const raw = selectedTheme[slot]
             newSet = raw.split(/[\n,]/).map(s => s.trim()).filter(s => s)
@@ -135,17 +202,13 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
             newSet = DEFAULT_WALLPAPER_CONFIG[slot]
         }
     }
-    
-    if (isMounted) {
-      if (JSON.stringify(newSet) !== JSON.stringify(currentWallpaperSet)) {
-        setCurrentWallpaperSet(newSet)
-        setTimeSlotName(newSlotName)
-        setCurrentSlide(0)
-      }
+    if (isMounted && JSON.stringify(newSet) !== JSON.stringify(currentWallpaperSet)) {
+      setCurrentWallpaperSet(newSet)
+      setTimeSlotName(newSlotName)
+      setCurrentSlide(0)
     }
   }, [settings.wallpaperSource, settings.customWallpapers, settings.activeThemeId, smartThemes, isMounted])
 
-  // 轮播计时器
   useEffect(() => {
     if (settings.themeMode !== 'slideshow' || currentWallpaperSet.length <= 1) return
     const timer = setInterval(() => {
@@ -154,7 +217,6 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
     return () => clearInterval(timer)
   }, [settings.themeMode, currentWallpaperSet, settings.slideshowInterval])
 
-  // 鼠标光晕
   useEffect(() => {
     if (!settings.glow) return
     const handleMouseMove = (e: MouseEvent) => { setMousePos({ x: e.clientX, y: e.clientY }) }
@@ -211,9 +273,24 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
 
   return (
     <div className="relative min-h-screen text-slate-300 font-sans selection:bg-sky-500/30 overflow-hidden bg-[#0f172a]">
+      {/* ✨ 定义点击特效动画 */}
       <style jsx global>{`
         .custom-scrollbar::-webkit-scrollbar { width: 5px; } .custom-scrollbar::-webkit-scrollbar-track { background: transparent; } .custom-scrollbar::-webkit-scrollbar-thumb { background-color: rgba(71, 85, 105, 0.4); border-radius: 20px; } .custom-scrollbar::-webkit-scrollbar-thumb:hover { background-color: rgba(71, 85, 105, 0.8); }
         input[type=range] { -webkit-appearance: none; background: transparent; } input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; height: 16px; width: 16px; border-radius: 50%; background: #38bdf8; cursor: pointer; margin-top: -6px; box-shadow: 0 0 10px rgba(56,189,248,0.5); } input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 4px; cursor: pointer; background: #334155; border-radius: 2px; }
+
+        @keyframes ripple-anim {
+          0% { transform: translate(-50%, -50%) scale(0); opacity: 0.8; }
+          100% { transform: translate(-50%, -50%) scale(5); opacity: 0; }
+        }
+        @keyframes particle-anim {
+          0% { transform: translate(0, 0) scale(1); opacity: 1; }
+          100% { transform: translate(var(--tx), var(--ty)) scale(0); opacity: 0; }
+        }
+        @keyframes bubble-anim {
+          0% { transform: translate(-50%, -50%) scale(0.5); opacity: 0; }
+          50% { opacity: 0.8; }
+          100% { transform: translate(-50%, -150%) scale(1.2); opacity: 0; }
+        }
       `}</style>
 
       <div className={`fixed inset-0 z-0 transition-opacity duration-1000 ${settings.themeMode === 'default' ? 'opacity-100' : 'opacity-0'}`}><div className="absolute inset-0 bg-[#0f172a] bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-sky-900/20 via-[#0f172a] to-[#0f172a]"></div></div>
@@ -265,7 +342,7 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
                   <span className="text-[10px] font-medium tracking-wide bg-slate-800/60 text-slate-400 px-2.5 py-1 rounded-md border border-slate-700/50 backdrop-blur-sm">{link.category}</span>
                 </div>
                 <h3 className="text-lg font-bold text-slate-200 group-hover:text-sky-400 transition-colors line-clamp-1 mb-2 tracking-tight translate-z-10" style={{ transform: 'translateZ(10px)' }}>{link.title}</h3>
-                {link.description && <p className="text-sm line-clamp-2 leading-relaxed flex-1 transition-colors" style={{ color: settings.descColor }}>{link.description}</p>}
+                {link.description && <p className="text-sm line-clamp-2 leading-relaxed flex-1 transition-colors" style={{ color: settings.descColor || '#94a3b8' }}>{link.description}</p>}
                 <div className="absolute bottom-4 right-4 opacity-0 group-hover:opacity-100 transition-all transform translate-y-2 group-hover:translate-y-0 text-sky-500"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path></svg></div>
               </a>
             ))}
@@ -366,7 +443,7 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
                                 <div><div className="flex justify-between text-xs mb-2"><span className="text-slate-400">网站卡片不透明度</span><span className="text-sky-400">{Math.round(settings.cardOpacity * 100)}%</span></div><input type="range" min="0" max="1.0" step="0.05" value={settings.cardOpacity} onChange={(e) => updateSetting('cardOpacity', parseFloat(e.target.value))} className="w-full h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-sky-500" /></div>
                                 <div><div className="flex justify-between text-xs mb-2"><span className="text-slate-400">公告板不透明度</span><span className="text-sky-400">{Math.round(settings.boardOpacity * 100)}%</span></div><input type="range" min="0" max="1.0" step="0.05" value={settings.boardOpacity} onChange={(e) => updateSetting('boardOpacity', parseFloat(e.target.value))} className="w-full h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-sky-500" /></div>
                                 <div><div className="flex justify-between text-xs mb-2"><span className="text-slate-400">界面磨砂感 (Blur)</span><span className="text-sky-400">{settings.uiBlur}px</span></div><input type="range" min="0" max="40" step="2" value={settings.uiBlur} onChange={(e) => updateSetting('uiBlur', parseInt(e.target.value))} className="w-full h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-sky-500" /></div>
-                                {/* ✨✨✨ 新增：描述文字颜色选择器 ✨✨✨ */}
+                                {/* ✨✨✨ 描述文字颜色选择器 ✨✨✨ */}
                                 <div className="flex items-center justify-between p-3 rounded-xl bg-slate-900/50 border border-slate-800/50">
                                     <span className="text-sm font-medium text-slate-200">描述文字颜色</span>
                                     <div className="flex items-center gap-3">
