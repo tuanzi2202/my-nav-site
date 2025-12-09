@@ -213,7 +213,7 @@ export async function getUISettings() {
 
 // --- 博客系统管理 ---
 
-// 1. 获取所有已发布文章 (前台用)
+// 1. 获取所有已发布文章 (前台列表页用)
 export async function getPublishedPosts() {
   return await prisma.post.findMany({
     where: { published: true },
@@ -221,19 +221,23 @@ export async function getPublishedPosts() {
   })
 }
 
-// 2. 获取单篇文章 (详情页用)
+// 2. 获取单篇文章 (详情页用) - ✅ 已修复参数校验问题
 export async function getPostById(id: number) {
+  // 安全检查：防止传入 NaN 或 undefined 导致数据库报错
+  if (!id || isNaN(id)) return null;
+
   return await prisma.post.findUnique({
     where: { id }
   })
 }
 
-// 3. 创建/发布文章 (后台用) - 这就是报错缺少的函数
+// 3. 发布新文章 (后台用)
 export async function createPost(formData: FormData) {
   const title = formData.get('title') as string
   const content = formData.get('content') as string
   const summary = formData.get('summary') as string
-  const published = formData.get('published') === 'on'
+  // 默认勾选发布
+  const published = formData.get('published') === 'on' 
 
   if (!title || !content) return
 

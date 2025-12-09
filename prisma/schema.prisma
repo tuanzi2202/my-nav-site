@@ -51,9 +51,9 @@ model AnnouncementHistory {
 model Post {
   id        Int      @id @default(autoincrement())
   title     String
-  content   String   // 支持 Markdown 或 HTML
-  summary   String?  // 文章摘要
-  published Boolean  @default(false)
+  content   String   // 内容 (支持 Markdown)
+  summary   String?  // 简短摘要
+  published Boolean  @default(true) // 默认直接发布
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
