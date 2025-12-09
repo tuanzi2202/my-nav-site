@@ -47,13 +47,17 @@ model AnnouncementHistory {
   createdAt DateTime @default(now()) // 存档时间
 }
 
-// ✨ 新增：博客文章模型
+// 博客文章模型
 model Post {
   id        Int      @id @default(autoincrement())
   title     String
-  content   String   // 内容 (支持 Markdown)
-  summary   String?  // 简短摘要
-  published Boolean  @default(true) // 默认直接发布
+  content   String
+  summary   String?
+  published Boolean  @default(false)
+  
+  // ✨ 新增：格式标记 (默认 true 使用 Markdown)
+  isMarkdown Boolean @default(true) 
+  
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }

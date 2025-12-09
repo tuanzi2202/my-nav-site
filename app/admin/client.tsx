@@ -18,7 +18,15 @@ type CategoryItem = { id: number; name: string; sortOrder: number }
 type ThemeItem = { id: number; name: string; morning: string; afternoon: string; night: string }
 type HistoryItem = { id: number; content: string; createdAt: Date }
 // ✨ 新增：文章类型
-type PostItem = { id: number; title: string; content: string; summary: string | null; published: boolean; createdAt: Date }
+type PostItem = { 
+  id: number; 
+  title: string; 
+  content: string; 
+  summary: string | null; 
+  published: boolean; 
+  isMarkdown: boolean; // ✨ 新增类型
+  createdAt: Date 
+}
 
 export default function AdminClient({ 
   initialLinks, 
@@ -43,6 +51,9 @@ export default function AdminClient({
   // 博客编辑状态
   const [editingPost, setEditingPost] = useState<PostItem | null>(null)
   
+  // 控制当前编辑模式 (初始化时读取文章的配置，如果是新建则默认为 true)
+  const [useMarkdown, setUseMarkdown] = useState(true)
+  
   // 新建文章的空模板
   const newPostTemplate: PostItem = { 
     id: 0, 
@@ -50,6 +61,7 @@ export default function AdminClient({
     content: '', 
     summary: '', 
     published: true, 
+    isMarkdown: true, // ✨ 默认开启 Markdown
     createdAt: new Date() 
   }
 
@@ -83,6 +95,14 @@ export default function AdminClient({
   const dragOverItem = useRef<number | null>(null)
   
   const [showHistory, setShowHistory] = useState(false)
+
+  // 当点击“编辑”或“新建”时，同步状态
+  useEffect(() => {
+    if (editingPost) {
+      // 如果是旧文章没有 isMarkdown 字段，默认为 true
+      setUseMarkdown(editingPost.isMarkdown ?? true)
+    }
+  }, [editingPost])
 
   // 初始化分类
   useEffect(() => {
@@ -450,13 +470,46 @@ export default function AdminClient({
                            />
                         </div>
 
-{/* 正文输入 (占据剩余空间) - 替换为 MarkdownEditor */}
-<MarkdownEditor 
-    name="content" 
-    defaultValue={editingPost.content} 
-    required
-    className="flex-1 h-full min-h-[500px]" // 传递高度样式
-/>
+                        {/* ✨ 格式切换开关 ✨ */}
+                        <div className="flex items-center gap-3 px-1">
+                          <label className="flex items-center gap-2 cursor-pointer group">
+                            <div className={`w-10 h-6 rounded-full p-1 transition-colors ${useMarkdown ? 'bg-emerald-600' : 'bg-slate-700'}`}>
+                              <div className={`w-4 h-4 bg-white rounded-full shadow-md transform transition-transform ${useMarkdown ? 'translate-x-4' : 'translate-x-0'}`} />
+                            </div>
+                            <input 
+                              type="checkbox" 
+                              name="isMarkdown" 
+                              checked={useMarkdown} 
+                              onChange={(e) => setUseMarkdown(e.target.checked)} 
+                              className="hidden" 
+                            />
+                            <span className="text-sm font-medium text-slate-300 group-hover:text-white transition">
+                              {useMarkdown ? 'Markdown 模式' : '纯文本模式'}
+                            </span>
+                          </label>
+                          
+                          {!useMarkdown && (
+                            <span className="text-xs text-slate-500">所见即所得，不支持任何格式语法</span>
+                          )}
+                        </div>
+
+                        {/* ✨ 根据状态切换编辑器 ✨ */}
+                        {useMarkdown ? (
+                          <MarkdownEditor 
+                              name="content" 
+                              defaultValue={editingPost.content} 
+                              required
+                              className="flex-1 h-full min-h-[500px]" 
+                          />
+                        ) : (
+                          <textarea 
+                              name="content" 
+                              defaultValue={editingPost.content}
+                              required
+                              placeholder="在此输入纯文本内容..."
+                              className="flex-1 w-full h-full min-h-[500px] bg-slate-950/30 border border-slate-700 rounded-xl p-6 text-slate-300 font-sans text-base focus:border-emerald-500 focus:outline-none resize-none leading-relaxed"
+                          />
+                        )}
                      </div>
 
                      {/* 底部工具栏 */}

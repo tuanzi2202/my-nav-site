@@ -37,32 +37,40 @@ export default async function BlogPost({ params }: Props) {
         </header>
 
         {/* ✨ 文章内容渲染区 ✨ */}
-        <div className="prose prose-invert prose-slate max-w-none 
-          /* 标题样式 */
-          prose-headings:text-slate-100 prose-headings:font-bold prose-h1:text-3xl prose-h2:text-2xl prose-h2:mt-8 prose-h2:mb-4 prose-h2:border-l-4 prose-h2:border-sky-500 prose-h2:pl-4
-          /* 链接样式 */
-          prose-a:text-sky-400 prose-a:no-underline hover:prose-a:underline
-          /* 引用样式 */
-          prose-blockquote:border-l-sky-500 prose-blockquote:bg-slate-900/50 prose-blockquote:px-6 prose-blockquote:py-2 prose-blockquote:text-slate-400 prose-blockquote:not-italic
-          /* 代码块样式 (由 rehype-highlight 处理颜色，这里处理容器) */
-          prose-pre:bg-[#0d1117] prose-pre:border prose-pre:border-slate-800 prose-pre:rounded-xl prose-pre:p-0
-          /* 行内代码样式 */
-          prose-code:text-sky-300 prose-code:bg-slate-800/50 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:font-mono prose-code:before:content-none prose-code:after:content-none
-          /* 图片样式 */
-          prose-img:rounded-xl prose-img:shadow-lg prose-img:border prose-img:border-slate-800
-          /* 表格样式 */
-          prose-table:border-collapse prose-table:border prose-table:border-slate-800
-          prose-th:bg-slate-900 prose-th:text-slate-200 prose-th:p-4 prose-th:border prose-th:border-slate-800
-          prose-td:p-4 prose-td:border prose-td:border-slate-800 prose-td:text-slate-400
-          prose-tr:border-b prose-tr:border-slate-800
-        ">
-           <ReactMarkdown 
-             remarkPlugins={[remarkGfm]} 
-             rehypePlugins={[rehypeHighlight]}
-           >
-             {post.content}
-           </ReactMarkdown>
-        </div>
+        {post.isMarkdown ? (
+          // 🅰️ Markdown 渲染模式 (保留原有的 ReactMarkdown 代码)
+          <div className="prose prose-invert prose-slate max-w-none 
+            /* 标题样式 */
+            prose-headings:text-slate-100 prose-headings:font-bold prose-h1:text-3xl prose-h2:text-2xl prose-h2:mt-8 prose-h2:mb-4 prose-h2:border-l-4 prose-h2:border-sky-500 prose-h2:pl-4
+            /* 链接样式 */
+            prose-a:text-sky-400 prose-a:no-underline hover:prose-a:underline
+            /* 引用样式 */
+            prose-blockquote:border-l-sky-500 prose-blockquote:bg-slate-900/50 prose-blockquote:px-6 prose-blockquote:py-2 prose-blockquote:text-slate-400 prose-blockquote:not-italic
+            /* 代码块样式 (由 rehype-highlight 处理颜色，这里处理容器) */
+            prose-pre:bg-[#0d1117] prose-pre:border prose-pre:border-slate-800 prose-pre:rounded-xl prose-pre:p-0
+            /* 行内代码样式 */
+            prose-code:text-sky-300 prose-code:bg-slate-800/50 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:font-mono prose-code:before:content-none prose-code:after:content-none
+            /* 图片样式 */
+            prose-img:rounded-xl prose-img:shadow-lg prose-img:border prose-img:border-slate-800
+            /* 表格样式 */
+            prose-table:border-collapse prose-table:border prose-table:border-slate-800
+            prose-th:bg-slate-900 prose-th:text-slate-200 prose-th:p-4 prose-th:border prose-th:border-slate-800
+            prose-td:p-4 prose-td:border prose-td:border-slate-800 prose-td:text-slate-400
+            prose-tr:border-b prose-tr:border-slate-800
+          ">
+            <ReactMarkdown 
+              remarkPlugins={[remarkGfm]} 
+              rehypePlugins={[rehypeHighlight]}
+            >
+              {post.content}
+            </ReactMarkdown>
+          </div>
+        ) : (
+          // 🅱️ 纯文本渲染模式
+          <div className="whitespace-pre-wrap font-sans text-lg leading-relaxed text-slate-300">
+            {post.content}
+          </div>
+        )}
       </article>
     </div>
   )

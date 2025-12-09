@@ -238,11 +238,12 @@ export async function createPost(formData: FormData) {
   const summary = formData.get('summary') as string
   // 默认勾选发布
   const published = formData.get('published') === 'on' 
+  const isMarkdown = formData.get('isMarkdown') === 'on'
 
   if (!title || !content) return
 
   await prisma.post.create({
-    data: { title, content, summary, published }
+    data: { title, content, summary, published, isMarkdown }
   })
   
   revalidatePath('/blog')
@@ -272,12 +273,13 @@ export async function updatePost(formData: FormData) {
   const content = formData.get('content') as string
   const summary = formData.get('summary') as string
   const published = formData.get('published') === 'on'
+  const isMarkdown = formData.get('isMarkdown') === 'on'
 
   if (!id || !title || !content) return
 
   await prisma.post.update({
     where: { id: parseInt(id) },
-    data: { title, content, summary, published }
+    data: { title, content, summary, published, isMarkdown } // ✨ 存入数据库
   })
 
   revalidatePath('/blog')
