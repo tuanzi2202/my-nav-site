@@ -1,8 +1,8 @@
 {
-  "timestamp": "2025/12/7 16:56:32",
+  "timestamp": "2025/12/9 10:05:28",
   "stats": {
-    "links": 284,
-    "categories": 20
+    "links": 286,
+    "categories": 21
   },
   "data": {
     "links": [
@@ -70,15 +70,6 @@
         "createdAt": "2025-12-06T09:45:18.877Z"
       },
       {
-        "id": 206,
-        "title": "Wallhere壁纸库",
-        "url": "https://wallhere.com/",
-        "description": "高质量壁纸",
-        "category": "下壁纸",
-        "isRecommended": true,
-        "createdAt": "2025-12-06T09:45:18.877Z"
-      },
-      {
         "id": 297,
         "title": "外星仔加速器",
         "url": "et001.com",
@@ -88,6 +79,33 @@
         "createdAt": "2025-12-07T07:49:29.587Z"
       },
       {
+        "id": 206,
+        "title": "Wallhere壁纸库",
+        "url": "https://wallhere.com/",
+        "description": "高质量壁纸",
+        "category": "下壁纸",
+        "isRecommended": false,
+        "createdAt": "2025-12-06T09:45:18.877Z"
+      },
+      {
+        "id": 307,
+        "title": "aicu",
+        "url": "https://www.aicu.cc/",
+        "description": "B站查成分",
+        "category": "工具箱",
+        "isRecommended": false,
+        "createdAt": "2025-12-08T10:53:05.791Z"
+      },
+      {
+        "id": 312,
+        "title": "RSSHub",
+        "url": "https://docs.rsshub.app/",
+        "description": "生成RSS订阅源",
+        "category": "工具箱",
+        "isRecommended": false,
+        "createdAt": "2025-12-08T15:57:16.659Z"
+      },
+      {
         "id": 119,
         "title": "美国地址生成器",
         "url": "https://www.meiguodizhi.com/",
@@ -95,15 +113,6 @@
         "category": "工具箱",
         "isRecommended": false,
         "createdAt": "2025-12-06T09:45:18.877Z"
-      },
-      {
-        "id": 282,
-        "title": "Grok",
-        "url": "https://grok.com/",
-        "description": "",
-        "category": "AI",
-        "isRecommended": false,
-        "createdAt": "2025-12-06T10:28:06.553Z"
       },
       {
         "id": 281,
@@ -149,6 +158,42 @@
         "category": "论坛",
         "isRecommended": true,
         "createdAt": "2025-12-06T13:15:48.533Z"
+      },
+      {
+        "id": 298,
+        "title": "什么值得买",
+        "url": "https://www.smzdm.com/",
+        "description": "",
+        "category": "集市",
+        "isRecommended": false,
+        "createdAt": "2025-12-07T09:37:30.048Z"
+      },
+      {
+        "id": 303,
+        "title": "001",
+        "url": "https://www.msn.com/zh-cn/news/other/%E5%A6%82%E6%9E%9C%E4%B8%80%E4%B8%AA%E4%BA%BA%E8%BF%98%E5%9C%A8%E7%A9%BF10%E5%B9%B4%E5%89%8D%E7%9A%84%E8%A1%A3%E6%9C%8D-%E5%8F%AA%E8%AF%B4%E6%98%8E3%E4%B8%AA%E9%97%AE%E9%A2%98/ar-AA1RRXqQ?ocid=winp2fptaskbar&cvid=772678dcf424485b98190c3132c23c97&ei=9",
+        "description": "",
+        "category": "思考",
+        "isRecommended": false,
+        "createdAt": "2025-12-07T15:36:43.072Z"
+      },
+      {
+        "id": 308,
+        "title": "Spotify",
+        "url": "https://open.spotify.com/",
+        "description": "官方曲库 清爽无广",
+        "category": "下音乐",
+        "isRecommended": true,
+        "createdAt": "2025-12-08T14:30:42.231Z"
+      },
+      {
+        "id": 282,
+        "title": "Grok",
+        "url": "https://grok.com/",
+        "description": "推理能力强",
+        "category": "AI",
+        "isRecommended": false,
+        "createdAt": "2025-12-06T10:28:06.553Z"
       },
       {
         "id": 46,
@@ -232,6 +277,33 @@
         "createdAt": "2025-12-07T07:34:10.902Z"
       },
       {
+        "id": 299,
+        "title": "购物党",
+        "url": "https://www.gwdang.com/",
+        "description": "历史比价",
+        "category": "集市",
+        "isRecommended": false,
+        "createdAt": "2025-12-07T09:38:20.036Z"
+      },
+      {
+        "id": 304,
+        "title": "比特币网络",
+        "url": "https://mempool.space/zh/",
+        "description": "比特币网络(Bitcoin / BTC)查询",
+        "category": "集市",
+        "isRecommended": false,
+        "createdAt": "2025-12-07T17:51:23.083Z"
+      },
+      {
+        "id": 309,
+        "title": "Feedly",
+        "url": "https://feedly.com/",
+        "description": "RSS阅读 界面清爽 免费版够用",
+        "category": "阅读",
+        "isRecommended": true,
+        "createdAt": "2025-12-08T15:17:16.668Z"
+      },
+      {
         "id": 154,
         "title": "loading.io",
         "url": "https://loading.io/",
@@ -304,39 +376,12 @@
         "createdAt": "2025-12-06T09:45:18.877Z"
       },
       {
-        "id": 23,
-        "title": "Youtube",
-        "url": "https://www.youtube.com/",
-        "description": "各类视频",
-        "category": "刷视频",
+        "id": 10,
+        "title": "ChatGPT",
+        "url": "https://chat.openai.com/chat",
+        "description": "功能强大",
+        "category": "AI",
         "isRecommended": true,
-        "createdAt": "2025-12-06T09:45:18.877Z"
-      },
-      {
-        "id": 22,
-        "title": "Discord",
-        "url": "https://discord.com/channels/@me",
-        "description": "",
-        "category": "论坛",
-        "isRecommended": false,
-        "createdAt": "2025-12-06T09:45:18.877Z"
-      },
-      {
-        "id": 17,
-        "title": "百度全吧搜索",
-        "url": "https://tieba.baidu.com/f/search/res?ie=utf-8",
-        "description": "",
-        "category": "论坛",
-        "isRecommended": false,
-        "createdAt": "2025-12-06T09:45:18.877Z"
-      },
-      {
-        "id": 19,
-        "title": "知乎",
-        "url": "https://www.zhihu.com/",
-        "description": "",
-        "category": "论坛",
-        "isRecommended": false,
         "createdAt": "2025-12-06T09:45:18.877Z"
       },
       {
@@ -345,6 +390,24 @@
         "url": "https://jsonlint.com/",
         "description": "如其名",
         "category": "工具箱",
+        "isRecommended": false,
+        "createdAt": "2025-12-06T09:45:18.877Z"
+      },
+      {
+        "id": 25,
+        "title": "Reddit",
+        "url": "https://www.reddit.com/",
+        "description": "全网主阵地",
+        "category": "论坛",
+        "isRecommended": false,
+        "createdAt": "2025-12-06T09:45:18.877Z"
+      },
+      {
+        "id": 22,
+        "title": "Discord",
+        "url": "https://discord.com/channels/@me",
+        "description": "全球社群频道交流",
+        "category": "论坛",
         "isRecommended": false,
         "createdAt": "2025-12-06T09:45:18.877Z"
       },
@@ -403,6 +466,15 @@
         "createdAt": "2025-12-06T09:45:18.877Z"
       },
       {
+        "id": 19,
+        "title": "知乎",
+        "url": "https://www.zhihu.com/",
+        "description": "问答交流",
+        "category": "论坛",
+        "isRecommended": false,
+        "createdAt": "2025-12-06T09:45:18.877Z"
+      },
+      {
         "id": 278,
         "title": "趣作图",
         "url": "https://www.quzuotu.com/home",
@@ -417,6 +489,15 @@
         "url": "https://wx.mail.qq.com/",
         "description": "",
         "category": "其他",
+        "isRecommended": false,
+        "createdAt": "2025-12-06T09:45:18.877Z"
+      },
+      {
+        "id": 34,
+        "title": "bangumi",
+        "url": "https://bgm.tv/",
+        "description": "二次元交流社区",
+        "category": "论坛",
         "isRecommended": false,
         "createdAt": "2025-12-06T09:45:18.877Z"
       },
@@ -437,6 +518,24 @@
         "category": "开发接口",
         "isRecommended": false,
         "createdAt": "2025-12-06T10:21:00.753Z"
+      },
+      {
+        "id": 36,
+        "title": "ACGN社区",
+        "url": "https://www.acgnsq.com/",
+        "description": "二次元爱好者交流社区",
+        "category": "论坛",
+        "isRecommended": false,
+        "createdAt": "2025-12-06T09:45:18.877Z"
+      },
+      {
+        "id": 17,
+        "title": "百度全吧搜索",
+        "url": "https://tieba.baidu.com/f/search/res?ie=utf-8",
+        "description": "全吧搜帖",
+        "category": "论坛",
+        "isRecommended": false,
+        "createdAt": "2025-12-06T09:45:18.877Z"
       },
       {
         "id": 276,
@@ -511,47 +610,11 @@
         "createdAt": "2025-12-06T09:45:18.877Z"
       },
       {
-        "id": 25,
-        "title": "Reddit",
-        "url": "https://www.reddit.com/",
-        "description": "",
-        "category": "论坛",
-        "isRecommended": false,
-        "createdAt": "2025-12-06T09:45:18.877Z"
-      },
-      {
         "id": 29,
         "title": "林奈奈小铺",
         "url": "https://www.linnainai.xyz/",
         "description": "",
         "category": "集市",
-        "isRecommended": false,
-        "createdAt": "2025-12-06T09:45:18.877Z"
-      },
-      {
-        "id": 34,
-        "title": "bangumi",
-        "url": "https://bgm.tv/",
-        "description": "",
-        "category": "论坛",
-        "isRecommended": false,
-        "createdAt": "2025-12-06T09:45:18.877Z"
-      },
-      {
-        "id": 36,
-        "title": "ACGN社区",
-        "url": "https://www.acgnsq.com/",
-        "description": "",
-        "category": "论坛",
-        "isRecommended": false,
-        "createdAt": "2025-12-06T09:45:18.877Z"
-      },
-      {
-        "id": 38,
-        "title": "月幕",
-        "url": "https://www.ymgal.games/archives",
-        "description": "",
-        "category": "论坛",
         "isRecommended": false,
         "createdAt": "2025-12-06T09:45:18.877Z"
       },
@@ -565,20 +628,20 @@
         "createdAt": "2025-12-06T09:45:18.877Z"
       },
       {
-        "id": 10,
-        "title": "ChatGPT",
-        "url": "https://chat.openai.com/chat",
-        "description": "AI是人类进步的电梯",
-        "category": "AI",
-        "isRecommended": true,
-        "createdAt": "2025-12-06T09:45:18.877Z"
-      },
-      {
         "id": 32,
         "title": "银河录像局",
         "url": "https://nf.video/yinhe/web/",
         "description": "开会员",
         "category": "集市",
+        "isRecommended": false,
+        "createdAt": "2025-12-06T09:45:18.877Z"
+      },
+      {
+        "id": 38,
+        "title": "月幕",
+        "url": "https://www.ymgal.games/archives",
+        "description": "Galgame游戏档案",
+        "category": "论坛",
         "isRecommended": false,
         "createdAt": "2025-12-06T09:45:18.877Z"
       },
@@ -628,20 +691,47 @@
         "createdAt": "2025-12-06T09:45:18.877Z"
       },
       {
+        "id": 300,
+        "title": "返利网",
+        "url": "https://www.fanli.com/",
+        "description": "全网购物优惠",
+        "category": "集市",
+        "isRecommended": false,
+        "createdAt": "2025-12-07T09:39:47.868Z"
+      },
+      {
+        "id": 305,
+        "title": "波场网络",
+        "url": "https://tronscan.org/#/",
+        "description": "波场网络(Tron / TRC20) 查询 USDT转账最常用",
+        "category": "集市",
+        "isRecommended": false,
+        "createdAt": "2025-12-07T17:52:41.906Z"
+      },
+      {
+        "id": 310,
+        "title": "Inoreader",
+        "url": "https://www.inoreader.com/",
+        "description": "RSS阅读器 功能极其强大（支持过滤、搜索）",
+        "category": "阅读",
+        "isRecommended": false,
+        "createdAt": "2025-12-08T15:21:53.558Z"
+      },
+      {
+        "id": 23,
+        "title": "Youtube",
+        "url": "https://www.youtube.com/",
+        "description": "涵盖各类视频 外语学习",
+        "category": "刷视频",
+        "isRecommended": true,
+        "createdAt": "2025-12-06T09:45:18.877Z"
+      },
+      {
         "id": 60,
         "title": "外语学习",
         "url": "https://www.aicompasspro.com/study",
         "description": "",
         "category": "学技术",
-        "isRecommended": false,
-        "createdAt": "2025-12-06T09:45:18.877Z"
-      },
-      {
-        "id": 65,
-        "title": "吾爱破解",
-        "url": "https://www.52pojie.cn/",
-        "description": "",
-        "category": "论坛",
         "isRecommended": false,
         "createdAt": "2025-12-06T09:45:18.877Z"
       },
@@ -786,15 +876,6 @@
         "url": "https://fonts.google.com/noto/specimen/Noto+Sans+SC",
         "description": "",
         "category": "下素材",
-        "isRecommended": false,
-        "createdAt": "2025-12-06T09:45:18.877Z"
-      },
-      {
-        "id": 114,
-        "title": "跳跳游戏网",
-        "url": "https://www.tiaotiaoyouxi.com/",
-        "description": "",
-        "category": "下游戏",
         "isRecommended": false,
         "createdAt": "2025-12-06T09:45:18.877Z"
       },
@@ -1096,11 +1177,11 @@
         "createdAt": "2025-12-06T09:45:18.877Z"
       },
       {
-        "id": 126,
-        "title": "盐神居",
-        "url": "https://saltsgod.com/",
-        "description": "知乎盐选小说",
-        "category": "读书",
+        "id": 125,
+        "title": "TTS-Online二次元",
+        "url": "https://acgn.ttson.cn/",
+        "description": "在线游戏日漫角色文本转语音",
+        "category": "AI",
         "isRecommended": false,
         "createdAt": "2025-12-06T09:45:18.877Z"
       },
@@ -1159,11 +1240,11 @@
         "createdAt": "2025-12-06T09:45:18.877Z"
       },
       {
-        "id": 125,
-        "title": "TTS-Online二次元",
-        "url": "https://acgn.ttson.cn/",
-        "description": "",
-        "category": "AI",
+        "id": 65,
+        "title": "吾爱破解",
+        "url": "https://www.52pojie.cn/",
+        "description": "工具分享",
+        "category": "论坛",
         "isRecommended": false,
         "createdAt": "2025-12-06T09:45:18.877Z"
       },
@@ -1321,20 +1402,20 @@
         "createdAt": "2025-12-06T09:45:18.877Z"
       },
       {
-        "id": 128,
-        "title": "雷鲸小站",
-        "url": "https://www.leijing.xyz/",
-        "description": "",
-        "category": "论坛",
+        "id": 126,
+        "title": "盐神居",
+        "url": "https://saltsgod.com/",
+        "description": "知乎盐选小说",
+        "category": "阅读",
         "isRecommended": false,
         "createdAt": "2025-12-06T09:45:18.877Z"
       },
       {
-        "id": 129,
-        "title": "磁力社区",
-        "url": "https://www.btsearch.cc/",
-        "description": "",
-        "category": "论坛",
+        "id": 114,
+        "title": "跳跳游戏网",
+        "url": "https://www.tiaotiaoyouxi.com/",
+        "description": "电脑单机游戏下载",
+        "category": "下游戏",
         "isRecommended": false,
         "createdAt": "2025-12-06T09:45:18.877Z"
       },
@@ -1366,119 +1447,11 @@
         "createdAt": "2025-12-06T09:45:18.877Z"
       },
       {
-        "id": 134,
-        "title": "switch618",
-        "url": "https://www.switch618.com/",
-        "description": "",
-        "category": "下游戏",
-        "isRecommended": false,
-        "createdAt": "2025-12-06T09:45:18.877Z"
-      },
-      {
-        "id": 135,
-        "title": "小叽资源",
-        "url": "https://steamzg.com/",
-        "description": "",
-        "category": "下游戏",
-        "isRecommended": false,
-        "createdAt": "2025-12-06T09:45:18.877Z"
-      },
-      {
-        "id": 136,
-        "title": "游戏怀旧灌水",
-        "url": "https://www.yxhjgs.com/",
-        "description": "",
-        "category": "下游戏",
-        "isRecommended": false,
-        "createdAt": "2025-12-06T09:45:18.877Z"
-      },
-      {
-        "id": 137,
-        "title": "flysheep",
-        "url": "http://flysheep.ysepan.com/",
-        "description": "",
-        "category": "下游戏",
-        "isRecommended": false,
-        "createdAt": "2025-12-06T09:45:18.877Z"
-      },
-      {
-        "id": 138,
-        "title": "flysheep2",
-        "url": "https://www.flysheep6.com/",
-        "description": "",
-        "category": "下游戏",
-        "isRecommended": false,
-        "createdAt": "2025-12-06T09:45:18.877Z"
-      },
-      {
-        "id": 139,
-        "title": "GBT乐赏",
-        "url": "http://gbtgame.ysepan.com/",
-        "description": "",
-        "category": "下游戏",
-        "isRecommended": false,
-        "createdAt": "2025-12-06T09:45:18.877Z"
-      },
-      {
-        "id": 140,
-        "title": "老男人游戏网",
-        "url": "https://www.oldmanemu.net/",
-        "description": "",
-        "category": "下游戏",
-        "isRecommended": false,
-        "createdAt": "2025-12-06T09:45:18.877Z"
-      },
-      {
-        "id": 142,
-        "title": "678VR游戏网",
-        "url": "https://www.678vr.com/",
-        "description": "",
-        "category": "下游戏",
-        "isRecommended": false,
-        "createdAt": "2025-12-06T09:45:18.877Z"
-      },
-      {
-        "id": 143,
-        "title": "古韵游戏社区",
-        "url": "https://www.guyunsq.com/",
-        "description": "",
-        "category": "下游戏",
-        "isRecommended": false,
-        "createdAt": "2025-12-06T09:45:18.877Z"
-      },
-      {
-        "id": 144,
-        "title": "RARGB",
-        "url": "https://rargb.to",
-        "description": "",
-        "category": "下游戏",
-        "isRecommended": false,
-        "createdAt": "2025-12-06T09:45:18.877Z"
-      },
-      {
-        "id": 145,
-        "title": "fitgirl",
-        "url": "https://fitgirl-repacks.site",
-        "description": "",
-        "category": "下游戏",
-        "isRecommended": false,
-        "createdAt": "2025-12-06T09:45:18.877Z"
-      },
-      {
         "id": 146,
         "title": "Switch520防迷路",
         "url": "https://sway.office.com/1ESaLEE3x47BTgZC",
         "description": "",
         "category": "下游戏",
-        "isRecommended": false,
-        "createdAt": "2025-12-06T09:45:18.877Z"
-      },
-      {
-        "id": 148,
-        "title": "zlibrary图书下载",
-        "url": "https://zh.z-library.se/",
-        "description": "",
-        "category": "读书",
         "isRecommended": false,
         "createdAt": "2025-12-06T09:45:18.877Z"
       },
@@ -1771,29 +1744,11 @@
         "createdAt": "2025-12-06T09:45:18.877Z"
       },
       {
-        "id": 204,
-        "title": "怀旧书库",
-        "url": "https://www.huaijiushuku.top/",
-        "description": "",
-        "category": "读书",
-        "isRecommended": false,
-        "createdAt": "2025-12-06T09:45:18.877Z"
-      },
-      {
         "id": 205,
         "title": "在线壁纸",
         "url": "https://tool.liumingye.cn/wallpaper/",
         "description": "",
         "category": "下壁纸",
-        "isRecommended": false,
-        "createdAt": "2025-12-06T09:45:18.877Z"
-      },
-      {
-        "id": 208,
-        "title": "安娜的档案",
-        "url": "https://zh.annas-archive.li/",
-        "description": "",
-        "category": "读书",
         "isRecommended": false,
         "createdAt": "2025-12-06T09:45:18.877Z"
       },
@@ -1834,10 +1789,10 @@
         "createdAt": "2025-12-06T09:45:18.877Z"
       },
       {
-        "id": 202,
-        "title": "无界版图",
-        "url": "https://www.wujiebantu.com/ai",
-        "description": "去限制生图",
+        "id": 183,
+        "title": "智谱清言",
+        "url": "https://chatglm.cn/main/alltoolsdetail",
+        "description": "一句话生成精美PPT",
         "category": "AI",
         "isRecommended": false,
         "createdAt": "2025-12-06T09:45:18.877Z"
@@ -1852,47 +1807,20 @@
         "createdAt": "2025-12-06T09:45:18.877Z"
       },
       {
+        "id": 134,
+        "title": "switch618",
+        "url": "https://www.switch618.com/",
+        "description": "资源全 更新快",
+        "category": "下游戏",
+        "isRecommended": false,
+        "createdAt": "2025-12-06T09:45:18.877Z"
+      },
+      {
         "id": 185,
         "title": "PeanutDL",
         "url": "https://peanutdl.com/zh",
-        "description": "",
-        "category": "服务器",
-        "isRecommended": false,
-        "createdAt": "2025-12-06T09:45:18.877Z"
-      },
-      {
-        "id": 192,
-        "title": "腾讯云",
-        "url": "https://cloud.tencent.com/act/pro/gpu-study",
-        "description": "",
-        "category": "服务器",
-        "isRecommended": false,
-        "createdAt": "2025-12-06T09:45:18.877Z"
-      },
-      {
-        "id": 183,
-        "title": "智谱清言",
-        "url": "https://chatglm.cn/main/alltoolsdetail",
-        "description": "",
-        "category": "AI",
-        "isRecommended": false,
-        "createdAt": "2025-12-06T09:45:18.877Z"
-      },
-      {
-        "id": 182,
-        "title": "AIUM",
-        "url": "https://aium.cc/",
-        "description": "",
-        "category": "AI",
-        "isRecommended": false,
-        "createdAt": "2025-12-06T09:45:18.877Z"
-      },
-      {
-        "id": 197,
-        "title": "WaiFuBrowser",
-        "url": "http://lab.kamakoto.fun/WAIFU/WB.html",
-        "description": "",
-        "category": "AI",
+        "description": "视频下载",
+        "category": "工具箱",
         "isRecommended": false,
         "createdAt": "2025-12-06T09:45:18.877Z"
       },
@@ -1900,17 +1828,44 @@
         "id": 198,
         "title": "Ideogram",
         "url": "https://ideogram.ai/",
-        "description": "",
+        "description": "AI绘画",
         "category": "AI",
         "isRecommended": false,
         "createdAt": "2025-12-06T09:45:18.877Z"
       },
       {
-        "id": 199,
-        "title": "意间",
-        "url": "http://m.yjai.art/pages/painting/painting",
-        "description": "",
+        "id": 128,
+        "title": "雷鲸小站",
+        "url": "https://www.leijing.xyz/",
+        "description": "天翼云盘交流站",
+        "category": "论坛",
+        "isRecommended": false,
+        "createdAt": "2025-12-06T09:45:18.877Z"
+      },
+      {
+        "id": 182,
+        "title": "AIUM",
+        "url": "https://aium.cc/",
+        "description": "大模型中转",
+        "category": "开发接口",
+        "isRecommended": false,
+        "createdAt": "2025-12-06T09:45:18.877Z"
+      },
+      {
+        "id": 197,
+        "title": "WaiFuBrowser",
+        "url": "http://lab.kamakoto.fun/WAIFU/WB.html",
+        "description": "维护中",
         "category": "AI",
+        "isRecommended": false,
+        "createdAt": "2025-12-06T09:45:18.877Z"
+      },
+      {
+        "id": 204,
+        "title": "怀旧书库",
+        "url": "https://www.huaijiushuku.top/",
+        "description": "祭奠过去那些阅读的美好时光",
+        "category": "阅读",
         "isRecommended": false,
         "createdAt": "2025-12-06T09:45:18.877Z"
       },
@@ -1924,11 +1879,11 @@
         "createdAt": "2025-12-06T09:45:18.877Z"
       },
       {
-        "id": 203,
-        "title": "爱作画",
-        "url": "https://www.aizuohua.com/#/dashboard",
-        "description": "AI绘画",
-        "category": "AI",
+        "id": 208,
+        "title": "安娜的档案",
+        "url": "https://zh.annas-archive.li/",
+        "description": "人类历史上最大的完全开放的图书馆",
+        "category": "阅读",
         "isRecommended": false,
         "createdAt": "2025-12-06T09:45:18.877Z"
       },
@@ -1942,20 +1897,20 @@
         "createdAt": "2025-12-06T09:45:18.877Z"
       },
       {
-        "id": 195,
-        "title": "Draft",
-        "url": "https://draft.art/drawing",
-        "description": "AI绘画",
-        "category": "AI",
+        "id": 136,
+        "title": "游戏怀旧灌水",
+        "url": "https://www.yxhjgs.com/",
+        "description": "怀旧游戏动漫",
+        "category": "下游戏",
         "isRecommended": false,
         "createdAt": "2025-12-06T09:45:18.877Z"
       },
       {
-        "id": 196,
-        "title": "Quick QR Art",
-        "url": "https://yhdm.one/",
-        "description": "生成艺术二维码",
-        "category": "AI",
+        "id": 140,
+        "title": "老男人游戏网",
+        "url": "https://www.oldmanemu.net/",
+        "description": "掌机家机资源",
+        "category": "下游戏",
         "isRecommended": false,
         "createdAt": "2025-12-06T09:45:18.877Z"
       },
@@ -2014,11 +1969,11 @@
         "createdAt": "2025-12-06T09:45:18.877Z"
       },
       {
-        "id": 147,
-        "title": "txt小说下载",
-        "url": "http://www.bookdown.info/",
-        "description": "书籍是人类进步的阶梯",
-        "category": "读书",
+        "id": 138,
+        "title": "flysheep资源避难所",
+        "url": "https://www.flysheep6.com/",
+        "description": "免费的二次元风格下载站",
+        "category": "下游戏",
         "isRecommended": false,
         "createdAt": "2025-12-06T09:45:18.877Z"
       },
@@ -2037,6 +1992,51 @@
         "url": "https://bz.zzzmh.cn",
         "description": "暂停运营",
         "category": "下壁纸",
+        "isRecommended": false,
+        "createdAt": "2025-12-06T09:45:18.877Z"
+      },
+      {
+        "id": 148,
+        "title": "zlibrary图书下载",
+        "url": "https://zh.z-library.se/",
+        "description": "",
+        "category": "阅读",
+        "isRecommended": false,
+        "createdAt": "2025-12-06T09:45:18.877Z"
+      },
+      {
+        "id": 143,
+        "title": "古韵游戏社区",
+        "url": "https://www.hackv.cn/",
+        "description": "游戏资源分享",
+        "category": "下游戏",
+        "isRecommended": false,
+        "createdAt": "2025-12-06T09:45:18.877Z"
+      },
+      {
+        "id": 142,
+        "title": "678VR游戏网",
+        "url": "https://www.678vr.com/",
+        "description": "VR资源下载",
+        "category": "下游戏",
+        "isRecommended": false,
+        "createdAt": "2025-12-06T09:45:18.877Z"
+      },
+      {
+        "id": 147,
+        "title": "txt小说下载",
+        "url": "http://www.bookdown.info/",
+        "description": "书籍是人类进步的阶梯",
+        "category": "阅读",
+        "isRecommended": false,
+        "createdAt": "2025-12-06T09:45:18.877Z"
+      },
+      {
+        "id": 135,
+        "title": "小叽资源",
+        "url": "https://steamzg.com/",
+        "description": "游戏资源分享",
+        "category": "下游戏",
         "isRecommended": false,
         "createdAt": "2025-12-06T09:45:18.877Z"
       },
@@ -2077,24 +2077,6 @@
         "createdAt": "2025-12-06T09:45:18.877Z"
       },
       {
-        "id": 264,
-        "title": "Homebrew 3DS",
-        "url": "https://oasisakari.github.io/3ds/",
-        "description": "",
-        "category": "论坛",
-        "isRecommended": false,
-        "createdAt": "2025-12-06T09:45:18.877Z"
-      },
-      {
-        "id": 267,
-        "title": "不移之火",
-        "url": "https://www.byzhihuo.com/forum.php",
-        "description": "",
-        "category": "论坛",
-        "isRecommended": false,
-        "createdAt": "2025-12-06T09:45:18.877Z"
-      },
-      {
         "id": 221,
         "title": "waifu2x动漫专用图片放大",
         "url": "https://waifu2x.booru.pics/",
@@ -2131,6 +2113,15 @@
         "createdAt": "2025-12-06T09:45:18.877Z"
       },
       {
+        "id": 306,
+        "title": "Learn Anything",
+        "url": "https://learn-anything.xyz/",
+        "description": "根据关键词精准筛选学习资源",
+        "category": "学技术",
+        "isRecommended": false,
+        "createdAt": "2025-12-08T10:45:43.263Z"
+      },
+      {
         "id": 292,
         "title": "Postimages",
         "url": "https://postimages.org/",
@@ -2158,10 +2149,10 @@
         "createdAt": "2025-12-06T09:45:18.877Z"
       },
       {
-        "id": 237,
-        "title": "claude",
-        "url": "https://claude.ai/chats",
-        "description": "",
+        "id": 235,
+        "title": "poe",
+        "url": "https://poe.com/",
+        "description": "快捷实用的AI聊天",
         "category": "AI",
         "isRecommended": false,
         "createdAt": "2025-12-06T09:45:18.877Z"
@@ -2185,11 +2176,11 @@
         "createdAt": "2025-12-06T09:45:18.877Z"
       },
       {
-        "id": 215,
-        "title": "waifulabs",
-        "url": "https://waifulabs.com/",
-        "description": "",
-        "category": "AI",
+        "id": 207,
+        "title": "读书派",
+        "url": "https://www.dushupai.com/",
+        "description": "免费好用的电子书下载网站",
+        "category": "阅读",
         "isRecommended": false,
         "createdAt": "2025-12-06T09:45:18.877Z"
       },
@@ -2257,31 +2248,40 @@
         "createdAt": "2025-12-06T09:45:18.877Z"
       },
       {
-        "id": 235,
-        "title": "poe",
-        "url": "https://poe.com/",
-        "description": "",
-        "category": "AI",
+        "id": 246,
+        "title": "中小学教材电子版",
+        "url": "https://jc.pep.com.cn/",
+        "description": "电子版教材",
+        "category": "阅读",
         "isRecommended": false,
         "createdAt": "2025-12-06T09:45:18.877Z"
       },
       {
-        "id": 240,
-        "title": "coze",
-        "url": "https://www.coze.com/",
-        "description": "",
-        "category": "AI",
+        "id": 267,
+        "title": "不移之火",
+        "url": "https://www.byzhihuo.com/forum.php",
+        "description": "分享美术素材",
+        "category": "论坛",
         "isRecommended": false,
         "createdAt": "2025-12-06T09:45:18.877Z"
       },
       {
-        "id": 241,
-        "title": "讯飞星火",
-        "url": "https://xinghuo.xfyun.cn/desk",
-        "description": "",
-        "category": "AI",
+        "id": 311,
+        "title": "少数派",
+        "url": "https://sspai.com/",
+        "description": "高效工作 品质生活",
+        "category": "论坛",
         "isRecommended": false,
-        "createdAt": "2025-12-06T09:45:18.877Z"
+        "createdAt": "2025-12-08T15:28:28.428Z"
+      },
+      {
+        "id": 301,
+        "title": "电脑开荒网",
+        "url": "http://www.cyhaoka.vip/",
+        "description": "网站集合",
+        "category": "其他导航",
+        "isRecommended": false,
+        "createdAt": "2025-12-07T14:57:11.389Z"
       },
       {
         "id": 244,
@@ -2307,6 +2307,15 @@
         "url": "https://accounts.nintendo.com/",
         "description": "",
         "category": "其他",
+        "isRecommended": false,
+        "createdAt": "2025-12-06T09:45:18.877Z"
+      },
+      {
+        "id": 232,
+        "title": "AI抠图",
+        "url": "https://www.remove.bg/zh/",
+        "description": "免费快速抠图 但是会降清晰度",
+        "category": "工具箱",
         "isRecommended": false,
         "createdAt": "2025-12-06T09:45:18.877Z"
       },
@@ -2410,11 +2419,11 @@
         "createdAt": "2025-12-06T09:45:18.877Z"
       },
       {
-        "id": 246,
-        "title": "中小学教材电子版",
-        "url": "https://jc.pep.com.cn/",
-        "description": "",
-        "category": "读书",
+        "id": 240,
+        "title": "coze",
+        "url": "https://www.coze.com/",
+        "description": "智能体 接入主流模型",
+        "category": "AI",
         "isRecommended": false,
         "createdAt": "2025-12-06T09:45:18.877Z"
       },
@@ -2500,15 +2509,6 @@
         "createdAt": "2025-12-06T09:45:18.877Z"
       },
       {
-        "id": 207,
-        "title": "读书派",
-        "url": "https://www.dushupai.com/",
-        "description": "好好学习 天天向上",
-        "category": "读书",
-        "isRecommended": false,
-        "createdAt": "2025-12-06T09:45:18.877Z"
-      },
-      {
         "id": 266,
         "title": "小皮面板",
         "url": "https://www.xp.cn/download.html",
@@ -2554,12 +2554,30 @@
         "createdAt": "2025-12-06T09:45:18.877Z"
       },
       {
-        "id": 232,
-        "title": "AI抠图",
-        "url": "https://www.remove.bg/zh/",
-        "description": "免费快速抠图 但是会降清晰度",
-        "category": "工具箱",
-        "isRecommended": true,
+        "id": 237,
+        "title": "claude",
+        "url": "https://claude.ai/chats",
+        "description": "适合编程",
+        "category": "AI",
+        "isRecommended": false,
+        "createdAt": "2025-12-06T09:45:18.877Z"
+      },
+      {
+        "id": 241,
+        "title": "讯飞星火",
+        "url": "https://xinghuo.xfyun.cn/desk",
+        "description": "免费国产大模型",
+        "category": "AI",
+        "isRecommended": false,
+        "createdAt": "2025-12-06T09:45:18.877Z"
+      },
+      {
+        "id": 215,
+        "title": "waifulabs",
+        "url": "https://waifulabs.com/",
+        "description": "二次元头像生成",
+        "category": "AI",
+        "isRecommended": false,
         "createdAt": "2025-12-06T09:45:18.877Z"
       }
     ],
@@ -2567,26 +2585,31 @@
       {
         "id": 16,
         "name": "论坛",
-        "sortOrder": 200
+        "sortOrder": 220
       },
       {
-        "id": 11,
-        "name": "读书",
-        "sortOrder": 190
+        "id": 27,
+        "name": "阅读",
+        "sortOrder": 200
       },
       {
         "id": 10,
         "name": "AI",
-        "sortOrder": 180
+        "sortOrder": 190
       },
       {
         "id": 14,
         "name": "集市",
-        "sortOrder": 170
+        "sortOrder": 180
       },
       {
         "id": 23,
         "name": "游戏",
+        "sortOrder": 170
+      },
+      {
+        "id": 26,
+        "name": "思考",
         "sortOrder": 160
       },
       {

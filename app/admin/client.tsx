@@ -22,7 +22,7 @@ export default function AdminClient({
   initialGlobalSettings: any,
   initialHistory: HistoryItem[]
 }) {
-  const [activeTab, setActiveTab] = useState<'links' | 'categories' | 'themes' | 'announcement' | 'design'>('links')
+  const [activeTab, setActiveTab] = useState<'links' | 'categories' | 'themes' | 'announcement' | 'design' | 'blog'>('links')
   const [categories, setCategories] = useState<CategoryItem[]>([])
   const [announcement, setAnnouncement] = useState(initialAnnouncement)
   
@@ -117,7 +117,8 @@ export default function AdminClient({
             <div className="w-px h-6 bg-slate-700 mx-1 self-center"></div>
             
             <button onClick={() => setActiveTab('announcement')} className={`px-4 py-2 text-sm rounded-md transition whitespace-nowrap ${activeTab === 'announcement' ? 'bg-indigo-600/20 text-indigo-300 shadow' : 'text-slate-500 hover:text-slate-300'}`}>📢 公告发布</button>
-            <button onClick={() => setActiveTab('design')} className={`px-4 py-2 text-sm rounded-md transition whitespace-nowrap ${activeTab === 'design' ? 'bg-pink-600/20 text-pink-300 shadow' : 'text-slate-500 hover:text-slate-300'}`}>🎨 全局视觉</button>
+            <button onClick={() => setActiveTab('design')} className={`px-4 py-2 text-sm rounded-md transition whitespace-nowrap ${activeTab === 'design' ? 'bg-pink-600/20 text-pink-300 shadow' : 'text-slate-500 hover:text-slate-300'}`}>🎨 初始参数</button>
+            <button onClick={() => setActiveTab('blog')} className={`px-4 py-2 text-sm rounded-md transition whitespace-nowrap ${activeTab === 'blog' ? 'bg-pink-600/20 text-pink-300 shadow' : 'text-slate-500 hover:text-slate-300'}`}>📝 写博客</button>
         </div>
         
         <a href="/" className="text-sm bg-slate-800 hover:bg-slate-700 text-slate-300 px-4 py-2 rounded-lg border border-slate-700">← 前台</a>
@@ -300,6 +301,25 @@ export default function AdminClient({
                     <button type="submit" className="w-full bg-pink-600 hover:bg-pink-500 text-white p-3 rounded-xl font-medium shadow-lg shadow-pink-500/20 transition-all transform active:scale-95 mt-4">保存为默认配置</button>
                 </form>
             </div>
+        </div>
+      )}
+
+      {/* Tab: 博客发布 (简易版) */}
+      {activeTab === 'blog' && (
+        <div className="max-w-4xl mx-auto space-y-8">
+          <div className="bg-slate-900/50 border border-slate-800/60 rounded-2xl p-8">
+            <h2 className="text-xl font-bold text-white mb-6">发布新文章</h2>
+            <form action={createPost} className="space-y-4">
+              <input name="title" placeholder="文章标题" required className="w-full bg-slate-800 border-slate-700 rounded-xl p-3 text-white" />
+              <input name="summary" placeholder="简短摘要 (选填)" className="w-full bg-slate-800 border-slate-700 rounded-xl p-3 text-white" />
+              <textarea name="content" placeholder="文章正文 (支持 Markdown)..." required className="w-full h-64 bg-slate-800 border-slate-700 rounded-xl p-3 text-white font-mono" />
+              <div className="flex items-center gap-2">
+                <input type="checkbox" name="published" id="pub" className="w-5 h-5 accent-indigo-500" defaultChecked />
+                <label htmlFor="pub" className="text-slate-300">立即发布</label>
+              </div>
+              <button type="submit" className="w-full bg-indigo-600 hover:bg-indigo-500 text-white p-3 rounded-xl">发布</button>
+            </form>
+          </div>
         </div>
       )}
 

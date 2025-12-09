@@ -40,9 +40,20 @@ model SmartWallpaper {
   createdAt DateTime @default(now())
 }
 
-// ✨ 新增：公告历史记录表
+// 公告历史记录表
 model AnnouncementHistory {
   id        Int      @id @default(autoincrement())
   content   String   // 历史内容
   createdAt DateTime @default(now()) // 存档时间
+}
+
+// ✨ 新增：博客文章模型
+model Post {
+  id        Int      @id @default(autoincrement())
+  title     String
+  content   String   // 支持 Markdown 或 HTML
+  summary   String?  // 文章摘要
+  published Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }

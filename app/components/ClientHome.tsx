@@ -334,7 +334,10 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
   // ✨✨✨ 环形菜单配置 (自定义菜单项) ✨✨✨
   const menuItems = [
     { label: '音乐', action: () => {} },
-    { label: '博客', action: () => {} },
+    { 
+        label: '博客', 
+        action: () => router.push('/blog') // ✨ 核心修改：添加跳转逻辑
+    },
     { label: '看板娘', action: () => {} },
     { label: '其他', action: () => {} },
     { label: '其他', action: () => {} },

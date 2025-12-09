@@ -210,3 +210,46 @@ export async function getUISettings() {
   if (!config) return null
   try { return JSON.parse(config.value) } catch (e) { return null }
 }
+
+// --- 博客系统管理 ---
+
+// 1. 获取所有已发布文章 (前台用)
+export async function getPublishedPosts() {
+  return await prisma.post.findMany({
+    where: { published: true },
+    orderBy: { createdAt: 'desc' }
+  })
+}
+
+// 2. 获取单篇文章 (详情页用)
+export async function getPostById(id: number) {
+  return await prisma.post.findUnique({
+    where: { id }
+  })
+}
+
+// 3. 创建/发布文章 (后台用)
+export async function createPost(formData: FormData) {
+  const title = formData.get('title') as string
+  const content = formData.get('content') as string
+  const summary = formData.get('summary') as string
+  const published = formData.get('published') === 'on'
+
+  if (!title || !content) return
+
+  await prisma.post.create({
+    data: { title, content, summary, published }
+  })
+  
+  revalidatePath('/blog')
+  revalidatePath('/admin')
+}
+
+// 4. 删除文章 (后台用)
+export async function deletePost(formData: FormData) {
+  const id = formData.get('id') as string
+  if (!id) return
+  await prisma.post.delete({ where: { id: parseInt(id) } })
+  revalidatePath('/blog')
+  revalidatePath('/admin')
+}
