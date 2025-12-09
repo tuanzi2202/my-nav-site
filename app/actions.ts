@@ -233,17 +233,12 @@ export async function getPostById(id: number) {
 
 // 3. 发布新文章 (后台用)
 export async function createPost(formData: FormData) {
-  const title = formData.get('title') as string
-  const content = formData.get('content') as string
-  const summary = formData.get('summary') as string
-  // 默认勾选发布
-  const published = formData.get('published') === 'on' 
-  const isMarkdown = formData.get('isMarkdown') === 'on'
+  const data = getPostData(formData)
 
-  if (!title || !content) return
+  if (!data.title || !data.content) return
 
   await prisma.post.create({
-    data: { title, content, summary, published, isMarkdown }
+    data
   })
   
   revalidatePath('/blog')
@@ -266,24 +261,35 @@ export async function getAllPosts() {
   })
 }
 
-// ✨ 新增：更新文章
+// 辅助函数：解析表单数据 (为了复用逻辑)
+function getPostData(formData: FormData) {
+  return {
+    title: formData.get('title') as string,
+    content: formData.get('content') as string,
+    summary: formData.get('summary') as string,
+    published: formData.get('published') === 'on',
+    isMarkdown: formData.get('isMarkdown') === 'on',
+    // ✨ 获取外观数据
+    backgroundImage: formData.get('backgroundImage') as string || null,
+    contentBgColor: (formData.get('contentBgColor') as string) || '#0f172a',
+    contentBgOpacity: parseFloat((formData.get('contentBgOpacity') as string) || '0.8'),
+  }
+}
+
+// 更新文章逻辑
 export async function updatePost(formData: FormData) {
   const id = formData.get('id') as string
-  const title = formData.get('title') as string
-  const content = formData.get('content') as string
-  const summary = formData.get('summary') as string
-  const published = formData.get('published') === 'on'
-  const isMarkdown = formData.get('isMarkdown') === 'on'
+  const data = getPostData(formData) // 使用上面的辅助函数
 
-  if (!id || !title || !content) return
+  if (!id || !data.title || !data.content) return
 
   await prisma.post.update({
     where: { id: parseInt(id) },
-    data: { title, content, summary, published, isMarkdown } // ✨ 存入数据库
+    data // 直接传入 data 对象
   })
 
   revalidatePath('/blog')
-  revalidatePath('/blog/' + id) // 更新详情页缓存
+  revalidatePath('/blog/' + id)
   revalidatePath('/admin')
 }
 

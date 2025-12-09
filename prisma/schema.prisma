@@ -54,10 +54,13 @@ model Post {
   content   String
   summary   String?
   published Boolean  @default(false)
+  isMarkdown Boolean @default(true)
   
-  // ✨ 新增：格式标记 (默认 true 使用 Markdown)
-  isMarkdown Boolean @default(true) 
-  
+  // ✨✨✨ 新增：外观设置 ✨✨✨
+  backgroundImage  String?  // 背景图链接 (空则使用默认深色背景)
+  contentBgColor   String   @default("#0f172a") // 文字板背景色 (默认深蓝)
+  contentBgOpacity Float    @default(0.8)       // 文字板不透明度 (0.0 - 1.0)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }

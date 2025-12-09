@@ -25,7 +25,10 @@ type PostItem = {
   summary: string | null; 
   published: boolean; 
   isMarkdown: boolean; // ✨ 新增类型
-  createdAt: Date 
+  backgroundImage: string | null;
+  contentBgColor: string;
+  contentBgOpacity: number;
+  createdAt: Date
 }
 
 export default function AdminClient({ 
@@ -61,7 +64,11 @@ export default function AdminClient({
     content: '', 
     summary: '', 
     published: true, 
-    isMarkdown: true, // ✨ 默认开启 Markdown
+    isMarkdown: true,
+    // ✨ 默认外观
+    backgroundImage: '',
+    contentBgColor: '#0f172a',
+    contentBgOpacity: 0.8,
     createdAt: new Date() 
   }
 
@@ -469,6 +476,61 @@ export default function AdminClient({
                               className="w-full bg-transparent border-none text-sm text-slate-400 focus:ring-0 px-0" 
                            />
                         </div>
+
+                        {/* ✨✨✨ 外观设置折叠面板 ✨✨✨ */}
+                        <details className="bg-slate-900/30 border border-slate-800 rounded-xl overflow-hidden group">
+                          <summary className="flex items-center gap-2 p-4 cursor-pointer select-none text-slate-400 hover:text-white transition">
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"></path></svg>
+                            <span className="text-sm font-medium">🎨 页面外观设置 (背景图 & 配色)</span>
+                            <svg className="w-4 h-4 ml-auto transform group-open:rotate-180 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+                          </summary>
+                          
+                          <div className="p-4 pt-0 grid grid-cols-1 md:grid-cols-2 gap-6 animate-in slide-in-from-top-2">
+                            {/* 背景图设置 */}
+                            <div className="space-y-2">
+                              <label className="text-xs text-slate-500">全屏背景图片 (URL)</label>
+                              <input 
+                                name="backgroundImage" 
+                                defaultValue={editingPost.backgroundImage || ''} 
+                                placeholder="https://..." 
+                                className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-sm text-white focus:border-emerald-500 outline-none" 
+                              />
+                              <p className="text-[10px] text-slate-600">留空则使用默认深色背景</p>
+                            </div>
+
+                            {/* 阅读板样式设置 */}
+                            <div className="space-y-4">
+                              <div>
+                                <div className="flex justify-between text-xs text-slate-500 mb-1">
+                                  <span>阅读板背景色</span>
+                                  <span className="font-mono text-slate-400">{editingPost.contentBgColor}</span>
+                                </div>
+                                <div className="flex gap-2 items-center">
+                                  <input 
+                                    type="color" 
+                                    name="contentBgColor" 
+                                    defaultValue={editingPost.contentBgColor || '#0f172a'} 
+                                    className="w-full h-8 rounded cursor-pointer bg-transparent border border-slate-700" 
+                                  />
+                                </div>
+                              </div>
+                              
+                              <div>
+                                <div className="flex justify-between text-xs text-slate-500 mb-1">
+                                  <span>阅读板透明度</span>
+                                  <span>{Math.round((editingPost.contentBgOpacity || 0.8) * 100)}%</span>
+                                </div>
+                                <input 
+                                  type="range" 
+                                  name="contentBgOpacity" 
+                                  min="0" max="1" step="0.05" 
+                                  defaultValue={editingPost.contentBgOpacity || 0.8}
+                                  className="w-full h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-emerald-500" 
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        </details>
 
                         {/* ✨ 格式切换开关 ✨ */}
                         <div className="flex items-center gap-3 px-1">
