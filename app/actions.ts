@@ -228,7 +228,7 @@ export async function getPostById(id: number) {
   })
 }
 
-// 3. 创建/发布文章 (后台用)
+// 3. 创建/发布文章 (后台用) - 这就是报错缺少的函数
 export async function createPost(formData: FormData) {
   const title = formData.get('title') as string
   const content = formData.get('content') as string

@@ -2,7 +2,22 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { addLink, deleteLink, updateLink, getCategories, autoSyncCategories, reorderCategories, deleteCategoryConfig, updateAnnouncement, addSmartWallpaper, deleteSmartWallpaper, updateSmartWallpaper, updateGlobalUISettings } from '../actions'
+import { 
+  addLink, 
+  deleteLink, 
+  updateLink, 
+  getCategories, 
+  autoSyncCategories, 
+  reorderCategories, 
+  deleteCategoryConfig, 
+  updateAnnouncement, 
+  addSmartWallpaper, 
+  deleteSmartWallpaper, 
+  updateSmartWallpaper, 
+  updateGlobalUISettings,
+  createPost,   // 👈 新增这个
+  deletePost    // 👈 顺便把删除功能也导入
+} from '../actions'
 
 type LinkItem = { id: number; title: string; url: string; description: string | null; category: string; isRecommended: boolean; createdAt: Date }
 type CategoryItem = { id: number; name: string; sortOrder: number }
