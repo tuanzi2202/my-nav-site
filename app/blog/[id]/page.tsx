@@ -17,50 +17,29 @@ export default async function BlogPost({ params }: Props) {
 
   if (!post) notFound()
 
-  // ✨ 动态样式计算
   const hasBgImage = !!post.backgroundImage
   
-  // 将 Hex 颜色转换为 RGB，以便应用透明度 (简单处理直接用 hex + opacity 也可以，但 rgba 更稳)
-  // 这里我们偷个懒，直接用 style={{ backgroundColor: post.contentBgColor, opacity: post.contentBgOpacity }} 
-  // 但要注意 opacity 会影响文字。
-  // ✅ 最佳实践：使用 rgba 背景色，或者分开层。这里我们用 CSS 变量或直接 style。
-
   return (
     <div 
       className="min-h-screen relative font-sans selection:bg-indigo-500/30"
       style={{
-        // 如果有背景图，设置为背景；否则回退到默认深色
         backgroundImage: hasBgImage ? `url(${post.backgroundImage})` : 'none',
         backgroundColor: hasBgImage ? 'transparent' : '#0f172a',
         backgroundSize: 'cover',
         backgroundPosition: 'center',
-        backgroundAttachment: 'fixed' // 视差滚动效果
+        backgroundAttachment: 'fixed'
       }}
     >
-      {/* 遮罩层 (让背景暗一点，提升文字可读性) */}
       {hasBgImage && <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px] pointer-events-none" />}
 
       <div className="relative z-10 p-4 md:p-12">
-        {/* ✨ 阅读板 (Content Board) ✨ */}
         <article 
           className="max-w-4xl mx-auto rounded-3xl shadow-2xl p-8 md:p-12 transition-all"
           style={{
-            // 动态应用用户设置的背景色和透明度
-            backgroundColor: post.contentBgColor || '#0f172a',
-            // 注意：直接设 opacity 会导致文字也变透明。
-            // 技巧：使用 color-mix 或者 rgba。
-            // 为了简单且兼容，我们这里利用 CSS 变量把 opacity 应用到背景通道，
-            // 或者最简单的：利用 rgba 转换 (稍微复杂)，
-            // 这里演示一个最简单的方案：背景色 + opacity 样式，
-            // 但为了不让文字透明，我们其实应该把 opacity 转换成 rgba 的 alpha 通道。
-            // 鉴于复杂性，我们这里采用 `background-color` 配合 `opacity` 是不行的。
-            // ✅ 修正方案：把 opacity 作用于背景色的 alpha 通道（如果用户选的是 Hex）比较麻烦。
-            // 💡 替代方案：使用 --tw-bg-opacity
-            '--tw-bg-opacity': post.contentBgOpacity ?? 0.8,
+            // 👇 修复点：只保留这一行 color-mix 的定义，删掉了之前重复的那行
             backgroundColor: `color-mix(in srgb, ${post.contentBgColor || '#0f172a'}, transparent ${(1 - (post.contentBgOpacity ?? 0.8)) * 100}%)`
           } as React.CSSProperties}
         >
-          {/* 返回按钮 */}
           <Link href="/blog" className="inline-flex items-center gap-1 mb-8 text-sky-400 hover:text-sky-300 text-sm transition-colors font-medium">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
             返回列表
