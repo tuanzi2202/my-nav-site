@@ -41,3 +41,19 @@ yarn-error.log*
 next-env.d.ts
 
 /app/generated/prisma
+
+# --- Database Backups ---
+# 忽略所有以 backup-full- 开头的 JSON 备份文件
+backup-full-*.json
+
+# 忽略手动的 restore.json (如果你使用了策略 B)
+restore.json
+
+# 忽略其他常见的数据库备份格式 (防患未然)
+*.sql
+*.sqlite
+*.db
+
+# 忽略旧的备份文件 (如果有)
+websites_data.json
+backup-*.json
