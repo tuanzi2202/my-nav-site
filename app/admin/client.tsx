@@ -144,7 +144,7 @@ export default function AdminClient({
 
   // 如果是博客管理，用超宽屏 (7xl)；如果是其他管理，用标准屏 (5xl)
   const containerMaxWidth = activeTab === 'blog' ? 'max-w-7xl' : 'max-w-5xl'
-  
+
   return (
     <div className={`${containerMaxWidth} mx-auto transition-all duration-300 ease-in-out`}>
       <style jsx global>{`input[type=range] { -webkit-appearance: none; background: transparent; } input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; height: 16px; width: 16px; border-radius: 50%; background: #6366f1; cursor: pointer; margin-top: -6px; box-shadow: 0 0 10px rgba(99,102,241,0.5); } input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 4px; cursor: pointer; background: #334155; border-radius: 2px; }`}</style>
@@ -450,14 +450,13 @@ export default function AdminClient({
                            />
                         </div>
 
-                        {/* 正文输入 (占据剩余空间) */}
-                        <textarea 
-                           name="content" 
-                           defaultValue={editingPost.content} 
-                           placeholder="开始你的创作 (支持 Markdown)..." 
-                           required 
-                           className="w-full min-h-[400px] h-full bg-transparent border-none text-slate-300 font-mono text-base focus:ring-0 px-0 resize-none leading-relaxed" 
-                        />
+{/* 正文输入 (占据剩余空间) - 替换为 MarkdownEditor */}
+<MarkdownEditor 
+    name="content" 
+    defaultValue={editingPost.content} 
+    required
+    className="flex-1 h-full min-h-[500px]" // 传递高度样式
+/>
                      </div>
 
                      {/* 底部工具栏 */}
@@ -529,5 +528,100 @@ export default function AdminClient({
         </div>
       )}
     </div>
+  )
+}
+
+// ✨✨✨ 新增：Markdown 编辑器组件 ✨✨✨
+function MarkdownEditor({ name, defaultValue, className, required }: { name: string, defaultValue?: string, className?: string, required?: boolean }) {
+  const [content, setContent] = useState(defaultValue || '')
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
+
+  // 监听外部默认值变化（切换文章时重置内容）
+  useEffect(() => {
+    setContent(defaultValue || '')
+  }, [defaultValue])
+
+  // 核心功能：在光标处插入语法
+  const insertSyntax = (prefix: string, suffix: string, placeholder: string) => {
+    const textarea = textareaRef.current
+    if (!textarea) return
+
+    const start = textarea.selectionStart
+    const end = textarea.selectionEnd
+    const text = textarea.value
+    
+    const before = text.substring(0, start)
+    const selection = text.substring(start, end) || placeholder
+    const after = text.substring(end)
+
+    const newText = before + prefix + selection + suffix + after
+    
+    // 更新内容
+    setContent(newText)
+    
+    // 恢复焦点并选中占位符，方便用户直接修改
+    setTimeout(() => {
+      textarea.focus()
+      textarea.setSelectionRange(start + prefix.length, start + prefix.length + selection.length)
+    }, 0)
+  }
+
+  return (
+    <div className={`flex flex-col border border-slate-700 rounded-xl overflow-hidden bg-slate-950/50 focus-within:ring-1 focus-within:ring-emerald-500/50 transition-all ${className}`}>
+      {/* 🛠️ 工具栏 */}
+      <div className="flex items-center gap-1 p-2 border-b border-slate-800 bg-slate-900/80">
+        <ToolButton icon="B" label="加粗" onClick={() => insertSyntax('**', '**', '粗体文本')} />
+        <ToolButton icon="I" label="斜体" onClick={() => insertSyntax('*', '*', '斜体文本')} />
+        <div className="w-px h-4 bg-slate-700 mx-1" />
+        <ToolButton icon="#" label="标题" onClick={() => insertSyntax('## ', '', '标题文本')} />
+        <ToolButton icon="Link" label="链接" onClick={() => insertSyntax('[', '](url)', '链接描述')} />
+        <ToolButton icon="Img" label="图片" onClick={() => insertSyntax('![', '](https://)', '图片描述')} active />
+        <div className="w-px h-4 bg-slate-700 mx-1" />
+        <ToolButton icon="Code" label="代码" onClick={() => insertSyntax('```\n', '\n```', 'console.log("Hello")')} />
+        
+        <div className="flex-1" />
+        {/* 快捷上传入口 */}
+        <a href="https://postimages.org/" target="_blank" rel="noopener noreferrer" className="text-xs text-slate-500 hover:text-emerald-400 flex items-center gap-1 transition-colors px-2">
+          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+          去传图
+        </a>
+      </div>
+
+      {/* 📝 编辑区 */}
+      <textarea
+        ref={textareaRef}
+        name={name}
+        value={content}
+        onChange={(e) => setContent(e.target.value)}
+        required={required}
+        placeholder="开始你的创作 (支持 Markdown)..."
+        className="flex-1 w-full bg-transparent border-none text-slate-300 font-mono text-base p-4 focus:ring-0 resize-none leading-relaxed min-h-[400px]"
+      />
+    </div>
+  )
+}
+
+// 辅助组件：工具栏按钮
+function ToolButton({ icon, label, onClick, active }: any) {
+  const icons: any = {
+    'B': <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 4h8a4 4 0 014 4 4 4 0 01-4 4H6z M6 12h9a4 4 0 014 4 4 4 0 01-4 4H6z" />,
+    'I': <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M10 19l4-14" />,
+    '#': <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14" />,
+    'Link': <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />,
+    'Img': <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />,
+    'Code': <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+  }
+
+  return (
+    <button 
+      type="button" 
+      onClick={onClick} 
+      title={label}
+      className={`p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-700/50 transition-colors ${active ? 'text-emerald-400 bg-emerald-900/20' : ''}`}
+    >
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        {icons[icon]}
+      </svg>
+    </button>
   )
 }
