@@ -1,19 +1,17 @@
 import { getPostById } from '../../actions'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
+// ✨ 1. 引入渲染库
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 
 interface Props {
   params: Promise<{ id: string }>
 }
 
 export default async function BlogPost({ params }: Props) {
-  // ✅ 1. 必须先 await params
   const resolvedParams = await params
-  
-  // ✅ 2. 安全转换 ID，失败则给 0 (0 会导致查不到数据从而 notFound，这是安全的)
   const postId = parseInt(resolvedParams.id) || 0
-
-  // 3. 查询数据
   const post = await getPostById(postId)
 
   if (!post) notFound()
@@ -31,9 +29,20 @@ export default async function BlogPost({ params }: Props) {
           <time className="text-slate-500 text-sm font-mono block">{post.createdAt.toLocaleString()}</time>
         </header>
 
-        {/* 文章内容区：使用 whitespace-pre-wrap 保持换行 */}
-        <div className="prose prose-invert prose-slate max-w-none leading-relaxed whitespace-pre-wrap text-slate-300">
-           {post.content}
+        {/* ✨ 2. 使用 ReactMarkdown 进行渲染 */}
+        <div className="prose prose-invert prose-slate max-w-none 
+          prose-headings:text-slate-100 
+          prose-a:text-sky-400 prose-a:no-underline hover:prose-a:underline
+          prose-blockquote:border-l-sky-500 prose-blockquote:bg-slate-900/50 prose-blockquote:px-4 prose-blockquote:py-1
+          prose-code:text-emerald-300 prose-code:bg-slate-800 prose-code:px-1 prose-code:rounded prose-code:before:content-none prose-code:after:content-none
+          prose-pre:bg-slate-900 prose-pre:border prose-pre:border-slate-800
+          prose-img:rounded-xl prose-img:shadow-lg
+          prose-th:text-slate-200 prose-th:bg-slate-800/50 prose-th:p-3
+          prose-td:p-3 prose-tr:border-b prose-tr:border-slate-800
+        ">
+           <ReactMarkdown remarkPlugins={[remarkGfm]}>
+             {post.content}
+           </ReactMarkdown>
         </div>
       </article>
     </div>
