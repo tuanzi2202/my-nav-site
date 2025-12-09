@@ -3,45 +3,57 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { 
-  addLink, 
-  deleteLink, 
-  updateLink, 
-  getCategories, 
-  autoSyncCategories, 
-  reorderCategories, 
-  deleteCategoryConfig, 
+  addLink, deleteLink, updateLink, 
+  getCategories, autoSyncCategories, reorderCategories, deleteCategoryConfig, 
   updateAnnouncement, 
-  addSmartWallpaper, 
-  deleteSmartWallpaper, 
-  updateSmartWallpaper, 
+  addSmartWallpaper, deleteSmartWallpaper, updateSmartWallpaper, 
   updateGlobalUISettings,
-  createPost,   // 👈 新增这个
-  deletePost    // 👈 顺便把删除功能也导入
+  // ✨ 新增：博客相关接口
+  createPost, updatePost, deletePost
 } from '../actions'
 
+// --- 类型定义 ---
 type LinkItem = { id: number; title: string; url: string; description: string | null; category: string; isRecommended: boolean; createdAt: Date }
 type CategoryItem = { id: number; name: string; sortOrder: number }
 type ThemeItem = { id: number; name: string; morning: string; afternoon: string; night: string }
 type HistoryItem = { id: number; content: string; createdAt: Date }
+// ✨ 新增：文章类型
+type PostItem = { id: number; title: string; content: string; summary: string | null; published: boolean; createdAt: Date }
 
 export default function AdminClient({ 
   initialLinks, 
   initialAnnouncement, 
   initialThemes, 
   initialGlobalSettings, 
-  initialHistory 
+  initialHistory,
+  initialPosts = [] // ✨ 新增：接收文章列表
 }: { 
   initialLinks: LinkItem[], 
   initialAnnouncement: string, 
   initialThemes: ThemeItem[], 
   initialGlobalSettings: any,
-  initialHistory: HistoryItem[]
+  initialHistory: HistoryItem[],
+  initialPosts?: PostItem[] // ✨ 类型定义
 }) {
+  // 状态管理
   const [activeTab, setActiveTab] = useState<'links' | 'categories' | 'themes' | 'announcement' | 'design' | 'blog'>('links')
   const [categories, setCategories] = useState<CategoryItem[]>([])
   const [announcement, setAnnouncement] = useState(initialAnnouncement)
   
-  // 默认值兜底
+  // 博客编辑状态
+  const [editingPost, setEditingPost] = useState<PostItem | null>(null)
+  
+  // 新建文章的空模板
+  const newPostTemplate: PostItem = { 
+    id: 0, 
+    title: '', 
+    content: '', 
+    summary: '', 
+    published: true, 
+    createdAt: new Date() 
+  }
+
+  // 全局设置默认值兜底
   const defaultUISettings = {
     themeMode: 'slideshow',
     wallpaperSource: 'smart',
@@ -51,7 +63,7 @@ export default function AdminClient({
     uiBlur: 2,
     slideshowInterval: 30,
     slideshowEffect: 'fade',
-    clickEffect: 'ripple', // ✨ 默认点击特效
+    clickEffect: 'ripple',
     descColor: '#94a3b8',
     noise: false,
     glow: false,
@@ -60,16 +72,19 @@ export default function AdminClient({
   }
   const [globalSettings, setGlobalSettings] = useState(defaultUISettings)
 
+  // 搜索与编辑状态
   const [searchQuery, setSearchQuery] = useState('')
   const [editingLink, setEditingLink] = useState<LinkItem | null>(null)
   const [editingTheme, setEditingTheme] = useState<ThemeItem | null>(null)
   const [filterCategory, setFilterCategory] = useState('All')
   
+  // 拖拽排序状态
   const [draggingItem, setDraggingItem] = useState<number | null>(null)
   const dragOverItem = useRef<number | null>(null)
   
   const [showHistory, setShowHistory] = useState(false)
 
+  // 初始化分类
   useEffect(() => {
     async function init() {
       await autoSyncCategories() 
@@ -79,6 +94,7 @@ export default function AdminClient({
     init()
   }, [])
 
+  // --- 拖拽处理逻辑 ---
   const handleDragStart = (e: React.DragEvent, position: number) => { setDraggingItem(position); dragOverItem.current = position }
   const handleDragEnter = (e: React.DragEvent, position: number) => { dragOverItem.current = position }
   const handleDragEnd = async () => {
@@ -92,6 +108,7 @@ export default function AdminClient({
     await reorderCategories(updates.map(c => ({ id: c.id, sortOrder: c.sortOrder })));
   }
 
+  // --- 数据过滤 ---
   const categoryOptions = Array.from(new Set([...initialLinks.map(l => l.category), ...categories.map(c => c.name)]))
   const filteredLinks = initialLinks.filter(link => {
     const q = searchQuery.toLowerCase()
@@ -100,11 +117,19 @@ export default function AdminClient({
     return matchesSearch && matchesCategory
   })
 
+  // --- 各种 Action 处理 ---
   async function handleAdd(formData: FormData) { await addLink(formData); const form = document.getElementById('add-form') as HTMLFormElement; if (form) form.reset(); const data = await getCategories(); setCategories(data); }
   async function handleUpdate(formData: FormData) { await updateLink(formData); setEditingLink(null); const data = await getCategories(); setCategories(data); }
   async function handleUpdateAnnouncement(formData: FormData) { await updateAnnouncement(formData); alert('公告已发布！') }
   async function handleUpdateTheme(formData: FormData) { await updateSmartWallpaper(formData); setEditingTheme(null) }
   
+  // ✨ 新增：更新博客文章处理
+  async function handleUpdatePost(formData: FormData) {
+     await updatePost(formData)
+     setEditingPost(null)
+     alert('文章已更新！')
+  }
+
   const updateGlobalState = (key: string, value: any) => {
     setGlobalSettings((prev: any) => ({ ...prev, [key]: value }))
   }
@@ -117,10 +142,14 @@ export default function AdminClient({
      alert('默认视觉风格已更新！');
   }
 
+  // 如果是博客管理，用超宽屏 (7xl)；如果是其他管理，用标准屏 (5xl)
+  const containerMaxWidth = activeTab === 'blog' ? 'max-w-7xl' : 'max-w-5xl'
+  
   return (
-    <div>
+    <div className={`${containerMaxWidth} mx-auto transition-all duration-300 ease-in-out`}>
       <style jsx global>{`input[type=range] { -webkit-appearance: none; background: transparent; } input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; height: 16px; width: 16px; border-radius: 50%; background: #6366f1; cursor: pointer; margin-top: -6px; box-shadow: 0 0 10px rgba(99,102,241,0.5); } input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 4px; cursor: pointer; background: #334155; border-radius: 2px; }`}</style>
       
+      {/* 顶部导航栏 */}
       <header className="flex flex-col md:flex-row md:justify-between md:items-center mb-8 border-b border-slate-800/60 pb-6 gap-4">
         <div><h1 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-sky-400 to-indigo-400">控制台</h1><p className="text-xs text-slate-500 mt-1">Admin Dashboard</p></div>
         
@@ -132,11 +161,11 @@ export default function AdminClient({
             <div className="w-px h-6 bg-slate-700 mx-1 self-center"></div>
             
             <button onClick={() => setActiveTab('announcement')} className={`px-4 py-2 text-sm rounded-md transition whitespace-nowrap ${activeTab === 'announcement' ? 'bg-indigo-600/20 text-indigo-300 shadow' : 'text-slate-500 hover:text-slate-300'}`}>📢 公告发布</button>
-            <button onClick={() => setActiveTab('design')} className={`px-4 py-2 text-sm rounded-md transition whitespace-nowrap ${activeTab === 'design' ? 'bg-pink-600/20 text-pink-300 shadow' : 'text-slate-500 hover:text-slate-300'}`}>🎨 初始参数</button>
+            <button onClick={() => setActiveTab('design')} className={`px-4 py-2 text-sm rounded-md transition whitespace-nowrap ${activeTab === 'design' ? 'bg-pink-600/20 text-pink-300 shadow' : 'text-slate-500 hover:text-slate-300'}`}>🎨 全局视觉</button>
             
-            {/* 在 "全局视觉" 按钮后面添加 */}
+            {/* ✨ 新增：写博客按钮 */}
             <div className="w-px h-6 bg-slate-700 mx-1 self-center"></div>
-            <button onClick={() => setActiveTab('blog')} className={`px-4 py-2 text-sm rounded-md transition whitespace-nowrap ${activeTab === 'blog' ? 'bg-emerald-600/20 text-emerald-300 shadow' : 'text-slate-500 hover:text-slate-300'}`}>📝 写博客</button>
+            <button onClick={() => setActiveTab('blog')} className={`px-4 py-2 text-sm rounded-md transition whitespace-nowrap ${activeTab === 'blog' ? 'bg-emerald-600/20 text-emerald-300 shadow' : 'text-slate-500 hover:text-slate-300'}`}>📝 博客管理</button>
         </div>
         
         <a href="/" className="text-sm bg-slate-800 hover:bg-slate-700 text-slate-300 px-4 py-2 rounded-lg border border-slate-700">← 前台</a>
@@ -263,7 +292,7 @@ export default function AdminClient({
         </div>
       )}
 
-      {/* ✨ Tab F: 全局视觉 (包含所有新控件) ✨ */}
+      {/* Tab F: 全局视觉 */}
       {activeTab === 'design' && (
         <div className="max-w-4xl mx-auto">
             <div className="bg-slate-900/50 border border-slate-800/60 rounded-2xl p-8 shadow-xl">
@@ -284,12 +313,10 @@ export default function AdminClient({
                         <div className="space-y-4">
                             <div><label className="text-xs text-slate-400 mb-2 block">默认背景模式</label><select name="themeMode" defaultValue={globalSettings.themeMode} onChange={(e) => updateGlobalState('themeMode', e.target.value)} className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-pink-500"><option value="default">纯色深蓝</option><option value="slideshow">动态轮播</option></select></div>
                             <div><label className="text-xs text-slate-400 mb-2 block">轮播切换动画</label><select name="slideshowEffect" defaultValue={globalSettings.slideshowEffect} onChange={(e) => updateGlobalState('slideshowEffect', e.target.value)} className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-pink-500"><option value="fade">柔和淡入</option><option value="zoom">呼吸缩放</option><option value="pan">全景运镜</option></select></div>
-                            {/* ✨ 新增：轮播间隔时间 ✨ */}
                             <div>
                                 <div className="flex justify-between text-xs mb-2 text-slate-300"><span>轮播间隔时间</span><span>{globalSettings.slideshowInterval}秒</span></div>
                                 <input type="range" name="slideshowInterval" min="5" max="300" step="5" defaultValue={globalSettings.slideshowInterval} onChange={(e) => updateGlobalState('slideshowInterval', e.target.value)} className="w-full h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-pink-500" />
                             </div>
-                            {/* ✨ 新增：鼠标点击特效 ✨ */}
                             <div>
                                 <label className="text-xs text-slate-400 mb-2 block">鼠标点击特效</label>
                                 <select name="clickEffect" defaultValue={globalSettings.clickEffect} onChange={(e) => updateGlobalState('clickEffect', e.target.value)} className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-pink-500">
@@ -307,7 +334,6 @@ export default function AdminClient({
                             </div>
                         </div>
                     </div>
-                    {/* ✨ 新增：描述文本颜色 ✨ */}
                     <div className="flex items-center justify-between p-3 rounded-xl bg-slate-950/30 border border-slate-800/50 mt-4">
                         <span className="text-sm font-medium text-slate-300">描述文字颜色</span>
                         <div className="flex items-center gap-3">
@@ -322,28 +348,142 @@ export default function AdminClient({
         </div>
       )}
 
-      {/* Tab: 博客发布 (简易版) */}
+      {/* ✨ Tab G: 博客管理 (沉浸式卡片 + 全屏编辑) ✨ */}
       {activeTab === 'blog' && (
-        <div className="max-w-4xl mx-auto space-y-8">
-          <div className="bg-slate-900/50 border border-slate-800/60 rounded-2xl p-8 shadow-xl">
-            <h2 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
-              <svg className="w-6 h-6 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
-              发布新文章
-            </h2>
-            <form action={createPost} className="space-y-5">
-              <input name="title" placeholder="文章标题" required className="w-full bg-slate-950 border border-slate-700 rounded-xl p-4 text-slate-200 focus:border-emerald-500 focus:outline-none" />
-              <input name="summary" placeholder="简短摘要 (选填，不填则自动截取正文)" className="w-full bg-slate-950 border border-slate-700 rounded-xl p-4 text-slate-200 focus:border-emerald-500 focus:outline-none" />
-              <textarea name="content" placeholder="文章正文 (支持 Markdown 语法)..." required className="w-full h-80 bg-slate-950 border border-slate-700 rounded-xl p-4 text-slate-200 font-mono text-sm focus:border-emerald-500 focus:outline-none resize-none" />
-              
-              <div className="flex items-center justify-between pt-2">
-                 <label className="flex items-center gap-2 text-sm text-slate-400 cursor-pointer">
-                    <input type="checkbox" name="published" className="w-4 h-4 accent-emerald-500 rounded" defaultChecked />
-                    立即发布
-                 </label>
-                 <button type="submit" className="bg-emerald-600 hover:bg-emerald-500 text-white px-8 py-2.5 rounded-xl font-medium shadow-lg shadow-emerald-500/20 transition-all transform active:scale-95">发布文章</button>
-              </div>
-            </form>
+        <div className="max-w-6xl mx-auto">
+          {/* 1. 顶部栏：标题 + 新建按钮 */}
+          <div className="flex justify-between items-center mb-8">
+             <div>
+                <h2 className="text-2xl font-bold text-white tracking-tight">文章管理</h2>
+                <p className="text-sm text-slate-500 mt-1">共 {initialPosts.length} 篇文章</p>
+             </div>
+             <button 
+                onClick={() => setEditingPost(newPostTemplate)}
+                className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white px-5 py-2.5 rounded-xl font-medium shadow-lg shadow-emerald-500/20 transition-all transform hover:scale-105 active:scale-95"
+             >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"></path></svg>
+                写博客
+             </button>
           </div>
+
+          {/* 2. 文章卡片网格 (列表视图) */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {initialPosts.map(post => (
+              <div key={post.id} className="group relative bg-slate-900/50 border border-slate-800 hover:border-emerald-500/50 rounded-2xl p-6 transition-all duration-300 hover:shadow-2xl hover:shadow-emerald-900/10 hover:-translate-y-1">
+                 {/* 状态标签 */}
+                 <div className="absolute top-4 right-4">
+                    <span className={`text-[10px] px-2 py-1 rounded-full font-bold border ${post.published ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20'}`}>
+                       {post.published ? 'PUBLISHED' : 'DRAFT'}
+                    </span>
+                 </div>
+
+                 <div className="mb-4">
+                    <h3 className="text-lg font-bold text-slate-100 mb-2 line-clamp-1 group-hover:text-emerald-400 transition-colors">{post.title}</h3>
+                    <div className="flex items-center gap-2 text-xs text-slate-500 font-mono">
+                       <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                       {new Date(post.createdAt).toLocaleDateString()}
+                    </div>
+                 </div>
+                 
+                 <p className="text-sm text-slate-400 leading-relaxed line-clamp-3 mb-6 h-[4.5em]">
+                    {post.summary || post.content.slice(0, 100) || '暂无摘要...'}
+                 </p>
+
+                 <div className="flex items-center gap-3 mt-auto pt-4 border-t border-slate-800/50">
+                    <button onClick={() => setEditingPost(post)} className="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm py-2 rounded-lg transition">
+                       编辑
+                    </button>
+                    <form action={deletePost} className="flex-1">
+                       <input type="hidden" name="id" value={post.id} />
+                       <button onClick={(e) => !confirm('确定删除吗？') && e.preventDefault()} className="w-full bg-slate-800 hover:bg-red-900/30 text-slate-300 hover:text-red-400 text-sm py-2 rounded-lg transition">
+                          删除
+                       </button>
+                    </form>
+                 </div>
+              </div>
+            ))}
+            
+            {/* 空状态占位符 */}
+            {initialPosts.length === 0 && (
+                <div className="col-span-full py-20 text-center border-2 border-dashed border-slate-800 rounded-3xl bg-slate-900/20">
+                   <p className="text-slate-500">还没有文章，开始创作吧 ✨</p>
+                </div>
+            )}
+          </div>
+
+          {/* 3. 全屏编辑器模态框 (Overlay) */}
+          {editingPost && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4 md:p-8 animate-in fade-in duration-200">
+               <div className="w-full max-w-5xl h-full max-h-[90vh] bg-[#0f172a] border border-slate-700 rounded-3xl shadow-2xl overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
+                  
+                  {/* 编辑器顶部栏 */}
+                  <div className="flex justify-between items-center px-6 py-4 border-b border-slate-800 bg-slate-900/50">
+                     <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                        {editingPost.id === 0 ? '📝 新建文章' : '✏️ 编辑文章'}
+                     </h3>
+                     <button onClick={() => setEditingPost(null)} className="p-2 hover:bg-slate-800 rounded-full text-slate-400 hover:text-white transition">
+                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                     </button>
+                  </div>
+
+                  {/* 编辑器表单区域 */}
+                  <form action={editingPost.id === 0 ? createPost : handleUpdatePost} className="flex-1 flex flex-col overflow-hidden">
+                     {editingPost.id !== 0 && <input type="hidden" name="id" value={editingPost.id} />}
+                     
+                     <div className="flex-1 overflow-y-auto custom-scrollbar p-6 md:p-8 space-y-6">
+                        {/* 标题输入 */}
+                        <input 
+                           name="title" 
+                           defaultValue={editingPost.title} 
+                           placeholder="在此输入标题..." 
+                           required 
+                           className="w-full bg-transparent border-none text-3xl md:text-4xl font-bold text-white placeholder-slate-600 focus:ring-0 px-0" 
+                        />
+                        
+                        {/* 摘要输入 */}
+                        <div className="bg-slate-900/50 p-4 rounded-xl border border-slate-800/50">
+                           <input 
+                              name="summary" 
+                              defaultValue={editingPost.summary || ''} 
+                              placeholder="一句话摘要 (选填)..." 
+                              className="w-full bg-transparent border-none text-sm text-slate-400 focus:ring-0 px-0" 
+                           />
+                        </div>
+
+                        {/* 正文输入 (占据剩余空间) */}
+                        <textarea 
+                           name="content" 
+                           defaultValue={editingPost.content} 
+                           placeholder="开始你的创作 (支持 Markdown)..." 
+                           required 
+                           className="w-full min-h-[400px] h-full bg-transparent border-none text-slate-300 font-mono text-base focus:ring-0 px-0 resize-none leading-relaxed" 
+                        />
+                     </div>
+
+                     {/* 底部工具栏 */}
+                     <div className="px-6 py-4 border-t border-slate-800 bg-slate-900/50 flex justify-between items-center">
+                        <label className="flex items-center gap-2 text-sm text-slate-400 cursor-pointer hover:text-white transition">
+                           <input 
+                              type="checkbox" 
+                              name="published" 
+                              className="w-4 h-4 accent-emerald-500 rounded border-slate-700 bg-slate-800" 
+                              defaultChecked={editingPost.published} 
+                           />
+                           是否公开发布
+                        </label>
+                        <div className="flex gap-3">
+                           <button type="button" onClick={() => setEditingPost(null)} className="px-5 py-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition">
+                              放弃
+                           </button>
+                           <button type="submit" className="px-8 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-medium shadow-lg shadow-emerald-500/20 transition-all active:scale-95">
+                              {editingPost.id === 0 ? '发布' : '保存更新'}
+                           </button>
+                        </div>
+                     </div>
+                  </form>
+               </div>
+            </div>
+          )}
         </div>
       )}
 

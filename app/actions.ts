@@ -257,3 +257,34 @@ export async function deletePost(formData: FormData) {
   revalidatePath('/blog')
   revalidatePath('/admin')
 }
+
+// ✨ 新增：获取所有文章 (后台管理用，包含草稿)
+export async function getAllPosts() {
+  return await prisma.post.findMany({
+    orderBy: { createdAt: 'desc' }
+  })
+}
+
+// ✨ 新增：更新文章
+export async function updatePost(formData: FormData) {
+  const id = formData.get('id') as string
+  const title = formData.get('title') as string
+  const content = formData.get('content') as string
+  const summary = formData.get('summary') as string
+  const published = formData.get('published') === 'on'
+
+  if (!id || !title || !content) return
+
+  await prisma.post.update({
+    where: { id: parseInt(id) },
+    data: { title, content, summary, published }
+  })
+
+  revalidatePath('/blog')
+  revalidatePath('/blog/' + id) // 更新详情页缓存
+  revalidatePath('/admin')
+}
+
+export async function getLinkData() {
+  return await prisma.link.findMany({ orderBy: { createdAt: 'desc' } })
+}
