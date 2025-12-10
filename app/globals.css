@@ -26,3 +26,33 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* ✨✨✨ 自定义代码块滚动条 ✨✨✨ */
+.code-scrollbar {
+  /* Firefox 适配 */
+  scrollbar-width: thin;
+  scrollbar-color: #475569 transparent; /* 滚动条颜色 轨道颜色 */
+}
+
+/* Chrome, Edge, Safari 适配 */
+.code-scrollbar::-webkit-scrollbar {
+  height: 6px; /* 横向滚动条的高度 */
+  width: 6px;  /* 纵向滚动条的宽度 */
+}
+
+.code-scrollbar::-webkit-scrollbar-track {
+  background: transparent; /* 轨道透明 */
+}
+
+.code-scrollbar::-webkit-scrollbar-thumb {
+  background-color: #334155; /* 滚动条滑块颜色 (slate-700) */
+  border-radius: 3px;        /* 圆角 */
+}
+
+.code-scrollbar::-webkit-scrollbar-thumb:hover {
+  background-color: #475569; /* 鼠标悬停变亮 (slate-600) */
+}
+
+.code-scrollbar::-webkit-scrollbar-corner {
+  background: transparent;
+}
