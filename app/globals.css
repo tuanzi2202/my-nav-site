@@ -59,12 +59,11 @@ body {
 
 /* ✨✨✨ 新增：便利贴摆动动画 ✨✨✨ */
 @keyframes note-sway {
-  0%, 100% { transform: rotate(-2deg); }
-  50% { transform: rotate(2deg); }
+  0%, 100% { transform: rotate(-0.5deg); }
+  50% { transform: rotate(0.5deg); }
 }
 
 .animate-note-sway {
-  /* 默认时长，会被内联样式覆盖 */
-  animation: note-sway 3s ease-in-out infinite;
-  transform-origin: top center; /* 关键：确保绕着顶部的钉子摆动 */
+  animation: note-sway 6s ease-in-out infinite; /* 默认时长拉长到 6s */
+  transform-origin: top center;
 }

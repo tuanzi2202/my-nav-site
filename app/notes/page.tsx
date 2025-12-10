@@ -33,10 +33,10 @@ export default async function NotesPage() {
         <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-12 auto-rows-max px-4">
           {notes.map((note) => {
             // ✨ 随机生成动画参数，打破同步感
-            // 时长：3s ~ 6s 之间
-            const duration = 3 + Math.random() * 3
+            // 时长：6s ~ 12s 之间
+            const duration = 6 + Math.random() * 6
             // 延迟：0s ~ 2s 之间 (负数延迟可以让动画直接处于中间状态，避免同时开始)
-            const delay = -Math.random() * 2 
+            const delay = -Math.random() * 5 
             
             return (
               <div 
