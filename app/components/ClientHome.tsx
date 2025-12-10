@@ -338,8 +338,11 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
         label: '博客', 
         action: () => router.push('/blog') // ✨ 核心修改：添加跳转逻辑
     },
+    { 
+      label: '便利贴', 
+      action: () => router.push('/notes') 
+    },
     { label: '看板娘', action: () => {} },
-    { label: '其他', action: () => {} },
     { label: '其他', action: () => {} },
     { label: '其他', action: () => {} },
   ]

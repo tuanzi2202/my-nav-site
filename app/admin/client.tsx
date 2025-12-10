@@ -8,8 +8,10 @@ import {
   updateAnnouncement, 
   addSmartWallpaper, deleteSmartWallpaper, updateSmartWallpaper, 
   updateGlobalUISettings,
-  // ✨ 新增：博客相关接口
-  createPost, updatePost, deletePost
+  // 博客相关接口
+  createPost, updatePost, deletePost,
+  // ✨ 便利贴相关接口
+  createNote, updateNote, deleteNote
 } from '../actions'
 
 // --- 类型定义 ---
@@ -17,19 +19,20 @@ type LinkItem = { id: number; title: string; url: string; description: string | 
 type CategoryItem = { id: number; name: string; sortOrder: number }
 type ThemeItem = { id: number; name: string; morning: string; afternoon: string; night: string }
 type HistoryItem = { id: number; content: string; createdAt: Date }
-// ✨ 新增：文章类型
 type PostItem = { 
   id: number; 
   title: string; 
   content: string; 
   summary: string | null; 
   published: boolean; 
-  isMarkdown: boolean; // ✨ 新增类型
+  isMarkdown: boolean; 
   backgroundImage: string | null;
   contentBgColor: string;
   contentBgOpacity: number;
   createdAt: Date
 }
+// ✨ 新增：便利贴类型
+type NoteItem = { id: number; content: string; color: string; createdAt: Date }
 
 export default function AdminClient({ 
   initialLinks, 
@@ -37,56 +40,40 @@ export default function AdminClient({
   initialThemes, 
   initialGlobalSettings, 
   initialHistory,
-  initialPosts = [] // ✨ 新增：接收文章列表
+  initialPosts = [],
+  initialNotes = [] // ✨ 新增：接收便利贴列表
 }: { 
   initialLinks: LinkItem[], 
   initialAnnouncement: string, 
   initialThemes: ThemeItem[], 
   initialGlobalSettings: any,
   initialHistory: HistoryItem[],
-  initialPosts?: PostItem[] // ✨ 类型定义
+  initialPosts?: PostItem[],
+  initialNotes?: NoteItem[] // ✨ 类型定义
 }) {
   // 状态管理
-  const [activeTab, setActiveTab] = useState<'links' | 'categories' | 'themes' | 'announcement' | 'design' | 'blog'>('links')
+  const [activeTab, setActiveTab] = useState<'links' | 'categories' | 'themes' | 'announcement' | 'design' | 'blog' | 'notes'>('links')
   const [categories, setCategories] = useState<CategoryItem[]>([])
   const [announcement, setAnnouncement] = useState(initialAnnouncement)
   
   // 博客编辑状态
   const [editingPost, setEditingPost] = useState<PostItem | null>(null)
-  
-  // 控制当前编辑模式 (初始化时读取文章的配置，如果是新建则默认为 true)
   const [useMarkdown, setUseMarkdown] = useState(true)
   
+  // ✨ 便利贴编辑状态
+  const [editingNote, setEditingNote] = useState<NoteItem | null>(null)
+
   // 新建文章的空模板
   const newPostTemplate: PostItem = { 
-    id: 0, 
-    title: '', 
-    content: '', 
-    summary: '', 
-    published: true, 
-    isMarkdown: true,
-    // ✨ 默认外观
-    backgroundImage: '',
-    contentBgColor: '#0f172a',
-    contentBgOpacity: 0.8,
-    createdAt: new Date() 
+    id: 0, title: '', content: '', summary: '', published: true, isMarkdown: true,
+    backgroundImage: '', contentBgColor: '#0f172a', contentBgOpacity: 0.8, createdAt: new Date() 
   }
 
   // 全局设置默认值兜底
   const defaultUISettings = {
-    themeMode: 'slideshow',
-    wallpaperSource: 'smart',
-    bgBlur: 0,
-    cardOpacity: 0.1,
-    boardOpacity: 0.1,
-    uiBlur: 2,
-    slideshowInterval: 30,
-    slideshowEffect: 'fade',
-    clickEffect: 'ripple',
-    descColor: '#94a3b8',
-    noise: false,
-    glow: false,
-    tilt: false,
+    themeMode: 'slideshow', wallpaperSource: 'smart', bgBlur: 0, cardOpacity: 0.1, boardOpacity: 0.1, uiBlur: 2,
+    slideshowInterval: 30, slideshowEffect: 'fade', clickEffect: 'ripple', descColor: '#94a3b8',
+    noise: false, glow: false, tilt: false,
     ...initialGlobalSettings
   }
   const [globalSettings, setGlobalSettings] = useState(defaultUISettings)
@@ -106,7 +93,6 @@ export default function AdminClient({
   // 当点击“编辑”或“新建”时，同步状态
   useEffect(() => {
     if (editingPost) {
-      // 如果是旧文章没有 isMarkdown 字段，默认为 true
       setUseMarkdown(editingPost.isMarkdown ?? true)
     }
   }, [editingPost])
@@ -149,12 +135,12 @@ export default function AdminClient({
   async function handleUpdate(formData: FormData) { await updateLink(formData); setEditingLink(null); const data = await getCategories(); setCategories(data); }
   async function handleUpdateAnnouncement(formData: FormData) { await updateAnnouncement(formData); alert('公告已发布！') }
   async function handleUpdateTheme(formData: FormData) { await updateSmartWallpaper(formData); setEditingTheme(null) }
-  
-  // ✨ 新增：更新博客文章处理
-  async function handleUpdatePost(formData: FormData) {
-     await updatePost(formData)
-     setEditingPost(null)
-     alert('文章已更新！')
+  async function handleUpdatePost(formData: FormData) { await updatePost(formData); setEditingPost(null); alert('文章已更新！') }
+
+  // ✨ 新增：更新便利贴处理
+  async function handleUpdateNote(formData: FormData) {
+    await updateNote(formData)
+    setEditingNote(null)
   }
 
   const updateGlobalState = (key: string, value: any) => {
@@ -169,8 +155,8 @@ export default function AdminClient({
      alert('默认视觉风格已更新！');
   }
 
-  // 如果是博客管理，用超宽屏 (7xl)；如果是其他管理，用标准屏 (5xl)
-  const containerMaxWidth = activeTab === 'blog' ? 'max-w-7xl' : 'max-w-5xl'
+  // 如果是博客或便利贴管理，用超宽屏 (7xl)
+  const containerMaxWidth = (activeTab === 'blog' || activeTab === 'notes') ? 'max-w-7xl' : 'max-w-5xl'
 
   return (
     <div className={`${containerMaxWidth} mx-auto transition-all duration-300 ease-in-out`}>
@@ -190,9 +176,10 @@ export default function AdminClient({
             <button onClick={() => setActiveTab('announcement')} className={`px-4 py-2 text-sm rounded-md transition whitespace-nowrap ${activeTab === 'announcement' ? 'bg-indigo-600/20 text-indigo-300 shadow' : 'text-slate-500 hover:text-slate-300'}`}>📢 公告发布</button>
             <button onClick={() => setActiveTab('design')} className={`px-4 py-2 text-sm rounded-md transition whitespace-nowrap ${activeTab === 'design' ? 'bg-pink-600/20 text-pink-300 shadow' : 'text-slate-500 hover:text-slate-300'}`}>🎨 全局视觉</button>
             
-            {/* ✨ 新增：写博客按钮 */}
             <div className="w-px h-6 bg-slate-700 mx-1 self-center"></div>
             <button onClick={() => setActiveTab('blog')} className={`px-4 py-2 text-sm rounded-md transition whitespace-nowrap ${activeTab === 'blog' ? 'bg-emerald-600/20 text-emerald-300 shadow' : 'text-slate-500 hover:text-slate-300'}`}>📝 博客管理</button>
+            {/* ✨ 新增：便利贴按钮 */}
+            <button onClick={() => setActiveTab('notes')} className={`px-4 py-2 text-sm rounded-md transition whitespace-nowrap ${activeTab === 'notes' ? 'bg-yellow-600/20 text-yellow-300 shadow' : 'text-slate-500 hover:text-slate-300'}`}>📌 便利贴墙</button>
         </div>
         
         <a href="/" className="text-sm bg-slate-800 hover:bg-slate-700 text-slate-300 px-4 py-2 rounded-lg border border-slate-700">← 前台</a>
@@ -375,7 +362,7 @@ export default function AdminClient({
         </div>
       )}
 
-      {/* ✨ Tab G: 博客管理 (沉浸式卡片 + 全屏编辑) ✨ */}
+      {/* Tab G: 博客管理 */}
       {activeTab === 'blog' && (
         <div className="max-w-6xl mx-auto">
           {/* 1. 顶部栏：标题 + 新建按钮 */}
@@ -601,6 +588,78 @@ export default function AdminClient({
         </div>
       )}
 
+      {/* ✨ Tab H: 便利贴管理 (Sticky Wall) ✨ */}
+      {activeTab === 'notes' && (
+        <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8">
+           {/* 左侧：新建/编辑表单 */}
+           <div className="lg:col-span-1">
+              <div className="bg-slate-900/50 border border-slate-800/60 rounded-2xl p-6 sticky top-6">
+                 <h2 className="text-lg font-bold text-white mb-4">
+                    {editingNote ? '编辑便利贴' : '贴一张新的'}
+                 </h2>
+                 <form action={editingNote ? handleUpdateNote : createNote} className="space-y-4">
+                    {editingNote && <input type="hidden" name="id" value={editingNote.id} />}
+                    
+                    <div>
+                       <label className="text-xs text-slate-500 mb-1 block">颜色风格</label>
+                       <div className="flex gap-2">
+                          {['yellow', 'pink', 'blue', 'green', 'purple'].map(color => (
+                             <label key={color} className="cursor-pointer">
+                                <input type="radio" name="color" value={color} defaultChecked={editingNote?.color === color || (!editingNote && color === 'yellow')} className="peer hidden" />
+                                <div className={`w-6 h-6 rounded-full border-2 border-transparent peer-checked:border-white ring-2 ring-transparent peer-checked:ring-${color}-400 bg-${color}-400 transition-all`}></div>
+                             </label>
+                          ))}
+                       </div>
+                    </div>
+
+                    <textarea 
+                       name="content" 
+                       defaultValue={editingNote?.content || ''}
+                       placeholder="写点什么..." 
+                       required 
+                       className="w-full bg-slate-800 border border-slate-700 rounded-xl p-4 text-slate-200 h-40 resize-none focus:outline-none focus:border-yellow-500 focus:ring-1 focus:ring-yellow-500/50" 
+                    />
+                    
+                    <div className="flex gap-2">
+                       {editingNote && (
+                          <button type="button" onClick={() => setEditingNote(null)} className="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-300 py-2 rounded-xl transition">取消</button>
+                       )}
+                       <button type="submit" className="flex-1 bg-yellow-600 hover:bg-yellow-500 text-white py-2 rounded-xl font-medium shadow-lg shadow-yellow-500/20">
+                          {editingNote ? '保存修改' : '贴上去'}
+                       </button>
+                    </div>
+                 </form>
+              </div>
+           </div>
+
+           {/* 右侧：列表展示 */}
+           <div className="lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {initialNotes && initialNotes.map(note => (
+                 <div key={note.id} className="relative group bg-slate-900 border border-slate-800 rounded-xl p-4 hover:border-slate-600 transition-all">
+                    {/* 色块标识 */}
+                    <div className={`absolute top-4 right-4 w-3 h-3 rounded-full bg-${note.color}-400`}></div>
+                    
+                    <p className="text-slate-300 whitespace-pre-wrap mb-4 text-sm leading-relaxed pr-6">{note.content}</p>
+                    
+                    <div className="flex justify-between items-center pt-4 border-t border-slate-800">
+                       <span className="text-[10px] text-slate-500 font-mono">{new Date(note.createdAt).toLocaleDateString()}</span>
+                       <div className="flex gap-3">
+                          <button onClick={() => setEditingNote(note)} className="text-xs text-sky-400 hover:text-sky-300">编辑</button>
+                          <form action={deleteNote}>
+                             <input type="hidden" name="id" value={note.id} />
+                             <button className="text-xs text-red-400 hover:text-red-300">撕掉</button>
+                          </form>
+                       </div>
+                    </div>
+                 </div>
+              ))}
+              {(!initialNotes || initialNotes.length === 0) && (
+                 <div className="col-span-full py-12 text-center text-slate-500 border border-dashed border-slate-800 rounded-xl">暂无便利贴</div>
+              )}
+           </div>
+        </div>
+      )}
+
       {/* 编辑弹窗 (Link) */}
       {editingLink && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
@@ -646,7 +705,7 @@ export default function AdminClient({
   )
 }
 
-// ✨✨✨ 新增：Markdown 编辑器组件 ✨✨✨
+// ✨✨✨ 新增：Markdown 编辑器组件 (保持原样) ✨✨✨
 function MarkdownEditor({ name, defaultValue, className, required }: { name: string, defaultValue?: string, className?: string, required?: boolean }) {
   const [content, setContent] = useState(defaultValue || '')
   const textareaRef = useRef<HTMLTextAreaElement>(null)

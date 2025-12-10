@@ -64,3 +64,12 @@ model Post {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
+
+// 便利贴模型
+model Note {
+  id        Int      @id @default(autoincrement())
+  content   String
+  color     String   @default("yellow") // yellow, pink, blue, green
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

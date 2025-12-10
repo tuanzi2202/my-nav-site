@@ -296,3 +296,46 @@ export async function updatePost(formData: FormData) {
 export async function getLinkData() {
   return await prisma.link.findMany({ orderBy: { createdAt: 'desc' } })
 }
+
+// --- 便利贴管理 ---
+export async function getNotes() {
+  return await prisma.note.findMany({ orderBy: { createdAt: 'desc' } })
+}
+
+export async function createNote(formData: FormData) {
+  const content = formData.get('content') as string
+  const color = formData.get('color') as string || 'yellow'
+
+  if (!content) return
+
+  await prisma.note.create({
+    data: { content, color }
+  })
+  
+  revalidatePath('/notes')
+  revalidatePath('/admin')
+}
+
+export async function updateNote(formData: FormData) {
+  const id = formData.get('id') as string
+  const content = formData.get('content') as string
+  const color = formData.get('color') as string
+
+  if (!id || !content) return
+
+  await prisma.note.update({
+    where: { id: parseInt(id) },
+    data: { content, color }
+  })
+
+  revalidatePath('/notes')
+  revalidatePath('/admin')
+}
+
+export async function deleteNote(formData: FormData) {
+  const id = formData.get('id') as string
+  if (!id) return
+  await prisma.note.delete({ where: { id: parseInt(id) } })
+  revalidatePath('/notes')
+  revalidatePath('/admin')
+}
