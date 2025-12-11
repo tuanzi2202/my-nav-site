@@ -98,23 +98,25 @@ body {
   left: auto !important;
   right: 0 !important;
   bottom: 0 !important;
-  z-index: 100 !important; /* 确保不被某些底层元素遮挡，但也不要遮挡模态框 */
+  z-index: 100 !important;
+  
+  /* 👇👇👇 新增：调整大小 👇👇👇 */
+  /* scale(0.8) 表示缩小到 80%，你可以根据需要改为 0.5 到 1.5 之间的数值 */
+  transform: scale(0.8) !important;
+  
+  /* 👇👇👇 新增：设置缩放基点 👇👇👇 */
+  /* 确保缩放后仍然紧贴右下角，不会飘到屏幕中间 */
+  transform-origin: bottom right !important; 
 }
 
-/* 修正工具栏和对话框的位置，使其适应右侧布局 */
+/* 隐藏看板娘上方的对话框 */
 #waifu-tips {
-  width: 250px !important;
-  min-height: 70px !important;
-  top: -60px !important; /* 调整对话框位置 */
-  margin: 0 !important;
-  right: 20px !important; /* 对齐右侧 */
-  left: auto !important;
+  display: none !important;
 }
 
+/* 隐藏看板娘左侧的工具栏 */
 #waifu-tool {
-  right: 20px !important;
-  left: auto !important;
-  top: 0 !important; /* 调整工具栏位置 */
+  display: none !important;
 }
 
 /* 隐藏状态下的切换按钮 */
