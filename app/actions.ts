@@ -331,13 +331,20 @@ export async function reorderNotes(items: { id: number; sortOrder: number }[]) {
 }
 
 // 批量更新位置 (拖拽结束时调用)
-export async function updateNotePosition(id: number, x: number, y: number) {
+export async function updateNotePosition(id: number, x: number, y: number, sortOrder?: number) {
+  const data: any = { x, y }
+  
+  // 如果传了层级，也一起保存
+  if (sortOrder !== undefined) {
+    data.sortOrder = sortOrder
+  }
+
   await prisma.note.update({
     where: { id },
-    data: { x, y }
+    data
   })
-  // 注意：这里不调用 revalidatePath，由前端乐观更新保持流畅，
-  // 只有在刷新页面时才重新获取最新位置
+  
+  // 这里不需要 revalidatePath，依靠前端乐观更新即可
 }
 
 export async function createNote(formData: FormData) {

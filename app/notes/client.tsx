@@ -71,7 +71,8 @@ export default function NotesWallClient({ initialNotes }: { initialNotes: NoteIt
 
       // 3. 后台异步保存位置
       if (note) {
-          await updateNotePosition(currentId, note.x, note.y)
+        // ✨ 修改点：传入 note.sortOrder (这是在 MouseDown 时已经更新过的最大值)
+        await updateNotePosition(currentId, note.x, note.y, note.sortOrder)
       }
     }
   }
