@@ -342,7 +342,19 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
       label: '便利贴', 
       action: () => router.push('/notes') 
     },
-    { label: '看板娘', action: () => {} },
+    { 
+      label: '看板娘', 
+      action: () => {
+        // 尝试恢复看板娘
+        localStorage.removeItem('waifu-display'); // 清除隐藏标记
+        const waifu = document.getElementById('waifu');
+        if (waifu) {
+          waifu.style.display = 'block';
+          waifu.style.bottom = '0';
+          // 也可以重新初始化，但简单的显隐切换通常足够
+        }
+      } 
+    },
     { label: '其他', action: () => {} },
     { label: '其他', action: () => {} },
   ]

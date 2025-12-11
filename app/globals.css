@@ -91,3 +91,43 @@ body {
 .note-scrollbar::-webkit-scrollbar-thumb:hover {
   background-color: rgba(0, 0, 0, 0.25); /* 悬停时加深，提示可操作 */
 }
+
+/* ✨✨✨ Live2D 看板娘位置修正 ✨✨✨ */
+/* 必须使用 !important 覆盖 js 动态写入的内联样式 */
+#waifu {
+  left: auto !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  z-index: 100 !important; /* 确保不被某些底层元素遮挡，但也不要遮挡模态框 */
+}
+
+/* 修正工具栏和对话框的位置，使其适应右侧布局 */
+#waifu-tips {
+  width: 250px !important;
+  min-height: 70px !important;
+  top: -60px !important; /* 调整对话框位置 */
+  margin: 0 !important;
+  right: 20px !important; /* 对齐右侧 */
+  left: auto !important;
+}
+
+#waifu-tool {
+  right: 20px !important;
+  left: auto !important;
+  top: 0 !important; /* 调整工具栏位置 */
+}
+
+/* 隐藏状态下的切换按钮 */
+#waifu-toggle {
+  left: auto !important;
+  right: 30px !important;
+  bottom: 30px !important;
+  margin-left: 0 !important;
+}
+
+/* 移动端通常隐藏，以免遮挡内容 */
+@media (max-width: 768px) {
+  #waifu {
+    display: none !important;
+  }
+}
