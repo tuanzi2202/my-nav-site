@@ -65,6 +65,10 @@ export default function AdminClient({
     themeMode: 'slideshow', wallpaperSource: 'smart', bgBlur: 0, cardOpacity: 0.1, boardOpacity: 0.1, uiBlur: 2,
     slideshowInterval: 30, slideshowEffect: 'fade', clickEffect: 'ripple', descColor: '#94a3b8',
     noise: false, glow: false, tilt: false,
+    live2dModel: 'https://cdn.jsdelivr.net/gh/guansss/pixi-live2d-display/test/assets/haru/haru_greeter_t03.model3.json',
+    live2dScale: 0.12,
+    live2dX: 0,
+    live2dY: 0,
     ...initialGlobalSettings
   }
   const [globalSettings, setGlobalSettings] = useState(defaultUISettings)
@@ -330,6 +334,80 @@ export default function AdminClient({
                         <div className="flex items-center gap-3">
                             <span className="text-xs text-slate-500 font-mono">{globalSettings.descColor}</span>
                             <input type="color" name="descColor" defaultValue={globalSettings.descColor} onChange={(e) => updateGlobalState('descColor', e.target.value)} className="w-8 h-8 rounded cursor-pointer bg-transparent border-0 p-0" />
+                        </div>
+                    </div>
+
+                    {/* ✨✨✨ 新增：看板娘设置区块 ✨✨✨ */}
+                    <div className="pt-6 border-t border-slate-800">
+                        <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                            <span>👧 看板娘设置 (Live2D)</span>
+                        </h3>
+                        
+                        <div className="grid grid-cols-1 gap-6">
+                            {/* 模型 URL */}
+                            <div>
+                                <label className="block text-xs text-slate-400 mb-2">模型配置文件 (Model3 JSON URL)</label>
+                                <input 
+                                    name="live2dModel" 
+                                    defaultValue={globalSettings.live2dModel} 
+                                    onChange={(e) => updateGlobalState('live2dModel', e.target.value)}
+                                    placeholder="https://..."
+                                    className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-pink-500 font-mono"
+                                />
+                                <p className="text-[10px] text-slate-500 mt-1">
+                                    推荐使用 GitHub 或 CDN 链接。例如: <code>https://cdn.jsdelivr.net/gh/guansss/pixi-live2d-display/test/assets/haru/haru_greeter_t03.model3.json</code>
+                                </p>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                {/* 缩放 */}
+                                <div>
+                                    <div className="flex justify-between text-xs mb-2 text-slate-300">
+                                        <span>缩放比例 (Scale)</span>
+                                        <span className="font-mono text-pink-400">{Number(globalSettings.live2dScale).toFixed(2)}</span>
+                                    </div>
+                                    <input 
+                                        type="range" 
+                                        name="live2dScale" 
+                                        min="0.05" max="0.5" step="0.01" 
+                                        defaultValue={globalSettings.live2dScale} 
+                                        onChange={(e) => updateGlobalState('live2dScale', e.target.value)}
+                                        className="w-full h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-pink-500" 
+                                    />
+                                </div>
+
+                                {/* 水平偏移 */}
+                                <div>
+                                    <div className="flex justify-between text-xs mb-2 text-slate-300">
+                                        <span>水平偏移 (X Offset)</span>
+                                        <span className="font-mono text-pink-400">{globalSettings.live2dX}px</span>
+                                    </div>
+                                    <input 
+                                        type="range" 
+                                        name="live2dX" 
+                                        min="-100" max="100" step="5" 
+                                        defaultValue={globalSettings.live2dX} 
+                                        onChange={(e) => updateGlobalState('live2dX', e.target.value)}
+                                        className="w-full h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-pink-500" 
+                                    />
+                                </div>
+
+                                {/* 垂直偏移 */}
+                                <div>
+                                    <div className="flex justify-between text-xs mb-2 text-slate-300">
+                                        <span>垂直偏移 (Y Offset)</span>
+                                        <span className="font-mono text-pink-400">{globalSettings.live2dY}px</span>
+                                    </div>
+                                    <input 
+                                        type="range" 
+                                        name="live2dY" 
+                                        min="-100" max="200" step="5" 
+                                        defaultValue={globalSettings.live2dY} 
+                                        onChange={(e) => updateGlobalState('live2dY', e.target.value)}
+                                        className="w-full h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-pink-500" 
+                                    />
+                                </div>
+                            </div>
                         </div>
                     </div>
 
