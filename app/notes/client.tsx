@@ -1,4 +1,5 @@
 // app/notes/client.tsx
+
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
@@ -42,27 +43,27 @@ export default function NotesWallClient({ initialNotes }: { initialNotes: NoteIt
     else { setAuthError('密码错误') }
   }
 
-  // ✨ 修改点 1: 智能拖拽识别
+  // ✨ 核心逻辑：智能拖拽识别
   const handleMouseDown = (e: React.MouseEvent, note: NoteItem) => {
     if (!isAdmin) return
     
-    // 🛡️ 智能检测：如果点击的是滚动条区域，则不触发拖拽
+    // 🛡️ 1. 滚动条防误触检测
     const target = e.target as HTMLElement
-    // 检查是否点击了带滚动条的容器
+    // 检查是否点击了内容区域（带滚动条的 div）
     if (target.classList.contains('overflow-y-auto')) {
         const rect = target.getBoundingClientRect()
-        // 判断点击位置是否在元素最右侧 15px 内 (滚动条感应区)
-        // 即使滚动条只有4px宽，我们也给用户留出15px的容错空间
+        // 如果点击位置在元素最右侧 15px 范围内，视为点击滚动条 -> 不拖拽，允许滚动
         if (e.clientX >= rect.right - 15) {
-            return // 点击了滚动条 -> 允许原生滚动，不拖拽
+            return 
         }
     }
 
+    // 2. 正常启动拖拽
     e.stopPropagation()
     setDraggingId(note.id)
     dragOffset.current = { x: e.clientX - note.x, y: e.clientY - note.y }
     
-    // 视觉置顶
+    // 3. 视觉置顶 (更新本地 sortOrder)
     const maxZ = Math.max(...notes.map(n => n.sortOrder)) + 1
     setNotes(prev => prev.map(n => n.id === note.id ? { ...n, sortOrder: maxZ } : n))
   }
@@ -82,10 +83,11 @@ export default function NotesWallClient({ initialNotes }: { initialNotes: NoteIt
       const currentId = draggingId
       const note = notes.find(n => n.id === currentId)
       
-      setDraggingId(null) // 立即释放 UI
+      // 🚀 立即释放 UI 锁定，消除延迟感
+      setDraggingId(null)
 
       if (note) {
-          // 保存位置和层级
+          // 后台异步保存位置和层级
           await updateNotePosition(currentId, note.x, note.y, note.sortOrder)
       }
     }
@@ -128,32 +130,50 @@ export default function NotesWallClient({ initialNotes }: { initialNotes: NoteIt
             key={note.id}
             onMouseDown={(e) => handleMouseDown(e, note)}
             className={`
+              /* 1. 基础布局 */
               group absolute flex flex-col p-6 w-[280px] min-h-[200px] shadow-xl rounded-sm
               ${colorStyles[note.color] || colorStyles.yellow}
-              ${isAdmin ? 'cursor-grab active:cursor-grabbing hover:ring-2 ring-offset-2 ring-offset-[#0f172a]' : 'animate-note-sway hover:[animation-play-state:paused]'}
-              transition-shadow duration-200 select-none
+              
+              /* ✨✨✨ 修改点1：全员添加黑色边框 ✨✨✨ */
+              border border-black/50
+
+              /* 2. 交互模式 (区分对待) */
+              /* 管理员：可拖拽 */
+              /* 游客：仅摆动动画 */
+              ${isAdmin 
+                ? 'cursor-grab active:cursor-grabbing' 
+                : 'animate-note-sway hover:[animation-play-state:paused]'}
+              
+              /* 3. 视觉反馈 (✨✨✨ 修改点2：全员通用 悬停置顶 + 高亮 ✨✨✨) */
+              hover:!z-[100]
+              hover:ring-2 hover:ring-offset-2 hover:ring-offset-[#0f172a] 
+              hover:scale-[1.02] hover:shadow-2xl
+              
+              /* 4. 性能优化 (拖拽时禁用过渡) */
+              transition duration-200 select-none
+              ${draggingId === note.id ? 'duration-0 transition-none' : ''}
             `}
             style={{
                 left: note.x,
                 top: note.y,
                 zIndex: note.sortOrder,
+                // 游客增加随机摆动
                 animationDuration: !isAdmin ? `${6 + (note.id % 5)}s` : '0s',
                 animationDelay: !isAdmin ? `${-(note.id % 5)}s` : '0s',
-                transform: draggingId === note.id ? 'scale(1.05)' : 'scale(1)',
+                // 拖拽时放大，未拖拽时不设 transform 以免覆盖 hover:scale
+                transform: draggingId === note.id ? 'scale(1.05)' : undefined,
             }}
           >
+            {/* 顶部装饰钉子 */}
             <div className="absolute top-[-10px] left-1/2 -translate-x-1/2 w-4 h-4 rounded-full bg-black/20 backdrop-blur shadow-inner z-10 pointer-events-none"></div>
             <div className="absolute top-[-8px] left-[calc(50%-2px)] w-1.5 h-1.5 rounded-full bg-white/30 z-20 pointer-events-none"></div>
 
-            {/* ✨ 修改点 2: 应用 note-scrollbar 样式 */}
+            {/* 内容区域：应用 note-scrollbar */}
             <div 
                 className="
                     flex-1 whitespace-pre-wrap leading-relaxed font-medium font-handwriting 
-                    /* 1. 滚动逻辑 */
                     overflow-y-auto max-h-[240px] pr-2
-                    /* 2. 交互 */
                     pointer-events-auto
-                    /* 3. 样式：极简隐形滚动条 */
                     note-scrollbar
                 "
             >
