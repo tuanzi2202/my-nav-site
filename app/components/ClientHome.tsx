@@ -345,24 +345,17 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
     { 
       label: '看板娘', 
       action: () => {
-        const waifu = document.getElementById('waifu');
+        const waifu = document.getElementById('live2d-canvas'); // 👈 注意这里ID变了
         if (waifu) {
-          // 获取当前的显示状态
-          // 注意：有时候 style.display 是空的，所以结合 getComputedStyle 判断更稳健，
-          // 但简单的内联样式判断通常对这种手动切换也足够。
-          const isVisible = waifu.style.display !== 'none';
-
-          if (isVisible) {
-            // 🛑 如果当前是显示状态 -> 隐藏它
-            waifu.style.display = 'none';
-            // 写入 localStorage，让 autoload.js 知道用户想要隐藏它（防止刷新后自动弹出来）
-            localStorage.setItem('waifu-display', Date.now().toString()); 
+          const isHidden = waifu.style.opacity === '0';
+          if (isHidden) {
+            waifu.style.opacity = '1';
+            waifu.style.pointerEvents = 'auto';
+            localStorage.removeItem('waifu-display');
           } else {
-            // ✨ 如果当前是隐藏状态 -> 显示它
-            waifu.style.display = 'block';
-            waifu.style.bottom = '0'; // 确保位置复位
-            // 清除隐藏标记
-            localStorage.removeItem('waifu-display'); 
+            waifu.style.opacity = '0';
+            waifu.style.pointerEvents = 'none';
+            localStorage.setItem('waifu-display', 'hidden'); 
           }
         }
       } 
@@ -465,7 +458,7 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
 
         <main className="flex-1 overflow-y-auto custom-scrollbar p-6 md:p-10 relative">
           <header className="md:hidden mb-8 flex justify-between items-center bg-slate-900/80 backdrop-blur p-4 rounded-xl border border-slate-800 sticky top-0 z-50 shadow-lg"><h1 className="text-xl font-bold text-white">Oasis</h1><button onClick={() => router.push('/admin')} className="text-xs bg-slate-800 px-3 py-1.5 rounded-full text-sky-400">Admin</button></header>
-          <div className="mb-10 flex flex-col md:flex-row md:items-center justify-between gap-4 md:gap-8">
+          <div className="mb-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
               {/* 1. 左侧标题区域 */}
               <div className="shrink-0 flex flex-col items-start">
                   <h2 className="text-3xl font-bold text-white mb-2 tracking-tight drop-shadow-md">
@@ -477,33 +470,36 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
                   </p>
               </div>
               
-              {/* 2. 中间搜索框 (flex-1 自动占据剩余空间, max-w 限制最大宽度) */}
-              <form onSubmit={handleSearch} className="relative w-full md:flex-1 md:max-w-2xl group transition-all duration-300">
-                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-500 group-focus-within:text-sky-500 transition-colors">
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                      </svg>
-                  </div>
-                  <input 
-                      type="text" 
-                      name="query" 
-                      defaultValue={searchQuery} 
-                      placeholder="搜索资源..." 
-                      className="w-full bg-slate-900/40 border border-slate-700/50 text-slate-200 text-sm rounded-2xl pl-11 pr-4 py-3.5 focus:outline-none focus:ring-2 focus:ring-sky-500/50 focus:border-sky-500/50 transition-all shadow-lg backdrop-blur-sm placeholder:text-slate-600 hover:bg-slate-900/60" 
-                  />
-              </form>
+              {/* ✨✨✨ 修改点：将搜索框和按钮放入同一个容器，并靠右对齐 ✨✨✨ */}
+              <div className="flex flex-1 md:justify-end items-center gap-3 w-full md:w-auto">
+                  {/* 搜索框：宽度固定为 md:w-72 (约288px)，移除 flex-1 */}
+                  <form onSubmit={handleSearch} className="relative w-full md:w-72 group transition-all duration-300">
+                      <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-500 group-focus-within:text-sky-500 transition-colors">
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                          </svg>
+                      </div>
+                      <input 
+                          type="text" 
+                          name="query" 
+                          defaultValue={searchQuery} 
+                          placeholder="搜索..." 
+                          className="w-full bg-slate-900/40 border border-slate-700/50 text-slate-200 text-sm rounded-2xl pl-11 pr-4 py-3 focus:outline-none focus:ring-2 focus:ring-sky-500/50 focus:border-sky-500/50 transition-all shadow-lg backdrop-blur-sm placeholder:text-slate-600 hover:bg-slate-900/60" 
+                      />
+                  </form>
 
-              {/* 3. 右侧设置按钮 (仅桌面端显示，与搜索框平级) */}
-              <button 
-                  onClick={() => setShowSettings(true)} 
-                  className="hidden md:flex items-center justify-center w-12 h-12 bg-slate-800/80 backdrop-blur border border-slate-700 rounded-2xl text-slate-400 hover:text-white hover:bg-slate-700 hover:border-sky-500/50 shadow-lg hover:shadow-sky-500/20 transition-all duration-300 group shrink-0"
-                  title="页面设置"
-              >
-                  <svg className="w-6 h-6 group-hover:rotate-90 transition-transform duration-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                  </svg>
-              </button>
+                  {/* 设置按钮 */}
+                  <button 
+                      onClick={() => setShowSettings(true)} 
+                      className="hidden md:flex items-center justify-center w-11 h-11 bg-slate-800/80 backdrop-blur border border-slate-700 rounded-2xl text-slate-400 hover:text-white hover:bg-slate-700 hover:border-sky-500/50 shadow-lg hover:shadow-sky-500/20 transition-all duration-300 group shrink-0"
+                      title="页面设置"
+                  >
+                      <svg className="w-6 h-6 group-hover:rotate-90 transition-transform duration-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                      </svg>
+                  </button>
+              </div>
           </div>
 
           <div className="mb-12 rounded-2xl border p-5 relative overflow-hidden group transition-all duration-300" style={{ backgroundColor: `rgba(99, 102, 241, ${settings.boardOpacity})`, borderColor: `rgba(99, 102, 241, ${Math.min(settings.boardOpacity + 0.1, 0.5)})`, backdropFilter: `blur(${settings.uiBlur}px)` }}>
