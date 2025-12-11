@@ -97,11 +97,6 @@ export default function Live2D({ settings: initialSettings }: { settings: any })
 
     const app = appRef.current
 
-    // 监听尺寸变化
-    if (app.renderer) {
-        app.renderer.resize(canvasWidth, canvasHeight)
-    }
-
     const loadModel = async () => {
         try {
             if (modelRef.current) {
@@ -127,7 +122,15 @@ export default function Live2D({ settings: initialSettings }: { settings: any })
 
     loadModel()
 
-  }, [isScriptsLoaded, modelUrl, canvasWidth, canvasHeight]) 
+  }, [isScriptsLoaded, modelUrl]) 
+
+  // ✨✨✨ 新增：专门处理画布尺寸变化的 Effect ✨✨✨
+  // 这样调整尺寸时不仅不会重新加载模型，性能也会非常丝滑
+  useEffect(() => {
+      if (appRef.current && appRef.current.renderer) {
+          appRef.current.renderer.resize(canvasWidth, canvasHeight)
+      }
+  }, [canvasWidth, canvasHeight])
 
   // 实时更新位置和缩放
   const updateTransform = () => {
