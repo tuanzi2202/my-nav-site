@@ -1,3 +1,4 @@
+// app/notes/client.tsx
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
@@ -41,16 +42,19 @@ export default function NotesWallClient({ initialNotes }: { initialNotes: NoteIt
     else { setAuthError('密码错误') }
   }
 
+  // ✨ 修改点 1: 智能拖拽识别
   const handleMouseDown = (e: React.MouseEvent, note: NoteItem) => {
     if (!isAdmin) return
     
-    // ✨ 智能判断：如果点击的是内容区的滚动条，则不启动拖拽
+    // 🛡️ 智能检测：如果点击的是滚动条区域，则不触发拖拽
     const target = e.target as HTMLElement
+    // 检查是否点击了带滚动条的容器
     if (target.classList.contains('overflow-y-auto')) {
         const rect = target.getBoundingClientRect()
-        // 检测点击位置是否在元素最右侧 20px 范围内（滚动条区域）
-        if (e.clientX >= rect.right - 20) {
-            return // 点击的是滚动条，直接返回，允许原生交互
+        // 判断点击位置是否在元素最右侧 15px 内 (滚动条感应区)
+        // 即使滚动条只有4px宽，我们也给用户留出15px的容错空间
+        if (e.clientX >= rect.right - 15) {
+            return // 点击了滚动条 -> 允许原生滚动，不拖拽
         }
     }
 
@@ -58,6 +62,7 @@ export default function NotesWallClient({ initialNotes }: { initialNotes: NoteIt
     setDraggingId(note.id)
     dragOffset.current = { x: e.clientX - note.x, y: e.clientY - note.y }
     
+    // 视觉置顶
     const maxZ = Math.max(...notes.map(n => n.sortOrder)) + 1
     setNotes(prev => prev.map(n => n.id === note.id ? { ...n, sortOrder: maxZ } : n))
   }
@@ -76,8 +81,11 @@ export default function NotesWallClient({ initialNotes }: { initialNotes: NoteIt
     if (draggingId !== null) {
       const currentId = draggingId
       const note = notes.find(n => n.id === currentId)
+      
       setDraggingId(null) // 立即释放 UI
+
       if (note) {
+          // 保存位置和层级
           await updateNotePosition(currentId, note.x, note.y, note.sortOrder)
       }
     }
@@ -122,14 +130,8 @@ export default function NotesWallClient({ initialNotes }: { initialNotes: NoteIt
             className={`
               group absolute flex flex-col p-6 w-[280px] min-h-[200px] shadow-xl rounded-sm
               ${colorStyles[note.color] || colorStyles.yellow}
-              
-              ${isAdmin 
-                ? 'cursor-grab active:cursor-grabbing hover:!z-[1000]' 
-                : 'animate-note-sway hover:[animation-play-state:paused]'}
-              
-              hover:ring-2 hover:ring-offset-2 hover:ring-offset-[#0f172a] hover:scale-[1.02] hover:shadow-2xl
-              
-              transition duration-200 select-none ${draggingId === note.id ? 'duration-0 transition-none' : ''}
+              ${isAdmin ? 'cursor-grab active:cursor-grabbing hover:ring-2 ring-offset-2 ring-offset-[#0f172a]' : 'animate-note-sway hover:[animation-play-state:paused]'}
+              transition-shadow duration-200 select-none
             `}
             style={{
                 left: note.x,
@@ -143,13 +145,16 @@ export default function NotesWallClient({ initialNotes }: { initialNotes: NoteIt
             <div className="absolute top-[-10px] left-1/2 -translate-x-1/2 w-4 h-4 rounded-full bg-black/20 backdrop-blur shadow-inner z-10 pointer-events-none"></div>
             <div className="absolute top-[-8px] left-[calc(50%-2px)] w-1.5 h-1.5 rounded-full bg-white/30 z-20 pointer-events-none"></div>
 
-            {/* ✨ 修复点：移除了阻止冒泡的代码，允许点击文字时拖拽 */}
+            {/* ✨ 修改点 2: 应用 note-scrollbar 样式 */}
             <div 
                 className="
                     flex-1 whitespace-pre-wrap leading-relaxed font-medium font-handwriting 
-                    overflow-y-auto max-h-[280px] pr-2 
+                    /* 1. 滚动逻辑 */
+                    overflow-y-auto max-h-[240px] pr-2
+                    /* 2. 交互 */
                     pointer-events-auto
-                    scrollbar-thin scrollbar-thumb-black/10 hover:scrollbar-thumb-black/20 scrollbar-track-transparent
+                    /* 3. 样式：极简隐形滚动条 */
+                    note-scrollbar
                 "
             >
               {note.content}

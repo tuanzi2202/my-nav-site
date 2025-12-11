@@ -1,3 +1,4 @@
+/* app/globals.css */
 @import "tailwindcss";
 @plugin "@tailwindcss/typography";
 @import "highlight.js/styles/github-dark.css";
@@ -27,43 +28,39 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
-/* ✨✨✨ 自定义代码块滚动条 ✨✨✨ */
-.code-scrollbar {
-  /* Firefox 适配 */
+/* ... (保留原有的 .code-scrollbar 等样式) ... */
+
+/* ✨✨✨ 新增：便利贴专用·极简隐形滚动条 ✨✨✨ */
+.note-scrollbar {
   scrollbar-width: thin;
-  scrollbar-color: #475569 transparent; /* 滚动条颜色 轨道颜色 */
+  scrollbar-color: rgba(0, 0, 0, 0.1) transparent; /* Firefox */
 }
 
-/* Chrome, Edge, Safari 适配 */
-.code-scrollbar::-webkit-scrollbar {
-  height: 6px; /* 横向滚动条的高度 */
-  width: 6px;  /* 纵向滚动条的宽度 */
+.note-scrollbar::-webkit-scrollbar {
+  width: 4px; /* 极细宽度，精致感 */
 }
 
-.code-scrollbar::-webkit-scrollbar-track {
-  background: transparent; /* 轨道透明 */
+.note-scrollbar::-webkit-scrollbar-track {
+  background: transparent; /* 轨道完全透明 */
+  margin: 4px 0; /* 上下留白 */
 }
 
-.code-scrollbar::-webkit-scrollbar-thumb {
-  background-color: #334155; /* 滚动条滑块颜色 (slate-700) */
-  border-radius: 3px;        /* 圆角 */
+.note-scrollbar::-webkit-scrollbar-thumb {
+  background-color: rgba(0, 0, 0, 0.05); /* 平时几乎不可见 */
+  border-radius: 10px;
 }
 
-.code-scrollbar::-webkit-scrollbar-thumb:hover {
-  background-color: #475569; /* 鼠标悬停变亮 (slate-600) */
+.note-scrollbar::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(0, 0, 0, 0.2); /* 悬停时加深，提示可操作 */
 }
 
-.code-scrollbar::-webkit-scrollbar-corner {
-  background: transparent;
-}
-
-/* ✨✨✨ 新增：便利贴摆动动画 ✨✨✨ */
+/* 便利贴摆动动画 */
 @keyframes note-sway {
   0%, 100% { transform: rotate(-0.5deg); }
   50% { transform: rotate(0.5deg); }
 }
 
 .animate-note-sway {
-  animation: note-sway 6s ease-in-out infinite; /* 默认时长拉长到 6s */
+  animation: note-sway 6s ease-in-out infinite;
   transform-origin: top center;
 }
