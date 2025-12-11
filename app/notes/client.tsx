@@ -1,10 +1,10 @@
 // app/notes/client.tsx
-
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
 import { createNote, updateNote, deleteNote, updateNotePosition, verifyAdminPassword } from '../actions'
 
+// ... (类型定义和 colorStyles 保持不变) ...
 type NoteItem = {
   id: number
   content: string
@@ -37,33 +37,23 @@ export default function NotesWallClient({ initialNotes }: { initialNotes: NoteIt
 
   useEffect(() => { setNotes(initialNotes) }, [initialNotes])
 
+  // ... (handleLogin, handleMouseDown, handleMouseMove, handleMouseUp, handleSubmitNote 逻辑保持不变) ...
   const handleLogin = async (formData: FormData) => {
     const isValid = await verifyAdminPassword(formData.get('password') as string)
     if (isValid) { setIsAdmin(true); setShowAuthModal(false); setAuthError('') } 
     else { setAuthError('密码错误') }
   }
 
-  // ✨ 核心逻辑：智能拖拽识别
   const handleMouseDown = (e: React.MouseEvent, note: NoteItem) => {
     if (!isAdmin) return
-    
-    // 🛡️ 1. 滚动条防误触检测
     const target = e.target as HTMLElement
-    // 检查是否点击了内容区域（带滚动条的 div）
     if (target.classList.contains('overflow-y-auto')) {
         const rect = target.getBoundingClientRect()
-        // 如果点击位置在元素最右侧 15px 范围内，视为点击滚动条 -> 不拖拽，允许滚动
-        if (e.clientX >= rect.right - 15) {
-            return 
-        }
+        if (e.clientX >= rect.right - 15) return 
     }
-
-    // 2. 正常启动拖拽
     e.stopPropagation()
     setDraggingId(note.id)
     dragOffset.current = { x: e.clientX - note.x, y: e.clientY - note.y }
-    
-    // 3. 视觉置顶 (更新本地 sortOrder)
     const maxZ = Math.max(...notes.map(n => n.sortOrder)) + 1
     setNotes(prev => prev.map(n => n.id === note.id ? { ...n, sortOrder: maxZ } : n))
   }
@@ -82,12 +72,8 @@ export default function NotesWallClient({ initialNotes }: { initialNotes: NoteIt
     if (draggingId !== null) {
       const currentId = draggingId
       const note = notes.find(n => n.id === currentId)
-      
-      // 🚀 立即释放 UI 锁定，消除延迟感
       setDraggingId(null)
-
       if (note) {
-          // 后台异步保存位置和层级
           await updateNotePosition(currentId, note.x, note.y, note.sortOrder)
       }
     }
@@ -134,22 +120,21 @@ export default function NotesWallClient({ initialNotes }: { initialNotes: NoteIt
               group absolute flex flex-col p-6 w-[280px] min-h-[200px] shadow-xl rounded-sm
               ${colorStyles[note.color] || colorStyles.yellow}
               
-              /* ✨✨✨ 修改点1：全员添加黑色边框 ✨✨✨ */
+              /* ✨✨✨ 保留黑色边框 ✨✨✨ */
               border border-black/50
 
-              /* 2. 交互模式 (区分对待) */
-              /* 管理员：可拖拽 */
-              /* 游客：仅摆动动画 */
+              /* 2. 交互模式 (核心修改点) */
+              /* 管理员：可拖拽 + 悬停强力置顶 (hover:!z-[100]) */
+              /* 游客：仅摆动动画 + 悬停不改变层级 (移除了 hover:!z-[100]) */
               ${isAdmin 
-                ? 'cursor-grab active:cursor-grabbing' 
+                ? 'cursor-grab active:cursor-grabbing hover:!z-[100]' 
                 : 'animate-note-sway hover:[animation-play-state:paused]'}
               
-              /* 3. 视觉反馈 (✨✨✨ 修改点2：全员通用 悬停置顶 + 高亮 ✨✨✨) */
-              hover:!z-[100]
+              /* 3. 视觉反馈 (全员通用：保留高亮和微弱放大，但不改变层级) */
               hover:ring-2 hover:ring-offset-2 hover:ring-offset-[#0f172a] 
               hover:scale-[1.02] hover:shadow-2xl
               
-              /* 4. 性能优化 (拖拽时禁用过渡) */
+              /* 4. 性能优化 */
               transition duration-200 select-none
               ${draggingId === note.id ? 'duration-0 transition-none' : ''}
             `}
@@ -157,10 +142,8 @@ export default function NotesWallClient({ initialNotes }: { initialNotes: NoteIt
                 left: note.x,
                 top: note.y,
                 zIndex: note.sortOrder,
-                // 游客增加随机摆动
                 animationDuration: !isAdmin ? `${6 + (note.id % 5)}s` : '0s',
                 animationDelay: !isAdmin ? `${-(note.id % 5)}s` : '0s',
-                // 拖拽时放大，未拖拽时不设 transform 以免覆盖 hover:scale
                 transform: draggingId === note.id ? 'scale(1.05)' : undefined,
             }}
           >
@@ -168,18 +151,12 @@ export default function NotesWallClient({ initialNotes }: { initialNotes: NoteIt
             <div className="absolute top-[-10px] left-1/2 -translate-x-1/2 w-4 h-4 rounded-full bg-black/20 backdrop-blur shadow-inner z-10 pointer-events-none"></div>
             <div className="absolute top-[-8px] left-[calc(50%-2px)] w-1.5 h-1.5 rounded-full bg-white/30 z-20 pointer-events-none"></div>
 
-            {/* 内容区域：应用 note-scrollbar */}
-            <div 
-                className="
-                    flex-1 whitespace-pre-wrap leading-relaxed font-medium font-handwriting 
-                    overflow-y-auto max-h-[240px] pr-2
-                    pointer-events-auto
-                    note-scrollbar
-                "
-            >
+            {/* 内容区域 */}
+            <div className="flex-1 whitespace-pre-wrap leading-relaxed font-medium font-handwriting overflow-y-auto max-h-[240px] pr-2 pointer-events-auto note-scrollbar">
               {note.content}
             </div>
             
+            {/* 底部信息栏 */}
             <div className="mt-4 pt-4 border-t border-black/5 flex justify-between items-center h-8 relative">
                 <span className="opacity-60 text-xs font-mono pointer-events-none text-current">
                     {new Date(note.createdAt).toLocaleDateString()}
@@ -195,19 +172,9 @@ export default function NotesWallClient({ initialNotes }: { initialNotes: NoteIt
                         onMouseDown={(e) => e.stopPropagation()}
                         className="absolute -right-2 top-0 bottom-0 flex items-center justify-end gap-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10 whitespace-nowrap"
                     >
-                        <button 
-                            onClick={() => setEditingNote(note)}
-                            className="text-xs font-bold text-current opacity-60 hover:opacity-100 hover:underline transition-all p-2"
-                        >
-                            编辑
-                        </button>
+                        <button onClick={() => setEditingNote(note)} className="text-xs font-bold text-current opacity-60 hover:opacity-100 hover:underline transition-all p-2">编辑</button>
                         <span className="text-[10px] opacity-30 select-none pb-0.5">/</span>
-                        <form action={deleteNote}>
-                            <input type="hidden" name="id" value={note.id} />
-                            <button className="text-xs font-bold text-red-900/60 hover:text-red-700 hover:underline transition-all p-2">
-                                撕下
-                            </button>
-                        </form>
+                        <form action={deleteNote}><input type="hidden" name="id" value={note.id} /><button className="text-xs font-bold text-red-900/60 hover:text-red-700 hover:underline transition-all p-2">撕下</button></form>
                     </div>
                     )}
                 </div>
@@ -216,6 +183,7 @@ export default function NotesWallClient({ initialNotes }: { initialNotes: NoteIt
         ))}
       </div>
 
+      {/* ... (AuthModal 和 EditModal 保持不变) ... */}
       {showAuthModal && (
         <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in">
             <div className="bg-slate-900 border border-slate-700 p-6 rounded-2xl w-full max-w-sm shadow-2xl animate-in zoom-in-95" onMouseDown={e => e.stopPropagation()}>
