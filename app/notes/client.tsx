@@ -31,7 +31,7 @@ export default function NotesWallClient({ initialNotes }: { initialNotes: NoteIt
   const [authError, setAuthError] = useState('')
   const [editingNote, setEditingNote] = useState<Partial<NoteItem> | null>(null)
   
-  // ✨ 新增：记录当前悬停的 ID
+  // 记录当前悬停的ID，用于管理员层级显示优化
   const [hoveredId, setHoveredId] = useState<number | null>(null)
   
   const [draggingId, setDraggingId] = useState<number | null>(null)
@@ -49,6 +49,7 @@ export default function NotesWallClient({ initialNotes }: { initialNotes: NoteIt
   const handleMouseDown = (e: React.MouseEvent, note: NoteItem) => {
     if (!isAdmin) return
     
+    // 滚动条防误触
     const target = e.target as HTMLElement
     if (target.classList.contains('overflow-y-auto')) {
         const rect = target.getBoundingClientRect()
@@ -59,7 +60,7 @@ export default function NotesWallClient({ initialNotes }: { initialNotes: NoteIt
     setDraggingId(note.id)
     dragOffset.current = { x: e.clientX - note.x, y: e.clientY - note.y }
     
-    // 拖拽开始时，同时也更新实际的 sortOrder，这样放下后它依然在最上面
+    // 拖拽开始时更新排序，保证“拿起来”的感觉
     const maxZ = Math.max(...notes.map(n => n.sortOrder), 0) + 1
     setNotes(prev => prev.map(n => n.id === note.id ? { ...n, sortOrder: maxZ } : n))
   }
@@ -120,51 +121,47 @@ export default function NotesWallClient({ initialNotes }: { initialNotes: NoteIt
 
       <div className="w-full h-full">
         {notes.map((note) => {
-          // ✨✨✨ 核心修改：动态 Z-Index 计算逻辑 ✨✨✨
-          // 1. 拖拽中：最高优先级，确保不被任何元素遮挡
+          // 动态 Z-Index 逻辑
           const isDragging = draggingId === note.id
-          // 2. 悬停中：次高优先级，实现“查看上层”效果 (仅限管理员)
           const isHovered = isAdmin && hoveredId === note.id
           
           let dynamicZIndex = note.sortOrder
           if (isDragging) {
              dynamicZIndex = 999999 // 拖拽时绝对置顶
           } else if (isHovered) {
-             dynamicZIndex = 999990 // 悬停时临时置顶 (略低于拖拽)
+             dynamicZIndex = 999990 // 管理员悬停时临时置顶
           }
 
           return (
             <div
               key={note.id}
               onMouseDown={(e) => handleMouseDown(e, note)}
-              onMouseEnter={() => isAdmin && setHoveredId(note.id)} // ✨ 移入置顶
-              onMouseLeave={() => isAdmin && setHoveredId(null)}    // ✨ 移出恢复
+              onMouseEnter={() => isAdmin && setHoveredId(note.id)}
+              onMouseLeave={() => isAdmin && setHoveredId(null)}
               className={`
-                /* 1. 基础布局 */
                 group absolute flex flex-col p-6 w-[280px] min-h-[200px] shadow-xl rounded-sm
                 ${colorStyles[note.color] || colorStyles.yellow}
                 
-                /* 黑色边框 */
+                /* 黑色边框 (全员可见) */
                 border border-black/50
 
-                /* 2. 交互模式 */
-                /* 移除 CSS hover:z-index，完全由 JS style 控制 */
+                /* 交互模式：管理员可拖拽；游客仅摆动 */
                 ${isAdmin 
                   ? 'cursor-grab active:cursor-grabbing' 
                   : 'animate-note-sway hover:[animation-play-state:paused]'}
                 
-                /* 3. 视觉反馈 */
+                /* 视觉反馈 (全员可见：高亮+微放大) */
                 hover:ring-2 hover:ring-offset-2 hover:ring-offset-[#0f172a] 
                 hover:scale-[1.02] hover:shadow-2xl
                 
-                /* 4. 性能优化 */
+                /* 禁止选中便利贴整体（避免拖拽时选中背景），但在子元素中覆盖 */
                 transition duration-200 select-none
                 ${isDragging ? 'duration-0 transition-none' : ''}
               `}
               style={{
                   left: note.x,
                   top: note.y,
-                  zIndex: dynamicZIndex, // ✨ 使用动态计算的 Z-Index
+                  zIndex: dynamicZIndex,
                   animationDuration: !isAdmin ? `${6 + (note.id % 5)}s` : '0s',
                   animationDelay: !isAdmin ? `${-(note.id % 5)}s` : '0s',
                   transform: isDragging ? 'scale(1.05)' : undefined,
@@ -175,7 +172,16 @@ export default function NotesWallClient({ initialNotes }: { initialNotes: NoteIt
               <div className="absolute top-[-8px] left-[calc(50%-2px)] w-1.5 h-1.5 rounded-full bg-white/30 z-20 pointer-events-none"></div>
 
               {/* 内容区域 */}
-              <div className="flex-1 whitespace-pre-wrap leading-relaxed font-medium font-handwriting overflow-y-auto max-h-[240px] pr-2 pointer-events-auto note-scrollbar">
+              {/* ✨✨✨ 修改点：添加 select-text 和 cursor-text 允许文字选择 ✨✨✨ */}
+              <div 
+                className="
+                    flex-1 whitespace-pre-wrap leading-relaxed font-medium font-handwriting 
+                    overflow-y-auto max-h-[240px] pr-2
+                    pointer-events-auto
+                    note-scrollbar
+                    select-text cursor-text
+                "
+              >
                 {note.content}
               </div>
               
