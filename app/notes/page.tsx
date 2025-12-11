@@ -1,15 +1,17 @@
-import { getNotes } from '../actions'
+// app/notes/page.tsx
+import { getNotes, checkAuth } from '../actions' // ✨ 引入 checkAuth
 import NotesWallClient from './client'
 
 export const dynamic = 'force-dynamic'
 
 export default async function NotesPage() {
   const notes = await getNotes()
+  const isAdmin = await checkAuth() // ✨ 服务端检查是否已登录
 
   return (
-    // 移除默认的 p-8 padding，让 client 组件全权接管布局，方便计算坐标
     <div className="min-h-screen bg-[#0f172a] font-sans selection:bg-black/10 overflow-hidden">
-      <NotesWallClient initialNotes={notes} />
+      {/* ✨ 将登录状态传给 Client 组件 */}
+      <NotesWallClient initialNotes={notes} initialIsAdmin={isAdmin} />
     </div>
   )
 }

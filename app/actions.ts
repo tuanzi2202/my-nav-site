@@ -3,6 +3,7 @@
 
 import { PrismaClient } from '@prisma/client'
 import { revalidatePath } from 'next/cache'
+import { cookies } from 'next/headers'
 
 const prisma = new PrismaClient()
 
@@ -297,9 +298,32 @@ export async function getLinkData() {
   return await prisma.link.findMany({ orderBy: { createdAt: 'desc' } })
 }
 
-// --- 新增：管理员验证 ---
+// --- ✨✨✨ 新增：统一身份认证系统 ✨✨✨ ---
+
+// 1. 登录并写入 Cookie (用于前台组件，如便利贴墙)
+export async function loginAdmin(password: string) {
+  if (password === process.env.ADMIN_PASSWORD) {
+    const cookieStore = await cookies()
+    // 设置一个名为 is_admin 的 Cookie，有效期 7 天
+    cookieStore.set('is_admin', 'true', { 
+      httpOnly: true, 
+      secure: process.env.NODE_ENV === 'production',
+      maxAge: 60 * 60 * 24 * 7,
+      path: '/'
+    })
+    return true
+  }
+  return false
+}
+
+// 2. 检查当前是否已登录 (用于服务端组件初始化状态)
+export async function checkAuth() {
+  const cookieStore = await cookies()
+  return cookieStore.get('is_admin')?.value === 'true'
+}
+
+// 3. 验证密码 (保留给旧代码兼容，但建议逐渐迁移到 loginAdmin)
 export async function verifyAdminPassword(password: string) {
-  // 简单验证环境变量中的密码
   return password === process.env.ADMIN_PASSWORD
 }
 
