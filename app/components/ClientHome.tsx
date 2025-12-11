@@ -345,13 +345,25 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
     { 
       label: '看板娘', 
       action: () => {
-        // 尝试恢复看板娘
-        localStorage.removeItem('waifu-display'); // 清除隐藏标记
         const waifu = document.getElementById('waifu');
         if (waifu) {
-          waifu.style.display = 'block';
-          waifu.style.bottom = '0';
-          // 也可以重新初始化，但简单的显隐切换通常足够
+          // 获取当前的显示状态
+          // 注意：有时候 style.display 是空的，所以结合 getComputedStyle 判断更稳健，
+          // 但简单的内联样式判断通常对这种手动切换也足够。
+          const isVisible = waifu.style.display !== 'none';
+
+          if (isVisible) {
+            // 🛑 如果当前是显示状态 -> 隐藏它
+            waifu.style.display = 'none';
+            // 写入 localStorage，让 autoload.js 知道用户想要隐藏它（防止刷新后自动弹出来）
+            localStorage.setItem('waifu-display', Date.now().toString()); 
+          } else {
+            // ✨ 如果当前是隐藏状态 -> 显示它
+            waifu.style.display = 'block';
+            waifu.style.bottom = '0'; // 确保位置复位
+            // 清除隐藏标记
+            localStorage.removeItem('waifu-display'); 
+          }
         }
       } 
     },
