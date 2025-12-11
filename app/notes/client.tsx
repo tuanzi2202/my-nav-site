@@ -1,4 +1,3 @@
-// app/notes/client.tsx
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
@@ -63,9 +62,17 @@ export default function NotesWallClient({ initialNotes }: { initialNotes: NoteIt
 
   const handleMouseUp = async () => {
     if (draggingId !== null) {
-      const note = notes.find(n => n.id === draggingId)
-      if (note) await updateNotePosition(note.id, note.x, note.y)
+      // 1. 锁定当前操作对象
+      const currentId = draggingId
+      const note = notes.find(n => n.id === currentId)
+      
+      // 2. 🚀 关键修复：立即释放 UI 锁定，消除延迟感
       setDraggingId(null)
+
+      // 3. 后台异步保存位置
+      if (note) {
+          await updateNotePosition(currentId, note.x, note.y)
+      }
     }
   }
 
@@ -109,18 +116,13 @@ export default function NotesWallClient({ initialNotes }: { initialNotes: NoteIt
               group absolute flex flex-col p-6 w-[280px] min-h-[200px] shadow-xl rounded-sm
               ${colorStyles[note.color] || colorStyles.yellow}
               
-              /* ✨✨✨ 修改点：区分层级逻辑 ✨✨✨ */
-              /* 管理员 (isAdmin=true): 可拖拽 + 悬停强制置顶 (hover:!z-[1000])，方便选中 */
-              /* 游客 (isAdmin=false): 仅摆动动画，悬停不改变 z-index，保持被遮挡状态 */
               ${isAdmin 
                 ? 'cursor-grab active:cursor-grabbing hover:!z-[1000]' 
                 : 'animate-note-sway hover:[animation-play-state:paused]'}
               
-              /* ✨✨✨ 通用高光 (所有人都可见) ✨✨✨ */
-              /* 即使被遮挡，悬停时依然会有光环、轻微放大和阴影加深，提示“选中”状态 */
               hover:ring-2 hover:ring-offset-2 hover:ring-offset-[#0f172a] hover:scale-[1.02] hover:shadow-2xl
               
-              /* 性能优化：仅使用 transition，且拖拽时禁用 */
+              /* 拖拽时禁用过渡以消除“拉皮筋”延迟 */
               transition duration-200 select-none ${draggingId === note.id ? 'duration-0 transition-none' : ''}
             `}
             style={{
