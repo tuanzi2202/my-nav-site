@@ -132,8 +132,8 @@ export default function NotesWallClient({ initialNotes, initialIsAdmin, initialB
         width: '100%', 
         height: '100%', 
         position: 'absolute', 
-        top: 0,  // ✨ 确保从顶部开始
-        left: 0, // ✨ 确保从左侧开始
+        top: 0, 
+        left: 0,
         zIndex: 0,
         transition: 'background 0.5s ease'
     }
@@ -173,20 +173,18 @@ export default function NotesWallClient({ initialNotes, initialIsAdmin, initialB
       onMouseUp={handleMouseUp}
       onMouseLeave={handleMouseUp}
     >
-      {/* 背景层 */}
       <div style={getBackgroundStyle()} />
       {(bgSettings.type === 'image' || bgSettings.type === 'custom') && !bgSettings.blur && (
-          <div className="absolute inset-0 bg-black/10 pointer-events-none z-0" /> // 稍微降低遮罩浓度
+          <div className="absolute inset-0 bg-black/10 pointer-events-none z-0" />
       )}
 
-      {/* ✨✨✨ 顶部 Header：更加透明、沉浸感更强 ✨✨✨ */}
       <header className={`
           absolute top-0 left-0 w-full z-[9999] px-8 py-6 
           flex justify-between items-center h-[120px] 
           transition-all duration-300 backdrop-blur-md
           ${isLightBg 
-              ? 'bg-white/30 text-slate-800 border-b border-white/20'  // 浅色背景模式
-              : 'bg-black/20 text-white border-b border-white/5'}      // 深色背景模式 (更加透明)
+              ? 'bg-white/30 text-slate-800 border-b border-white/20' 
+              : 'bg-black/20 text-white border-b border-white/5'}
       `}>
         <div>
           <h1 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 to-amber-500 drop-shadow-sm filter">Sticky Wall</h1>
@@ -199,6 +197,8 @@ export default function NotesWallClient({ initialNotes, initialIsAdmin, initialB
         <div className="flex gap-3 items-center">
             {isAdmin ? (
                 <>
+                    {/* ✨✨✨ 1. 背景设置按钮：只在 isEditMode 显示 ✨✨✨ */}
+                    {isEditMode && (
                     <div className="relative">
                         <button 
                             onClick={() => setShowBgPanel(!showBgPanel)} 
@@ -213,7 +213,6 @@ export default function NotesWallClient({ initialNotes, initialIsAdmin, initialB
                                 <h4 className="text-xs font-bold text-slate-400 mb-3 uppercase tracking-wider">背景风格</h4>
                                 
                                 <div className="space-y-4">
-                                    {/* ... (背景设置面板内容保持不变) ... */}
                                     <div>
                                         <div className="text-[10px] text-slate-500 mb-2">纯色主题</div>
                                         <div className="flex gap-2">
@@ -284,8 +283,10 @@ export default function NotesWallClient({ initialNotes, initialIsAdmin, initialB
                             </div>
                         )}
                     </div>
+                    )}
 
-                    <div className={`w-px h-6 mx-1 ${isLightBg ? 'bg-slate-400/30' : 'bg-white/20'}`}></div>
+                    {/* ✨✨✨ 2. 分隔线：只在 isEditMode 显示，保持布局整洁 ✨✨✨ */}
+                    {isEditMode && <div className={`w-px h-6 mx-1 ${isLightBg ? 'bg-slate-400/30' : 'bg-white/20'}`}></div>}
 
                     <button 
                         onClick={() => setIsEditMode(!isEditMode)} 
@@ -316,10 +317,9 @@ export default function NotesWallClient({ initialNotes, initialIsAdmin, initialB
         </div>
       </header>
 
-      {/* ... (Notes 渲染区域、登录 Modal、编辑 Modal 保持不变) ... */}
+      {/* ... (后续内容保持不变) ... */}
       <div className="w-full h-full relative z-10">
         {notes.map((note) => {
-          // ... (Note 渲染逻辑保持不变) ...
           const isDragging = draggingId === note.id
           const isHovered = isEditMode && hoveredId === note.id
           
