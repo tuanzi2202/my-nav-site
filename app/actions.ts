@@ -297,9 +297,35 @@ export async function getLinkData() {
   return await prisma.link.findMany({ orderBy: { createdAt: 'desc' } })
 }
 
-// --- 便利贴管理 ---
+// --- 新增：管理员验证 ---
+export async function verifyAdminPassword(password: string) {
+  // 简单验证环境变量中的密码
+  return password === process.env.ADMIN_PASSWORD
+}
+
+// --- 便利贴管理 (更新) ---
 export async function getNotes() {
-  return await prisma.note.findMany({ orderBy: { createdAt: 'desc' } })
+  // ✨ 修改排序规则：优先按自定义顺序降序，其次按创建时间
+  return await prisma.note.findMany({ 
+    orderBy: [
+      { sortOrder: 'desc' },
+      { createdAt: 'desc' }
+    ] 
+  })
+}
+
+export async function reorderNotes(items: { id: number; sortOrder: number }[]) {
+  // 批量更新顺序
+  await prisma.$transaction(
+    items.map((item) => 
+      prisma.note.update({ 
+        where: { id: item.id }, 
+        data: { sortOrder: item.sortOrder } 
+      })
+    )
+  )
+  revalidatePath('/notes')
+  revalidatePath('/admin')
 }
 
 export async function createNote(formData: FormData) {
@@ -308,8 +334,12 @@ export async function createNote(formData: FormData) {
 
   if (!content) return
 
+  // 获取当前最大 sortOrder
+  const maxSort = await prisma.note.aggregate({ _max: { sortOrder: true } })
+  const newSortOrder = (maxSort._max.sortOrder || 0) + 10
+
   await prisma.note.create({
-    data: { content, color }
+    data: { content, color, sortOrder: newSortOrder }
   })
   
   revalidatePath('/notes')

@@ -69,7 +69,8 @@ model Post {
 model Note {
   id        Int      @id @default(autoincrement())
   content   String
-  color     String   @default("yellow") // yellow, pink, blue, green
+  color     String   @default("yellow")
+  sortOrder Int      @default(0) // ✨ 新增：用于拖拽排序
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
