@@ -465,9 +465,33 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
 
         <main className="flex-1 overflow-y-auto custom-scrollbar p-6 md:p-10 relative">
           <header className="md:hidden mb-8 flex justify-between items-center bg-slate-900/80 backdrop-blur p-4 rounded-xl border border-slate-800 sticky top-0 z-50 shadow-lg"><h1 className="text-xl font-bold text-white">Oasis</h1><button onClick={() => router.push('/admin')} className="text-xs bg-slate-800 px-3 py-1.5 rounded-full text-sky-400">Admin</button></header>
-          <div className="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-6">
-              <div><h2 className="text-3xl font-bold text-white mb-2 tracking-tight drop-shadow-md">{currentCategory === 'All' ? '全部工具' : (currentCategory === 'Recommended' ? '站长推荐' : currentCategory)}</h2><p className="text-slate-400 text-sm flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-sky-500 shadow-[0_0_10px_rgba(14,165,233,0.5)]"></span>{searchQuery ? `搜索 "${searchQuery}" 的结果` : `收录了 ${links.length} 个优质资源`}</p></div>
-              <form onSubmit={handleSearch} className="relative w-full md:w-80 group"><div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-500"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg></div><input type="text" name="query" defaultValue={searchQuery} placeholder="搜索资源..." className="w-full bg-slate-900/40 border border-slate-700/50 text-slate-200 text-sm rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:ring-2 focus:ring-sky-500/50 focus:border-sky-500/50 transition-all shadow-lg backdrop-blur-sm" /></form>
+          <div className="mb-10 flex flex-col md:block relative gap-6 md:h-20">
+              {/* 标题区域：桌面端绝对定位在左侧垂直居中 */}
+              <div className="md:absolute md:left-0 md:top-1/2 md:-translate-y-1/2 z-10 mb-4 md:mb-0">
+                  <h2 className="text-3xl font-bold text-white mb-2 tracking-tight drop-shadow-md">
+                      {currentCategory === 'All' ? '全部工具' : (currentCategory === 'Recommended' ? '站长推荐' : currentCategory)}
+                  </h2>
+                  <p className="text-slate-400 text-sm flex items-center gap-2">
+                      <span className="w-1.5 h-1.5 rounded-full bg-sky-500 shadow-[0_0_10px_rgba(14,165,233,0.5)]"></span>
+                      {searchQuery ? `搜索 "${searchQuery}" 的结果` : `收录了 ${links.length} 个优质资源`}
+                  </p>
+              </div>
+              
+              {/* 搜索框：桌面端使用 margin 自动居中 (mx-auto) 并适当加宽 */}
+              <form onSubmit={handleSearch} className="relative w-full md:w-[500px] group md:mx-auto md:top-1/2 md:-translate-y-1/2 z-20">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-500">
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                      </svg>
+                  </div>
+                  <input 
+                      type="text" 
+                      name="query" 
+                      defaultValue={searchQuery} 
+                      placeholder="搜索资源..." 
+                      className="w-full bg-slate-900/40 border border-slate-700/50 text-slate-200 text-sm rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:ring-2 focus:ring-sky-500/50 focus:border-sky-500/50 transition-all shadow-lg backdrop-blur-sm" 
+                  />
+              </form>
           </div>
 
           <div className="mb-12 rounded-2xl border p-5 relative overflow-hidden group transition-all duration-300" style={{ backgroundColor: `rgba(99, 102, 241, ${settings.boardOpacity})`, borderColor: `rgba(99, 102, 241, ${Math.min(settings.boardOpacity + 0.1, 0.5)})`, backdropFilter: `blur(${settings.uiBlur}px)` }}>
@@ -497,7 +521,7 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
         </main>
       </div>
 
-      <button onClick={() => setShowSettings(true)} className="fixed bottom-6 right-6 z-50 p-3 bg-slate-800/80 backdrop-blur border border-slate-700 rounded-full text-slate-400 hover:text-white hover:bg-slate-700 hover:border-sky-500/50 shadow-lg hover:shadow-sky-500/20 transition-all duration-300 group">
+      <button onClick={() => setShowSettings(true)} className="fixed top-6 right-6 z-50 p-3 bg-slate-800/80 backdrop-blur border border-slate-700 rounded-full text-slate-400 hover:text-white hover:bg-slate-700 hover:border-sky-500/50 shadow-lg hover:shadow-sky-500/20 transition-all duration-300 group">
         <svg className="w-6 h-6 group-hover:rotate-90 transition-transform duration-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
       </button>
 
