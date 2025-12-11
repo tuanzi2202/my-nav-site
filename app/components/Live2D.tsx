@@ -2,129 +2,145 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import Script from 'next/script'
 
 export default function Live2D() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
-  const [isScriptsLoaded, setIsScriptsLoaded] = useState({
-    cubism: false,
-    pixi: false,
-    pixiLive2d: false
-  })
-
-  // 检查所有脚本是否加载完成
-  const ready = isScriptsLoaded.cubism && isScriptsLoaded.pixi && isScriptsLoaded.pixiLive2d
+  const [isLoaded, setIsLoaded] = useState(false)
 
   useEffect(() => {
-    if (!ready || !canvasRef.current) return
+    if (isLoaded) return
 
-    // 获取全局变量
-    const PIXI = (window as any).PIXI
-    const { Live2DModel } = (window as any).PIXI.live2d
-
-    // 注册 Ticker (PixiJS 7.x 需要)
-    (window as any).PIXI.live2d.Live2DModel.registerTicker((window as any).PIXI.Ticker)
+    // 辅助函数：加载脚本并返回 Promise
+    const loadScript = (src: string) => {
+      return new Promise((resolve, reject) => {
+        // 如果已经加载过，直接返回
+        if (document.querySelector(`script[src="${src}"]`)) {
+          resolve(true)
+          return
+        }
+        const script = document.createElement('script')
+        script.src = src
+        script.crossOrigin = "anonymous"
+        script.onload = () => resolve(true)
+        script.onerror = () => reject(new Error(`Failed to load script: ${src}`))
+        document.body.appendChild(script)
+      })
+    }
 
     const init = async () => {
-      // 1. 创建 Pixi 应用
-      const app = new PIXI.Application({
-        view: canvasRef.current,
-        autoStart: true,
-        backgroundAlpha: 0, // 透明背景
-        width: 300,         // 画布宽度
-        height: 400,        // 画布高度
-        resizeTo: window    // 跟随窗口调整 (可选，这里我们用固定小画布更合适)
-      })
-
-      // 2. 加载模型
-      // 这里使用一个开源的 Live2D 模型 URL (Haru)
-      // 你可以将此 URL 替换为你自己的模型 JSON 文件地址
-      const modelUrl = 'https://cdn.jsdelivr.net/gh/guansss/pixi-live2d-display/test/assets/haru/haru_greeter_t03.model3.json'
-      
       try {
-        const model = await Live2DModel.from(modelUrl)
+        console.log('🔄 开始按顺序加载 Live2D 依赖库...')
 
-        // 3. 设置模型属性
-        model.x = 0
-        model.y = 0
-        model.scale.set(0.2) // 根据模型实际大小调整缩放
-        model.anchor.set(0.5, 0.5) // 设置锚点为中心
+        // 1. 先加载 Cubism 2 Core (解决 "Could not find Cubism 2 runtime" 报错)
+        await loadScript('https://cdn.jsdelivr.net/gh/dylanNew/live2d/webgl/Live2D/lib/live2d.min.js')
+        
+        // 2. 加载 Cubism 4 Core (支持新版模型)
+        await loadScript('https://cubism.live2d.com/sdk-web/cubismcore/live2dcubismcore.min.js')
 
-        // 将模型放置在画布右下角附近
-        // 注意：这里的坐标是相对于 Canvas 内部的
-        // 因为我们将 Canvas 固定在屏幕右下角，所以这里居中显示即可
-        model.x = app.screen.width * 0.8
-        model.y = app.screen.height * 0.8
+        // 3. 加载 PixiJS (渲染引擎) - 使用 v7 版本
+        await loadScript('https://cdnjs.cloudflare.com/ajax/libs/pixi.js/7.3.2/pixi.min.js')
 
-        // 4. 添加交互 (可选)
-        model.on('hit', (hitAreas: any) => {
+        // 4. 最后加载 Pixi Live2D Display (连接插件)
+        await loadScript('https://cdn.jsdelivr.net/npm/pixi-live2d-display@0.4.0/dist/index.min.js')
+
+        console.log('✅ 所有脚本加载完成，开始初始化模型...')
+        setIsLoaded(true)
+
+        // --- 初始化逻辑 ---
+        const PIXI = (window as any).PIXI
+        
+        // 确保插件已挂载
+        if (!PIXI.live2d) {
+             console.error('❌ Pixi-Live2D 插件未能正确挂载')
+             return
+        }
+
+        const { Live2DModel } = PIXI.live2d
+
+        // 注册 Ticker (必须)
+        Live2DModel.registerTicker(PIXI.Ticker)
+
+        // 创建 Application
+        // 注意：如果你发现 canvas 尺寸不对，可以调整这里的 width/height
+        const app = new PIXI.Application({
+          view: canvasRef.current,
+          autoStart: true,
+          backgroundAlpha: 0, // 透明背景
+          width: 300,
+          height: 400,
+        })
+
+        // 加载模型 (这里使用的是 Haru 模型，Cubism 4 格式)
+        const model = await Live2DModel.from('https://cdn.jsdelivr.net/gh/guansss/pixi-live2d-display/test/assets/haru/haru_greeter_t03.model3.json')
+
+        // 设置模型位置和缩放
+        // 注意：Live2D 模型的坐标系和缩放比例各不相同，需要微调
+        model.anchor.set(0.5, 0.5)
+        model.position.set(150, 200) // 画布中心
+        model.scale.set(0.22)        // 调整大小
+
+        // 绑定点击事件 (播放随机动作或特定动作)
+        model.on('hit', (hitAreas: string[]) => {
           if (hitAreas.includes('body')) {
             model.motion('tap_body')
           }
         })
 
         app.stage.addChild(model)
-        console.log('✨ Live2D 模型加载完成')
+        console.log('✨ Live2D 模型渲染成功')
 
-      } catch (e) {
-        console.error('❌ Live2D 模型加载失败:', e)
+      } catch (err) {
+        console.error('❌ Live2D 初始化过程出错:', err)
       }
     }
 
     init()
 
-    // 检查隐藏状态
+    // --- 状态同步逻辑 (与右键菜单联动) ---
     const checkDisplay = () => {
         const canvas = document.getElementById('live2d-canvas');
         if (canvas) {
+            // 如果本地存储标记为 hidden，则隐藏
             const isHidden = localStorage.getItem('waifu-display') === 'hidden';
             canvas.style.opacity = isHidden ? '0' : '1';
             canvas.style.pointerEvents = isHidden ? 'none' : 'auto';
         }
     }
+    
+    // 初始化检查 + 监听 storage 事件 (跨标签页同步)
     checkDisplay();
-    window.addEventListener('storage', checkDisplay); // 跨标签页同步
+    window.addEventListener('storage', checkDisplay);
+    
+    // 监听自定义事件 (同页面同步)
+    // 我们可以让 ClientHome 在修改 localStorage 后触发一个 window 事件，或者轮询
+    // 这里简单起见，加一个定时器检查，或者依赖 React 重新渲染
+    const interval = setInterval(checkDisplay, 1000);
 
     return () => {
         window.removeEventListener('storage', checkDisplay);
-        // 清理 Pixi 应用 (如果需要)
+        clearInterval(interval);
+        // 清理 PIXI 实例 (可选，防止热重载时内存泄漏)
+        try {
+            // const PIXI = (window as any).PIXI;
+            // if (canvasRef.current && PIXI) { ... }
+        } catch(e) {}
     }
-  }, [ready])
+  }, [isLoaded])
 
   return (
-    <>
-      {/* 1. 加载 Cubism Core (必须) */}
-      <Script 
-        src="https://cubism.live2d.com/sdk-web/cubismcore/live2dcubismcore.min.js" 
-        onLoad={() => setIsScriptsLoaded(prev => ({ ...prev, cubism: true }))}
-      />
-      
-      {/* 2. 加载 PixiJS (渲染引擎) */}
-      <Script 
-        src="https://cdn.jsdelivr.net/npm/pixi.js@7.x/dist/pixi.min.js" 
-        onLoad={() => setIsScriptsLoaded(prev => ({ ...prev, pixi: true }))}
-      />
-
-      {/* 3. 加载 Pixi-Live2D-Display (连接插件) */}
-      <Script 
-        src="https://cdn.jsdelivr.net/npm/pixi-live2d-display/dist/index.min.js" 
-        onLoad={() => setIsScriptsLoaded(prev => ({ ...prev, pixiLive2d: true }))}
-      />
-
-      <canvas 
+    <canvas 
         id="live2d-canvas"
         ref={canvasRef}
         style={{
             position: 'fixed',
-            right: 0,
-            bottom: 0,
+            right: '0px',
+            bottom: '0px',
             zIndex: 50,
-            width: '300px',  // 控制显示大小
+            width: '300px',
             height: '400px',
-            pointerEvents: 'auto', // 允许点击交互
+            pointerEvents: 'auto',
             transition: 'opacity 0.3s ease'
         }}
-      />
-    </>
+    />
   )
 }
