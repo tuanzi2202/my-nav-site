@@ -43,11 +43,21 @@ export default function NotesWallClient({ initialNotes }: { initialNotes: NoteIt
 
   const handleMouseDown = (e: React.MouseEvent, note: NoteItem) => {
     if (!isAdmin) return
+    
+    // ✨ 智能判断：如果点击的是内容区的滚动条，则不启动拖拽
+    const target = e.target as HTMLElement
+    if (target.classList.contains('overflow-y-auto')) {
+        const rect = target.getBoundingClientRect()
+        // 检测点击位置是否在元素最右侧 20px 范围内（滚动条区域）
+        if (e.clientX >= rect.right - 20) {
+            return // 点击的是滚动条，直接返回，允许原生交互
+        }
+    }
+
     e.stopPropagation()
     setDraggingId(note.id)
     dragOffset.current = { x: e.clientX - note.x, y: e.clientY - note.y }
     
-    // 视觉置顶
     const maxZ = Math.max(...notes.map(n => n.sortOrder)) + 1
     setNotes(prev => prev.map(n => n.id === note.id ? { ...n, sortOrder: maxZ } : n))
   }
@@ -66,11 +76,7 @@ export default function NotesWallClient({ initialNotes }: { initialNotes: NoteIt
     if (draggingId !== null) {
       const currentId = draggingId
       const note = notes.find(n => n.id === currentId)
-      
-      // 1. 立即释放 UI
-      setDraggingId(null)
-
-      // 2. 后台保存位置和最新的层级 (SortOrder)
+      setDraggingId(null) // 立即释放 UI
       if (note) {
           await updateNotePosition(currentId, note.x, note.y, note.sortOrder)
       }
@@ -94,7 +100,7 @@ export default function NotesWallClient({ initialNotes }: { initialNotes: NoteIt
       <header className="absolute top-0 left-0 w-full z-[9999] px-8 py-6 border-b border-slate-800 bg-[#0f172a]/90 backdrop-blur-sm flex justify-between items-center h-[120px]">
         <div>
           <h1 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 to-amber-500">Sticky Wall</h1>
-          <p className="text-xs text-slate-500 mt-2">灵感碎片与备忘录 {isAdmin && <span className="text-emerald-400 font-bold ml-2">[管理模式: 拖拽边缘可移动]</span>}</p>
+          <p className="text-xs text-slate-500 mt-2">灵感碎片与备忘录 {isAdmin && <span className="text-emerald-400 font-bold ml-2">[管理模式: 可自由拖拽]</span>}</p>
         </div>
         <div className="flex gap-3">
             {isAdmin ? (
@@ -137,7 +143,7 @@ export default function NotesWallClient({ initialNotes }: { initialNotes: NoteIt
             <div className="absolute top-[-10px] left-1/2 -translate-x-1/2 w-4 h-4 rounded-full bg-black/20 backdrop-blur shadow-inner z-10 pointer-events-none"></div>
             <div className="absolute top-[-8px] left-[calc(50%-2px)] w-1.5 h-1.5 rounded-full bg-white/30 z-20 pointer-events-none"></div>
 
-            {/* ✨ 内容区域：支持滚动，阻止拖拽冒泡，允许文字选择 */}
+            {/* ✨ 修复点：移除了阻止冒泡的代码，允许点击文字时拖拽 */}
             <div 
                 className="
                     flex-1 whitespace-pre-wrap leading-relaxed font-medium font-handwriting 
@@ -145,7 +151,6 @@ export default function NotesWallClient({ initialNotes }: { initialNotes: NoteIt
                     pointer-events-auto
                     scrollbar-thin scrollbar-thumb-black/10 hover:scrollbar-thumb-black/20 scrollbar-track-transparent
                 "
-                onMouseDown={(e) => e.stopPropagation()} 
             >
               {note.content}
             </div>
