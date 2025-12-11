@@ -132,7 +132,18 @@ export default function AdminClient({
   // 🧹 handleUpdateNote 函数已移除
 
   const updateGlobalState = (key: string, value: any) => {
-    setGlobalSettings((prev: any) => ({ ...prev, [key]: value }))
+    setGlobalSettings((prev: any) => {
+      const newSettings = { ...prev, [key]: value }
+      
+      // ✨ 核心修复：手动触发自定义事件，通知 Layout 层的 Live2D 组件实时更新
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('live2d-preview-change', { 
+          detail: newSettings 
+        }))
+      }
+      
+      return newSettings
+    })
   }
 
   async function handleSaveGlobalUI(formData: FormData) {
