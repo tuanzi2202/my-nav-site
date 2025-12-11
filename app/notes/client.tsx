@@ -172,7 +172,6 @@ export default function NotesWallClient({ initialNotes }: { initialNotes: NoteIt
               <div className="absolute top-[-8px] left-[calc(50%-2px)] w-1.5 h-1.5 rounded-full bg-white/30 z-20 pointer-events-none"></div>
 
               {/* 内容区域 */}
-              {/* ✨✨✨ 修改点：select-text 保持可选，cursor-default 强制显示箭头 ✨✨✨ */}
               <div 
                 className="
                     flex-1 whitespace-pre-wrap leading-relaxed font-medium font-handwriting 
@@ -214,7 +213,8 @@ export default function NotesWallClient({ initialNotes }: { initialNotes: NoteIt
       </div>
 
       {showAuthModal && (
-        <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in">
+        // ✨✨✨ 修改点：Z-Index 提升到 1000000，确保盖过悬浮的便利贴 ✨✨✨
+        <div className="fixed inset-0 z-[1000000] flex items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in">
             <div className="bg-slate-900 border border-slate-700 p-6 rounded-2xl w-full max-w-sm shadow-2xl animate-in zoom-in-95" onMouseDown={e => e.stopPropagation()}>
                 <h3 className="text-lg font-bold text-white mb-4">管理员验证</h3>
                 <form action={handleLogin} className="space-y-4">
@@ -230,7 +230,8 @@ export default function NotesWallClient({ initialNotes }: { initialNotes: NoteIt
       )}
 
       {editingNote && (
-        <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in">
+        // ✨✨✨ 修改点：Z-Index 提升到 1000000，确保盖过悬浮的便利贴 ✨✨✨
+        <div className="fixed inset-0 z-[1000000] flex items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in">
             <div className={`p-6 rounded-2xl w-full max-w-md shadow-2xl animate-in zoom-in-95 relative ${colorStyles[editingNote.color || 'yellow'].split(' ')[0]} ${colorStyles[editingNote.color || 'yellow'].split(' ')[1]}`} onMouseDown={e => e.stopPropagation()}>
                 <h3 className="text-lg font-bold mb-4 flex items-center gap-2">{editingNote.id ? '✏️ 编辑' : '📌 新贴纸'}</h3>
                 <form action={handleSubmitNote} className="space-y-4">
