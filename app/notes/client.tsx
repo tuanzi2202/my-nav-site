@@ -109,13 +109,18 @@ export default function NotesWallClient({ initialNotes }: { initialNotes: NoteIt
               group absolute flex flex-col p-6 w-[280px] min-h-[200px] shadow-xl rounded-sm
               ${colorStyles[note.color] || colorStyles.yellow}
               
-              /* 区分模式：管理员可拖拽，普通用户有摆动动画 */
-              ${isAdmin ? 'cursor-grab active:cursor-grabbing' : 'animate-note-sway hover:[animation-play-state:paused]'}
+              /* ✨✨✨ 修改点：区分层级逻辑 ✨✨✨ */
+              /* 管理员 (isAdmin=true): 可拖拽 + 悬停强制置顶 (hover:!z-[1000])，方便选中 */
+              /* 游客 (isAdmin=false): 仅摆动动画，悬停不改变 z-index，保持被遮挡状态 */
+              ${isAdmin 
+                ? 'cursor-grab active:cursor-grabbing hover:!z-[1000]' 
+                : 'animate-note-sway hover:[animation-play-state:paused]'}
               
-              /* 通用高光效果：放大 + 边框 + 阴影 + 强制置顶 */
-              hover:ring-2 hover:ring-offset-2 hover:ring-offset-[#0f172a] hover:scale-[1.02] hover:shadow-2xl hover:!z-[1000]
+              /* ✨✨✨ 通用高光 (所有人都可见) ✨✨✨ */
+              /* 即使被遮挡，悬停时依然会有光环、轻微放大和阴影加深，提示“选中”状态 */
+              hover:ring-2 hover:ring-offset-2 hover:ring-offset-[#0f172a] hover:scale-[1.02] hover:shadow-2xl
               
-              /* ✨ 修复点：使用 'transition' 而非 'transition-all'，并对正在拖拽的元素禁用过渡 */
+              /* 性能优化：仅使用 transition，且拖拽时禁用 */
               transition duration-200 select-none ${draggingId === note.id ? 'duration-0 transition-none' : ''}
             `}
             style={{
