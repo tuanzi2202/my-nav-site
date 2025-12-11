@@ -1,3 +1,4 @@
+// app/notes/client.tsx
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
@@ -107,8 +108,15 @@ export default function NotesWallClient({ initialNotes }: { initialNotes: NoteIt
             className={`
               group absolute flex flex-col p-6 w-[280px] min-h-[200px] shadow-xl rounded-sm
               ${colorStyles[note.color] || colorStyles.yellow}
-              ${isAdmin ? 'cursor-grab active:cursor-grabbing hover:ring-2 ring-offset-2 ring-offset-[#0f172a]' : 'animate-note-sway hover:[animation-play-state:paused]'}
-              transition-shadow duration-200 select-none
+              
+              /* 区分模式：管理员可拖拽，普通用户有摆动动画 */
+              ${isAdmin ? 'cursor-grab active:cursor-grabbing' : 'animate-note-sway hover:[animation-play-state:paused]'}
+              
+              /* ✨✨✨ 通用高光效果 (Highlight Effect) ✨✨✨ */
+              /* hover:!z-[1000] 强制覆盖内联样式，确保悬停时在最上层 */
+              hover:ring-2 hover:ring-offset-2 hover:ring-offset-[#0f172a] hover:scale-[1.02] hover:shadow-2xl hover:!z-[1000]
+              
+              transition-all duration-200 select-none
             `}
             style={{
                 left: note.x,
@@ -132,36 +140,25 @@ export default function NotesWallClient({ initialNotes }: { initialNotes: NoteIt
                 </span>
                 
                 <div className="relative min-w-[60px] flex justify-end">
-                    {/* ID 显示 (保持不变) */}
                     <span className={`font-bold opacity-40 text-xs font-mono transition-opacity duration-300 pointer-events-none ${isAdmin ? 'group-hover:opacity-0' : ''}`}>
                         #{note.id}
                     </span>
                     
-                    {/* ✨ 修复点：扩大热区 + 防止误触 */}
                     {isAdmin && (
                     <div 
-                        // 1. 全区域阻止拖拽：在容器层拦截，点击缝隙也不会触发拖动
                         onMouseDown={(e) => e.stopPropagation()}
-                        // 2. 负定位补偿：-right-2 抵消 p-2 带来的内缩，保持文字贴边
                         className="absolute -right-2 top-0 bottom-0 flex items-center justify-end gap-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10 whitespace-nowrap"
                     >
                         <button 
                             onClick={() => setEditingNote(note)}
-                            // 3. 扩大点击范围：增加 p-2 (8px)，让按钮更大更好点
                             className="text-xs font-bold text-current opacity-60 hover:opacity-100 hover:underline transition-all p-2"
                         >
                             编辑
                         </button>
-                        
-                        {/* 分隔符也垂直居中，视觉微调 */}
                         <span className="text-[10px] opacity-30 select-none pb-0.5">/</span>
-
                         <form action={deleteNote}>
                             <input type="hidden" name="id" value={note.id} />
-                            <button 
-                                // 3. 扩大点击范围：同上
-                                className="text-xs font-bold text-red-900/60 hover:text-red-700 hover:underline transition-all p-2"
-                            >
+                            <button className="text-xs font-bold text-red-900/60 hover:text-red-700 hover:underline transition-all p-2">
                                 撕下
                             </button>
                         </form>
