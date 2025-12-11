@@ -4,7 +4,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { createNote, updateNote, deleteNote, updateNotePosition, loginAdmin, updateNotesBgSettings } from '../actions'
 
-// ... (类型定义) ...
+// ... (类型定义和常量保持不变) ...
 type NoteItem = {
   id: number
   content: string
@@ -15,10 +15,9 @@ type NoteItem = {
   y: number
 }
 
-// ✨ 背景配置类型
 type BgSettings = {
   type: 'color' | 'image' | 'texture' | 'custom'
-  value: string // hex code, url, or css value
+  value: string 
   blur?: boolean
 }
 
@@ -32,7 +31,6 @@ const colorStyles: Record<string, string> = {
 const COLOR_OPTIONS = Object.keys(colorStyles)
 const HEADER_HEIGHT = 140 
 
-// ✨ 预设背景选项
 const BG_PRESETS = {
   colors: [
     { name: '深邃夜空', value: '#0f172a' },
@@ -45,7 +43,7 @@ const BG_PRESETS = {
     { name: '波点阵', value: 'radial-gradient(#94a3b8 1.5px, transparent 1.5px)', bgSize: '24px 24px', bgColor: '#1e293b' },
   ],
   images: [
-    { name: '软木板', value: 'https://images.unsplash.com/photo-1596230327339-44677709eb40?q=80&w=2070&auto=format&fit=crop' }, // 经典软木板
+    { name: '软木板', value: 'https://images.unsplash.com/photo-1596230327339-44677709eb40?q=80&w=2070&auto=format&fit=crop' },
     { name: '治愈风景', value: 'https://images.unsplash.com/photo-1472214103451-9374bd1c798e?q=80&w=2070&auto=format&fit=crop' },
   ]
 }
@@ -53,9 +51,8 @@ const BG_PRESETS = {
 export default function NotesWallClient({ initialNotes, initialIsAdmin, initialBgSettings }: { initialNotes: NoteItem[], initialIsAdmin: boolean, initialBgSettings?: BgSettings }) {
   const [notes, setNotes] = useState<NoteItem[]>(initialNotes)
   const [isAdmin, setIsAdmin] = useState(initialIsAdmin)
-  const [isEditMode, setIsEditMode] = useState(false) // 默认预览模式
+  const [isEditMode, setIsEditMode] = useState(false) 
 
-  // ✨ 背景状态
   const [bgSettings, setBgSettings] = useState<BgSettings>(initialBgSettings || { type: 'color', value: '#0f172a' })
   const [showBgPanel, setShowBgPanel] = useState(false)
 
@@ -70,7 +67,6 @@ export default function NotesWallClient({ initialNotes, initialIsAdmin, initialB
 
   useEffect(() => { setNotes(initialNotes) }, [initialNotes])
 
-  // 登录逻辑
   const handleLogin = async (formData: FormData) => {
     const success = await loginAdmin(formData.get('password') as string)
     if (success) { 
@@ -83,18 +79,15 @@ export default function NotesWallClient({ initialNotes, initialIsAdmin, initialB
     }
   }
 
-  // ✨ 保存背景设置
   const handleSaveBg = async (newSettings: BgSettings) => {
     setBgSettings(newSettings)
     const formData = new FormData()
     formData.append('type', newSettings.type)
     formData.append('value', newSettings.value)
     if (newSettings.blur) formData.append('blur', 'on')
-    
     await updateNotesBgSettings(formData)
   }
 
-  // 拖拽逻辑 (保持不变)
   const handleMouseDown = (e: React.MouseEvent, note: NoteItem) => {
     if (!isEditMode) return 
     const target = e.target as HTMLElement
@@ -134,12 +127,13 @@ export default function NotesWallClient({ initialNotes, initialIsAdmin, initialB
     setEditingNote(null)
   }
 
-  // ✨ 计算背景样式
   const getBackgroundStyle = () => {
     const base: React.CSSProperties = { 
         width: '100%', 
         height: '100%', 
         position: 'absolute', 
+        top: 0,  // ✨ 确保从顶部开始
+        left: 0, // ✨ 确保从左侧开始
         zIndex: 0,
         transition: 'background 0.5s ease'
     }
@@ -148,7 +142,6 @@ export default function NotesWallClient({ initialNotes, initialIsAdmin, initialB
         return { ...base, backgroundColor: bgSettings.value }
     }
     if (bgSettings.type === 'texture') {
-        // 查找预设获取详细 CSS (比如 backgroundSize)
         const preset = BG_PRESETS.textures.find(t => t.value === bgSettings.value)
         return { 
             ...base, 
@@ -164,13 +157,12 @@ export default function NotesWallClient({ initialNotes, initialIsAdmin, initialB
             backgroundSize: 'cover',
             backgroundPosition: 'center',
             filter: bgSettings.blur ? 'blur(8px)' : 'none',
-            transform: bgSettings.blur ? 'scale(1.05)' : 'none' // 防止模糊白边
+            transform: bgSettings.blur ? 'scale(1.05)' : 'none' 
         }
     }
     return base
   }
 
-  // 判断文字颜色是否应该是深色 (简单判断，用于调整 Header 文字颜色)
   const isLightBg = bgSettings.value === '#fdf6e3' || bgSettings.value === '#e2e8f0' || bgSettings.value === '#e8f5e9' || bgSettings.type === 'texture'
 
   return (
@@ -181,43 +173,47 @@ export default function NotesWallClient({ initialNotes, initialIsAdmin, initialB
       onMouseUp={handleMouseUp}
       onMouseLeave={handleMouseUp}
     >
-      {/* ✨ 背景层 */}
+      {/* 背景层 */}
       <div style={getBackgroundStyle()} />
-      {/* 如果是模糊背景，加一个遮罩层让文字更清晰 */}
       {(bgSettings.type === 'image' || bgSettings.type === 'custom') && !bgSettings.blur && (
-          <div className="absolute inset-0 bg-black/20 pointer-events-none z-0" />
+          <div className="absolute inset-0 bg-black/10 pointer-events-none z-0" /> // 稍微降低遮罩浓度
       )}
 
-      {/* 头部 */}
-      <header className={`absolute top-0 left-0 w-full z-[9999] px-8 py-6 border-b transition-colors flex justify-between items-center h-[120px] 
-          ${isLightBg ? 'border-slate-300 bg-white/60 text-slate-800' : 'border-slate-800 bg-[#0f172a]/80 text-white'} backdrop-blur-md`}>
+      {/* ✨✨✨ 顶部 Header：更加透明、沉浸感更强 ✨✨✨ */}
+      <header className={`
+          absolute top-0 left-0 w-full z-[9999] px-8 py-6 
+          flex justify-between items-center h-[120px] 
+          transition-all duration-300 backdrop-blur-md
+          ${isLightBg 
+              ? 'bg-white/30 text-slate-800 border-b border-white/20'  // 浅色背景模式
+              : 'bg-black/20 text-white border-b border-white/5'}      // 深色背景模式 (更加透明)
+      `}>
         <div>
-          <h1 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-amber-600 drop-shadow-sm">Sticky Wall</h1>
-          <p className={`text-xs mt-2 flex items-center gap-2 ${isLightBg ? 'text-slate-600' : 'text-slate-400'}`}>
+          <h1 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 to-amber-500 drop-shadow-sm filter">Sticky Wall</h1>
+          <p className={`text-xs mt-2 flex items-center gap-2 font-medium ${isLightBg ? 'text-slate-600' : 'text-slate-300/80'}`}>
             灵感碎片与备忘录 
-            {isEditMode && <span className="text-emerald-500 font-bold bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">[管理模式]</span>}
+            {isEditMode && <span className="text-emerald-400 font-bold bg-emerald-500/20 px-1.5 py-0.5 rounded border border-emerald-400/20 shadow-sm">[管理模式]</span>}
           </p>
         </div>
+
         <div className="flex gap-3 items-center">
             {isAdmin ? (
                 <>
-                    {/* ✨✨✨ 背景设置按钮 (仅在管理模式下显示，或者一直显示？这里设定为一直显示方便调整) ✨✨✨ */}
                     <div className="relative">
                         <button 
                             onClick={() => setShowBgPanel(!showBgPanel)} 
-                            className={`p-2 rounded-lg transition border ${showBgPanel ? 'bg-indigo-500 text-white border-indigo-500' : 'hover:bg-slate-500/20 border-transparent'}`}
+                            className={`p-2 rounded-lg transition border backdrop-blur-sm ${showBgPanel ? 'bg-indigo-500 text-white border-indigo-500' : 'bg-black/10 hover:bg-black/20 text-current border-transparent'}`}
                             title="背景设置"
                         >
                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
                         </button>
 
-                        {/* ✨✨✨ 背景设置面板 ✨✨✨ */}
                         {showBgPanel && (
-                            <div className="absolute top-12 right-0 w-72 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl p-4 animate-in zoom-in-95 origin-top-right text-slate-200">
+                            <div className="absolute top-12 right-0 w-72 bg-slate-900/95 backdrop-blur-xl border border-slate-700 rounded-xl shadow-2xl p-4 animate-in zoom-in-95 origin-top-right text-slate-200 z-[10000]">
                                 <h4 className="text-xs font-bold text-slate-400 mb-3 uppercase tracking-wider">背景风格</h4>
                                 
                                 <div className="space-y-4">
-                                    {/* 纯色 */}
+                                    {/* ... (背景设置面板内容保持不变) ... */}
                                     <div>
                                         <div className="text-[10px] text-slate-500 mb-2">纯色主题</div>
                                         <div className="flex gap-2">
@@ -227,13 +223,11 @@ export default function NotesWallClient({ initialNotes, initialIsAdmin, initialB
                                                     onClick={() => handleSaveBg({ type: 'color', value: c.value })}
                                                     className={`w-8 h-8 rounded-full border-2 transition ${bgSettings.value === c.value ? 'border-white scale-110' : 'border-transparent hover:scale-105'}`}
                                                     style={{ backgroundColor: c.value }}
-                                                    title={c.name}
                                                 />
                                             ))}
                                         </div>
                                     </div>
-
-                                    {/* 纹理 */}
+                                    
                                     <div>
                                         <div className="text-[10px] text-slate-500 mb-2">质感纹理</div>
                                         <div className="grid grid-cols-2 gap-2">
@@ -250,7 +244,6 @@ export default function NotesWallClient({ initialNotes, initialIsAdmin, initialB
                                         </div>
                                     </div>
 
-                                    {/* 图片 */}
                                     <div>
                                         <div className="text-[10px] text-slate-500 mb-2">精选壁纸</div>
                                         <div className="grid grid-cols-2 gap-2">
@@ -266,22 +259,16 @@ export default function NotesWallClient({ initialNotes, initialIsAdmin, initialB
                                         </div>
                                     </div>
 
-                                    {/* 自定义 */}
                                     <div>
                                         <div className="text-[10px] text-slate-500 mb-2">自定义图片 URL</div>
                                         <input 
                                             type="text" 
                                             placeholder="https://..." 
                                             className="w-full bg-slate-950 border border-slate-700 rounded-lg px-2 py-1 text-xs text-white focus:border-indigo-500 outline-none"
-                                            onKeyDown={(e) => {
-                                                if (e.key === 'Enter') {
-                                                    handleSaveBg({ type: 'custom', value: e.currentTarget.value })
-                                                }
-                                            }}
+                                            onKeyDown={(e) => { if (e.key === 'Enter') handleSaveBg({ type: 'custom', value: e.currentTarget.value }) }}
                                         />
                                     </div>
 
-                                    {/* 模糊开关 */}
                                     {(bgSettings.type === 'image' || bgSettings.type === 'custom') && (
                                         <label className="flex items-center gap-2 text-xs text-slate-300 cursor-pointer pt-2 border-t border-slate-800">
                                             <input 
@@ -290,7 +277,7 @@ export default function NotesWallClient({ initialNotes, initialIsAdmin, initialB
                                                 onChange={(e) => handleSaveBg({ ...bgSettings, blur: e.target.checked })}
                                                 className="rounded bg-slate-800 border-slate-600 accent-indigo-500"
                                             />
-                                            背景模糊 (提升文字可读性)
+                                            背景模糊
                                         </label>
                                     )}
                                 </div>
@@ -298,37 +285,41 @@ export default function NotesWallClient({ initialNotes, initialIsAdmin, initialB
                         )}
                     </div>
 
-                    <div className="w-px h-6 bg-slate-500/30 mx-1"></div>
+                    <div className={`w-px h-6 mx-1 ${isLightBg ? 'bg-slate-400/30' : 'bg-white/20'}`}></div>
 
                     <button 
                         onClick={() => setIsEditMode(!isEditMode)} 
                         className={`
-                            px-4 py-2 rounded-lg transition text-sm flex items-center gap-2 font-medium border
+                            px-4 py-2 rounded-lg transition text-sm flex items-center gap-2 font-medium border backdrop-blur-sm
                             ${isEditMode 
                                 ? 'bg-slate-800 text-slate-400 border-transparent hover:bg-slate-700 hover:text-white' 
-                                : 'bg-emerald-600/20 text-emerald-500 border-emerald-500/30 hover:bg-emerald-600/30'}
+                                : isLightBg 
+                                    ? 'bg-emerald-600/10 text-emerald-700 border-emerald-600/20 hover:bg-emerald-600/20'
+                                    : 'bg-emerald-400/10 text-emerald-400 border-emerald-400/20 hover:bg-emerald-400/20'
+                            }
                         `}
                     >
                         {isEditMode ? '预览' : '管理'}
                     </button>
 
                     {isEditMode && (
-                        <button onClick={() => setEditingNote({ color: 'yellow' })} className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg transition text-sm flex items-center gap-2 shadow-lg">
+                        <button onClick={() => setEditingNote({ color: 'yellow' })} className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg transition text-sm flex items-center gap-2 shadow-lg hover:shadow-emerald-500/30">
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"></path></svg> 
                             贴一张
                         </button>
                     )}
                 </>
             ) : (
-                <button onClick={() => setShowAuthModal(true)} className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg transition text-sm">管理员登录</button>
+                <button onClick={() => setShowAuthModal(true)} className="px-4 py-2 bg-black/40 hover:bg-black/60 text-white rounded-lg transition text-sm backdrop-blur-sm border border-white/10">管理员登录</button>
             )}
-            <a href="/" className="px-4 py-2 bg-slate-800 rounded-lg hover:bg-slate-700 transition text-sm text-slate-300">返回</a>
+            <a href="/" className={`px-4 py-2 rounded-lg transition text-sm backdrop-blur-sm ${isLightBg ? 'bg-black/5 hover:bg-black/10 text-slate-700' : 'bg-white/10 hover:bg-white/20 text-white'}`}>返回</a>
         </div>
       </header>
 
-      {/* 便利贴区域 */}
+      {/* ... (Notes 渲染区域、登录 Modal、编辑 Modal 保持不变) ... */}
       <div className="w-full h-full relative z-10">
         {notes.map((note) => {
+          // ... (Note 渲染逻辑保持不变) ...
           const isDragging = draggingId === note.id
           const isHovered = isEditMode && hoveredId === note.id
           
