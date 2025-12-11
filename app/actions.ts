@@ -196,7 +196,7 @@ export async function updateGlobalUISettings(formData: FormData) {
 
     // ✨✨✨ 新增：调试边框开关 ✨✨✨
     live2dBorder: formData.get('live2dBorder') === 'on', // 是否显示红色边框
-    
+
     noise: formData.get('noise') === 'on',
     glow: formData.get('glow') === 'on',
     tilt: formData.get('tilt') === 'on',
@@ -461,4 +461,53 @@ export async function deleteNote(formData: FormData) {
   await prisma.note.delete({ where: { id: parseInt(id) } })
   revalidatePath('/notes')
   revalidatePath('/admin')
+}
+
+// --- ✨✨✨ AI 对话接口 ✨✨✨ ---
+
+export async function chatWithAI(message: string) {
+  // 1. 获取环境变量 (请在 .env 文件中配置)
+  const apiKey = process.env.AI_API_KEY
+  const baseUrl = process.env.AI_BASE_URL || 'https://api.openai.com/v1'
+  const model = process.env.AI_MODEL || 'gpt-3.5-turbo'
+
+  if (!apiKey) {
+    return { success: false, reply: '请先配置 API Key 呀~' }
+  }
+
+  try {
+    // 2. 调用大模型 API
+    const response = await fetch(`${baseUrl}/chat/completions`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`
+      },
+      body: JSON.stringify({
+        model: model,
+        messages: [
+          // 设定人设：傲娇、可爱的看板娘
+          { role: 'system', content: '你是一个住在网页里的看板娘，名字叫Haru。性格活泼、有点傲娇，说话简短可爱，喜欢用颜文字。请不要回答太长的内容，尽量控制在50字以内。' },
+          { role: 'user', content: message }
+        ],
+        temperature: 0.7,
+        max_tokens: 100
+      })
+    })
+
+    const data = await response.json()
+
+    if (!response.ok) {
+      console.error('AI API Error:', data)
+      return { success: false, reply: '大脑短路了...稍后再试试吧' }
+    }
+
+    // 3. 返回 AI 的回复
+    const reply = data.choices[0]?.message?.content || '(发呆中...)'
+    return { success: true, reply }
+
+  } catch (error) {
+    console.error('Chat Error:', error)
+    return { success: false, reply: '网络好像有点问题呢...' }
+  }
 }
