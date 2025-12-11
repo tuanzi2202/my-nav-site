@@ -29,7 +29,7 @@ export default function NotesWallClient({ initialNotes, initialIsAdmin }: { init
   
   // ✨✨✨ 状态分离：isAdmin 代表身份权限，isEditMode 代表当前界面模式 ✨✨✨
   const [isAdmin, setIsAdmin] = useState(initialIsAdmin)
-  const [isEditMode, setIsEditMode] = useState(initialIsAdmin)
+  const [isEditMode, setIsEditMode] = useState(false)
 
   const [showAuthModal, setShowAuthModal] = useState(false)
   const [authError, setAuthError] = useState('')
@@ -47,7 +47,7 @@ export default function NotesWallClient({ initialNotes, initialIsAdmin }: { init
     const success = await loginAdmin(formData.get('password') as string)
     if (success) { 
         setIsAdmin(true); 
-        setIsEditMode(true); // 登录成功默认开启编辑模式
+        setIsEditMode(false);
         setShowAuthModal(false); 
         setAuthError('') 
     } else { 
