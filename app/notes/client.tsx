@@ -127,36 +127,47 @@ export default function NotesWallClient({ initialNotes }: { initialNotes: NoteIt
             </div>
             
             <div className="mt-4 pt-4 border-t border-black/5 flex justify-between items-center h-8 relative">
-              <span className="opacity-60 text-xs font-mono pointer-events-none text-slate-700">{new Date(note.createdAt).toLocaleDateString()}</span>
-              
-              <div className="flex justify-end min-w-[80px]">
-                 <span className={`font-bold opacity-40 text-xs font-mono transition-all duration-200 pointer-events-none ${isAdmin ? 'group-hover:opacity-0 group-hover:translate-x-4' : ''}`}>
-                    #{note.id}
-                 </span>
-                 
-                 {isAdmin && (
-                   <div className="absolute right-0 top-1/2 -translate-y-1/2 flex items-center opacity-0 group-hover:opacity-100 transition-all duration-200 z-50 translate-x-2 group-hover:translate-x-0">
-                      <div className="flex items-center gap-0 bg-white/40 backdrop-blur-md rounded-full px-2 py-1 shadow-sm border border-white/20 whitespace-nowrap">
-                          <button 
-                            onMouseDown={(e) => { e.stopPropagation(); setEditingNote(note); }}
-                            className="px-2 py-0.5 text-[11px] font-bold text-slate-700 hover:text-indigo-600 hover:bg-white/50 rounded transition-colors"
-                          >
+                <span className="opacity-60 text-xs font-mono pointer-events-none text-current">
+                    {new Date(note.createdAt).toLocaleDateString()}
+                </span>
+                
+                <div className="relative min-w-[60px] flex justify-end">
+                    {/* ID 显示 (保持不变) */}
+                    <span className={`font-bold opacity-40 text-xs font-mono transition-opacity duration-300 pointer-events-none ${isAdmin ? 'group-hover:opacity-0' : ''}`}>
+                        #{note.id}
+                    </span>
+                    
+                    {/* ✨ 修复点：扩大热区 + 防止误触 */}
+                    {isAdmin && (
+                    <div 
+                        // 1. 全区域阻止拖拽：在容器层拦截，点击缝隙也不会触发拖动
+                        onMouseDown={(e) => e.stopPropagation()}
+                        // 2. 负定位补偿：-right-2 抵消 p-2 带来的内缩，保持文字贴边
+                        className="absolute -right-2 top-0 bottom-0 flex items-center justify-end gap-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10 whitespace-nowrap"
+                    >
+                        <button 
+                            onClick={() => setEditingNote(note)}
+                            // 3. 扩大点击范围：增加 p-2 (8px)，让按钮更大更好点
+                            className="text-xs font-bold text-current opacity-60 hover:opacity-100 hover:underline transition-all p-2"
+                        >
                             编辑
-                          </button>
-                          <div className="w-px h-3 bg-black/10 mx-0.5"></div>
-                          <form action={deleteNote}>
-                             <input type="hidden" name="id" value={note.id} />
-                             <button 
-                                onMouseDown={(e) => e.stopPropagation()} 
-                                className="px-2 py-0.5 text-[11px] font-bold text-slate-700 hover:text-red-600 hover:bg-red-500/10 rounded transition-colors"
-                             >
+                        </button>
+                        
+                        {/* 分隔符也垂直居中，视觉微调 */}
+                        <span className="text-[10px] opacity-30 select-none pb-0.5">/</span>
+
+                        <form action={deleteNote}>
+                            <input type="hidden" name="id" value={note.id} />
+                            <button 
+                                // 3. 扩大点击范围：同上
+                                className="text-xs font-bold text-red-900/60 hover:text-red-700 hover:underline transition-all p-2"
+                            >
                                 撕下
-                             </button>
-                          </form>
-                      </div>
-                   </div>
-                 )}
-              </div>
+                            </button>
+                        </form>
+                    </div>
+                    )}
+                </div>
             </div>
           </div>
         ))}
