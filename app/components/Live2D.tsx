@@ -14,6 +14,28 @@ export default function Live2D({ settings }: { settings: any }) {
   const appRef = useRef<any>(null)   // 保存 PIXI Application 实例
   const modelRef = useRef<any>(null) // 保存当前模型实例
 
+  // ✨✨✨ 1. 新增：预览配置状态 ✨✨✨
+  // 如果有预览配置(previewSettings)，就优先用预览的，否则用数据库传来的(initialSettings)
+  const [previewSettings, setPreviewSettings] = useState<any>(null)
+
+  // 合并配置：预览 > 初始
+  const settings = previewSettings || initialSettings
+
+  // ✨✨✨ 2. 新增：监听预览事件 ✨✨✨
+  useEffect(() => {
+    const handlePreviewUpdate = (event: CustomEvent) => {
+        // 收到 Admin 发来的新配置，更新本地状态
+        setPreviewSettings(event.detail)
+    }
+
+    // 监听名为 'live2d-preview-change' 的自定义事件
+    window.addEventListener('live2d-preview-change' as any, handlePreviewUpdate)
+
+    return () => {
+        window.removeEventListener('live2d-preview-change' as any, handlePreviewUpdate)
+    }
+  }, [])
+
   // 1. 提取配置 (给予默认值)
   const modelUrl = settings?.live2dModel || DEFAULT_MODEL
   const scale = settings?.live2dScale ?? 0.12
