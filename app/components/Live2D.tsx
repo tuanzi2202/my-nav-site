@@ -139,17 +139,31 @@ export default function Live2D({ settings: initialSettings }: { settings: any })
   const handleSend = async (e: React.FormEvent) => {
       e.preventDefault()
       if (!chatInput.trim() || isThinking) return
+
       const question = chatInput
       setChatInput('') 
       setChatMessage('让我想想...') 
       setIsThinking(true)
-      const res = await chatWithAI(question)
-      setIsThinking(false)
-      if (res.success) {
-          setChatMessage(res.reply)
-          if (modelRef.current) modelRef.current.motion('tap_body') 
-      } else {
-          setChatMessage('呜呜，刚才没听清...')
+
+      try {
+          // 调用后端
+          const res = await chatWithAI(question)
+          
+          console.log('后端返回:', res) // ✨这里能让你在浏览器看到返回了什么
+
+          setIsThinking(false)
+          
+          if (res.success) {
+              setChatMessage(res.reply)
+              if (modelRef.current) modelRef.current.motion('tap_body') 
+          } else {
+              // ✨✨✨ 关键修改：直接显示后端的错误提示，不再统一显示“没听清” ✨✨✨
+              setChatMessage(`出错啦：${res.reply}`) 
+          }
+      } catch (err) {
+          console.error(err)
+          setIsThinking(false)
+          setChatMessage('网络请求失败了')
       }
   }
 
@@ -181,12 +195,14 @@ export default function Live2D({ settings: initialSettings }: { settings: any })
             <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-3 h-3 bg-white/90 rotate-45 border-r border-b border-slate-200"></div>
         </div>
 
-        {/* ✨✨✨ 修复3：输入框位置 ✨✨✨ */}
-        {/* 确保 zIndex 足够高，并且 click 事件能穿透 */}
+        {/* ✨✨✨ 修复3：输入框位置优化 ✨✨✨ */}
         {showInput && (
             <form 
                 onSubmit={handleSend}
-                className="absolute bottom-2 left-1/2 -translate-x-1/2 w-[95%] flex gap-2 pointer-events-auto animate-in slide-in-from-bottom-2"
+                // 👇👇👇 修改了这一行的 className 👇👇👇
+                // 旧写法: absolute bottom-2 left-1/2 -translate-x-1/2 w-[95%] ...
+                // 新写法: absolute bottom-2 left-2 right-2 ... (去掉宽度和居中，改用左右锚点)
+                className="absolute bottom-2 left-2 right-2 flex gap-2 pointer-events-auto animate-in slide-in-from-bottom-2"
                 style={{ zIndex: 60 }}
             >
                 <input 
@@ -195,7 +211,8 @@ export default function Live2D({ settings: initialSettings }: { settings: any })
                     onChange={e => setChatInput(e.target.value)}
                     placeholder="说点什么..."
                     autoFocus
-                    className="flex-1 bg-white/90 backdrop-blur-sm border border-pink-200 rounded-full px-4 py-2 text-xs focus:outline-none focus:border-pink-400 focus:ring-2 focus:ring-pink-400/20 shadow-lg text-slate-700"
+                    // 给输入框加个 min-w-0 防止 flex 溢出
+                    className="flex-1 min-w-0 bg-white/90 backdrop-blur-sm border border-pink-200 rounded-full px-4 py-2 text-xs focus:outline-none focus:border-pink-400 focus:ring-2 focus:ring-pink-400/20 shadow-lg text-slate-700"
                 />
                 <button 
                     type="submit"
