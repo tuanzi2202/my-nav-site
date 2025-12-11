@@ -321,7 +321,14 @@ export default function NotesWallClient({ initialNotes, initialIsAdmin, initialB
                         {/* 预设颜色 */}
                         {COLOR_OPTIONS.map(c => (
                             <label key={c} className="cursor-pointer relative group">
-                                <input type="radio" name="color" value={c} defaultChecked={c === (editingNote.color || 'yellow')} onChange={() => setEditingNote({...editingNote, color: c})} className="peer sr-only" />
+                                <input 
+                                    type="radio" 
+                                    name="color" 
+                                    value={c} 
+                                    checked={c === (editingNote.color || 'yellow')} // ✅ 改为 checked，实现受控组件
+                                    onChange={() => setEditingNote({...editingNote, color: c})} 
+                                    className="peer sr-only" 
+                                />
                                 <div className={`w-6 h-6 rounded-full border-2 border-transparent peer-checked:border-black/50 peer-checked:scale-110 transition-all ${colorStyles[c].split(' ')[0]}`}></div>
                             </label>
                         ))}
