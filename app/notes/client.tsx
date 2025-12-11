@@ -2,8 +2,9 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { createNote, updateNote, deleteNote, updateNotePosition, loginAdmin } from '../actions'
+import { createNote, updateNote, deleteNote, updateNotePosition, loginAdmin, updateNotesBgSettings } from '../actions'
 
+// ... (类型定义) ...
 type NoteItem = {
   id: number
   content: string
@@ -12,6 +13,13 @@ type NoteItem = {
   sortOrder: number
   x: number
   y: number
+}
+
+// ✨ 背景配置类型
+type BgSettings = {
+  type: 'color' | 'image' | 'texture' | 'custom'
+  value: string // hex code, url, or css value
+  blur?: boolean
 }
 
 const colorStyles: Record<string, string> = {
@@ -24,30 +32,50 @@ const colorStyles: Record<string, string> = {
 const COLOR_OPTIONS = Object.keys(colorStyles)
 const HEADER_HEIGHT = 140 
 
-export default function NotesWallClient({ initialNotes, initialIsAdmin }: { initialNotes: NoteItem[], initialIsAdmin: boolean }) {
+// ✨ 预设背景选项
+const BG_PRESETS = {
+  colors: [
+    { name: '深邃夜空', value: '#0f172a' },
+    { name: '暖调米白', value: '#fdf6e3' },
+    { name: '极简灰', value: '#e2e8f0' },
+    { name: '护眼绿', value: '#e8f5e9' },
+  ],
+  textures: [
+    { name: '网格纸', value: 'radial-gradient(#cbd5e1 1px, transparent 1px)', bgSize: '20px 20px', bgColor: '#f8fafc' },
+    { name: '波点阵', value: 'radial-gradient(#94a3b8 1.5px, transparent 1.5px)', bgSize: '24px 24px', bgColor: '#1e293b' },
+  ],
+  images: [
+    { name: '软木板', value: 'https://images.unsplash.com/photo-1596230327339-44677709eb40?q=80&w=2070&auto=format&fit=crop' }, // 经典软木板
+    { name: '治愈风景', value: 'https://images.unsplash.com/photo-1472214103451-9374bd1c798e?q=80&w=2070&auto=format&fit=crop' },
+  ]
+}
+
+export default function NotesWallClient({ initialNotes, initialIsAdmin, initialBgSettings }: { initialNotes: NoteItem[], initialIsAdmin: boolean, initialBgSettings?: BgSettings }) {
   const [notes, setNotes] = useState<NoteItem[]>(initialNotes)
-  
-  // ✨✨✨ 状态分离：isAdmin 代表身份权限，isEditMode 代表当前界面模式 ✨✨✨
   const [isAdmin, setIsAdmin] = useState(initialIsAdmin)
-  const [isEditMode, setIsEditMode] = useState(false)
+  const [isEditMode, setIsEditMode] = useState(false) // 默认预览模式
+
+  // ✨ 背景状态
+  const [bgSettings, setBgSettings] = useState<BgSettings>(initialBgSettings || { type: 'color', value: '#0f172a' })
+  const [showBgPanel, setShowBgPanel] = useState(false)
 
   const [showAuthModal, setShowAuthModal] = useState(false)
   const [authError, setAuthError] = useState('')
   const [editingNote, setEditingNote] = useState<Partial<NoteItem> | null>(null)
   
   const [hoveredId, setHoveredId] = useState<number | null>(null)
-  
   const [draggingId, setDraggingId] = useState<number | null>(null)
   const dragOffset = useRef({ x: 0, y: 0 })
   const containerRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => { setNotes(initialNotes) }, [initialNotes])
 
+  // 登录逻辑
   const handleLogin = async (formData: FormData) => {
     const success = await loginAdmin(formData.get('password') as string)
     if (success) { 
         setIsAdmin(true); 
-        setIsEditMode(false);
+        setIsEditMode(false); 
         setShowAuthModal(false); 
         setAuthError('') 
     } else { 
@@ -55,20 +83,28 @@ export default function NotesWallClient({ initialNotes, initialIsAdmin }: { init
     }
   }
 
-  // ✨ 将所有的 isAdmin 检查替换为 isEditMode 检查
-  const handleMouseDown = (e: React.MouseEvent, note: NoteItem) => {
-    if (!isEditMode) return // 只有在编辑模式下才能拖拽
+  // ✨ 保存背景设置
+  const handleSaveBg = async (newSettings: BgSettings) => {
+    setBgSettings(newSettings)
+    const formData = new FormData()
+    formData.append('type', newSettings.type)
+    formData.append('value', newSettings.value)
+    if (newSettings.blur) formData.append('blur', 'on')
     
+    await updateNotesBgSettings(formData)
+  }
+
+  // 拖拽逻辑 (保持不变)
+  const handleMouseDown = (e: React.MouseEvent, note: NoteItem) => {
+    if (!isEditMode) return 
     const target = e.target as HTMLElement
     if (target.classList.contains('overflow-y-auto')) {
         const rect = target.getBoundingClientRect()
         if (e.clientX >= rect.right - 15) return 
     }
-
     e.stopPropagation()
     setDraggingId(note.id)
     dragOffset.current = { x: e.clientX - note.x, y: e.clientY - note.y }
-    
     const maxZ = Math.max(...notes.map(n => n.sortOrder), 0) + 1
     setNotes(prev => prev.map(n => n.id === note.id ? { ...n, sortOrder: maxZ } : n))
   }
@@ -87,12 +123,8 @@ export default function NotesWallClient({ initialNotes, initialIsAdmin }: { init
     if (draggingId !== null) {
       const currentId = draggingId
       const note = notes.find(n => n.id === currentId)
-      
       setDraggingId(null)
-
-      if (note) {
-          await updateNotePosition(currentId, note.x, note.y, note.sortOrder)
-      }
+      if (note) await updateNotePosition(currentId, note.x, note.y, note.sortOrder)
     }
   }
 
@@ -102,6 +134,45 @@ export default function NotesWallClient({ initialNotes, initialIsAdmin }: { init
     setEditingNote(null)
   }
 
+  // ✨ 计算背景样式
+  const getBackgroundStyle = () => {
+    const base: React.CSSProperties = { 
+        width: '100%', 
+        height: '100%', 
+        position: 'absolute', 
+        zIndex: 0,
+        transition: 'background 0.5s ease'
+    }
+
+    if (bgSettings.type === 'color') {
+        return { ...base, backgroundColor: bgSettings.value }
+    }
+    if (bgSettings.type === 'texture') {
+        // 查找预设获取详细 CSS (比如 backgroundSize)
+        const preset = BG_PRESETS.textures.find(t => t.value === bgSettings.value)
+        return { 
+            ...base, 
+            backgroundImage: bgSettings.value,
+            backgroundColor: preset?.bgColor || '#f8fafc',
+            backgroundSize: preset?.bgSize || 'auto'
+        }
+    }
+    if (bgSettings.type === 'image' || bgSettings.type === 'custom') {
+        return {
+            ...base,
+            backgroundImage: `url(${bgSettings.value})`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            filter: bgSettings.blur ? 'blur(8px)' : 'none',
+            transform: bgSettings.blur ? 'scale(1.05)' : 'none' // 防止模糊白边
+        }
+    }
+    return base
+  }
+
+  // 判断文字颜色是否应该是深色 (简单判断，用于调整 Header 文字颜色)
+  const isLightBg = bgSettings.value === '#fdf6e3' || bgSettings.value === '#e2e8f0' || bgSettings.value === '#e8f5e9' || bgSettings.type === 'texture'
+
   return (
     <div 
       ref={containerRef}
@@ -110,45 +181,141 @@ export default function NotesWallClient({ initialNotes, initialIsAdmin }: { init
       onMouseUp={handleMouseUp}
       onMouseLeave={handleMouseUp}
     >
-      <header className="absolute top-0 left-0 w-full z-[9999] px-8 py-6 border-b border-slate-800 bg-[#0f172a]/90 backdrop-blur-sm flex justify-between items-center h-[120px]">
+      {/* ✨ 背景层 */}
+      <div style={getBackgroundStyle()} />
+      {/* 如果是模糊背景，加一个遮罩层让文字更清晰 */}
+      {(bgSettings.type === 'image' || bgSettings.type === 'custom') && !bgSettings.blur && (
+          <div className="absolute inset-0 bg-black/20 pointer-events-none z-0" />
+      )}
+
+      {/* 头部 */}
+      <header className={`absolute top-0 left-0 w-full z-[9999] px-8 py-6 border-b transition-colors flex justify-between items-center h-[120px] 
+          ${isLightBg ? 'border-slate-300 bg-white/60 text-slate-800' : 'border-slate-800 bg-[#0f172a]/80 text-white'} backdrop-blur-md`}>
         <div>
-          <h1 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 to-amber-500">Sticky Wall</h1>
-          <p className="text-xs text-slate-500 mt-2 flex items-center gap-2">
+          <h1 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-amber-600 drop-shadow-sm">Sticky Wall</h1>
+          <p className={`text-xs mt-2 flex items-center gap-2 ${isLightBg ? 'text-slate-600' : 'text-slate-400'}`}>
             灵感碎片与备忘录 
-            {/* ✨ 状态指示器只显示当前模式 */}
-            {isEditMode && <span className="text-emerald-400 font-bold bg-emerald-400/10 px-1.5 py-0.5 rounded">[管理模式: 可拖拽/编辑]</span>}
+            {isEditMode && <span className="text-emerald-500 font-bold bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">[管理模式]</span>}
           </p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex gap-3 items-center">
             {isAdmin ? (
                 <>
-                    {/* ✨✨✨ 新增：模式切换按钮 ✨✨✨ */}
+                    {/* ✨✨✨ 背景设置按钮 (仅在管理模式下显示，或者一直显示？这里设定为一直显示方便调整) ✨✨✨ */}
+                    <div className="relative">
+                        <button 
+                            onClick={() => setShowBgPanel(!showBgPanel)} 
+                            className={`p-2 rounded-lg transition border ${showBgPanel ? 'bg-indigo-500 text-white border-indigo-500' : 'hover:bg-slate-500/20 border-transparent'}`}
+                            title="背景设置"
+                        >
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                        </button>
+
+                        {/* ✨✨✨ 背景设置面板 ✨✨✨ */}
+                        {showBgPanel && (
+                            <div className="absolute top-12 right-0 w-72 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl p-4 animate-in zoom-in-95 origin-top-right text-slate-200">
+                                <h4 className="text-xs font-bold text-slate-400 mb-3 uppercase tracking-wider">背景风格</h4>
+                                
+                                <div className="space-y-4">
+                                    {/* 纯色 */}
+                                    <div>
+                                        <div className="text-[10px] text-slate-500 mb-2">纯色主题</div>
+                                        <div className="flex gap-2">
+                                            {BG_PRESETS.colors.map(c => (
+                                                <button 
+                                                    key={c.value} 
+                                                    onClick={() => handleSaveBg({ type: 'color', value: c.value })}
+                                                    className={`w-8 h-8 rounded-full border-2 transition ${bgSettings.value === c.value ? 'border-white scale-110' : 'border-transparent hover:scale-105'}`}
+                                                    style={{ backgroundColor: c.value }}
+                                                    title={c.name}
+                                                />
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {/* 纹理 */}
+                                    <div>
+                                        <div className="text-[10px] text-slate-500 mb-2">质感纹理</div>
+                                        <div className="grid grid-cols-2 gap-2">
+                                            {BG_PRESETS.textures.map(t => (
+                                                <button
+                                                    key={t.name}
+                                                    onClick={() => handleSaveBg({ type: 'texture', value: t.value })}
+                                                    className={`h-10 rounded-lg border text-xs transition relative overflow-hidden ${bgSettings.value === t.value ? 'border-indigo-500 text-indigo-400' : 'border-slate-700 text-slate-400 hover:border-slate-600'}`}
+                                                    style={{ backgroundImage: t.value, backgroundColor: t.bgColor, backgroundSize: t.bgSize }}
+                                                >
+                                                    <span className="relative z-10 bg-slate-900/80 px-1 rounded">{t.name}</span>
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {/* 图片 */}
+                                    <div>
+                                        <div className="text-[10px] text-slate-500 mb-2">精选壁纸</div>
+                                        <div className="grid grid-cols-2 gap-2">
+                                            {BG_PRESETS.images.map(img => (
+                                                <button
+                                                    key={img.name}
+                                                    onClick={() => handleSaveBg({ type: 'image', value: img.value })}
+                                                    className={`h-16 rounded-lg border bg-cover bg-center transition ${bgSettings.value === img.value ? 'border-indigo-500 ring-1 ring-indigo-500' : 'border-slate-700 opacity-80 hover:opacity-100'}`}
+                                                    style={{ backgroundImage: `url(${img.value})` }}
+                                                >
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {/* 自定义 */}
+                                    <div>
+                                        <div className="text-[10px] text-slate-500 mb-2">自定义图片 URL</div>
+                                        <input 
+                                            type="text" 
+                                            placeholder="https://..." 
+                                            className="w-full bg-slate-950 border border-slate-700 rounded-lg px-2 py-1 text-xs text-white focus:border-indigo-500 outline-none"
+                                            onKeyDown={(e) => {
+                                                if (e.key === 'Enter') {
+                                                    handleSaveBg({ type: 'custom', value: e.currentTarget.value })
+                                                }
+                                            }}
+                                        />
+                                    </div>
+
+                                    {/* 模糊开关 */}
+                                    {(bgSettings.type === 'image' || bgSettings.type === 'custom') && (
+                                        <label className="flex items-center gap-2 text-xs text-slate-300 cursor-pointer pt-2 border-t border-slate-800">
+                                            <input 
+                                                type="checkbox" 
+                                                checked={!!bgSettings.blur} 
+                                                onChange={(e) => handleSaveBg({ ...bgSettings, blur: e.target.checked })}
+                                                className="rounded bg-slate-800 border-slate-600 accent-indigo-500"
+                                            />
+                                            背景模糊 (提升文字可读性)
+                                        </label>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="w-px h-6 bg-slate-500/30 mx-1"></div>
+
                     <button 
                         onClick={() => setIsEditMode(!isEditMode)} 
                         className={`
                             px-4 py-2 rounded-lg transition text-sm flex items-center gap-2 font-medium border
                             ${isEditMode 
                                 ? 'bg-slate-800 text-slate-400 border-transparent hover:bg-slate-700 hover:text-white' 
-                                : 'bg-emerald-600/20 text-emerald-400 border-emerald-500/30 hover:bg-emerald-600/30 shadow-[0_0_15px_rgba(16,185,129,0.2)]'}
+                                : 'bg-emerald-600/20 text-emerald-500 border-emerald-500/30 hover:bg-emerald-600/30'}
                         `}
                     >
-                        {isEditMode ? (
-                            <>
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
-                                切换至预览
-                            </>
-                        ) : (
-                            <>
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-                                切换至管理
-                            </>
-                        )}
+                        {isEditMode ? '预览' : '管理'}
                     </button>
 
-                    {/* ✨ 只有在编辑模式下才显示“贴一张”按钮 */}
                     {isEditMode && (
                         <button onClick={() => setEditingNote({ color: 'yellow' })} className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg transition text-sm flex items-center gap-2 shadow-lg">
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"></path></svg> 贴一张
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"></path></svg> 
+                            贴一张
                         </button>
                     )}
                 </>
@@ -159,40 +326,29 @@ export default function NotesWallClient({ initialNotes, initialIsAdmin }: { init
         </div>
       </header>
 
-      <div className="w-full h-full">
+      {/* 便利贴区域 */}
+      <div className="w-full h-full relative z-10">
         {notes.map((note) => {
           const isDragging = draggingId === note.id
-          // ✨ 使用 isEditMode 判断是否允许 hover 高亮
           const isHovered = isEditMode && hoveredId === note.id
           
           let dynamicZIndex = note.sortOrder
-          if (isDragging) {
-             dynamicZIndex = 999999 
-          } else if (isHovered) {
-             dynamicZIndex = 999990 
-          }
+          if (isDragging) dynamicZIndex = 999999 
+          else if (isHovered) dynamicZIndex = 999990
 
           return (
             <div
               key={note.id}
-              // ✨ 事件处理全部检查 isEditMode
               onMouseDown={(e) => handleMouseDown(e, note)}
               onMouseEnter={() => isEditMode && setHoveredId(note.id)}
               onMouseLeave={() => isEditMode && setHoveredId(null)}
               className={`
                 group absolute flex flex-col p-6 w-[280px] min-h-[200px] shadow-xl rounded-sm
                 ${colorStyles[note.color] || colorStyles.yellow}
-                
                 border border-black/50
-
-                /* ✨ 根据模式切换光标样式和动画 */
-                ${isEditMode 
-                  ? 'cursor-grab active:cursor-grabbing' 
-                  : 'animate-note-sway hover:[animation-play-state:paused]'}
-                
+                ${isEditMode ? 'cursor-grab active:cursor-grabbing' : 'animate-note-sway hover:[animation-play-state:paused]'}
                 hover:ring-2 hover:ring-offset-2 hover:ring-offset-[#0f172a] 
                 hover:scale-[1.02] hover:shadow-2xl
-                
                 transition duration-200 select-none
                 ${isDragging ? 'duration-0 transition-none' : ''}
               `}
@@ -200,7 +356,6 @@ export default function NotesWallClient({ initialNotes, initialIsAdmin }: { init
                   left: note.x,
                   top: note.y,
                   zIndex: dynamicZIndex,
-                  // ✨ 只有在非编辑模式下才播放摆动动画
                   animationDuration: !isEditMode ? `${6 + (note.id % 5)}s` : '0s',
                   animationDelay: !isEditMode ? `${-(note.id % 5)}s` : '0s',
                   transform: isDragging ? 'scale(1.05)' : undefined,
@@ -209,15 +364,7 @@ export default function NotesWallClient({ initialNotes, initialIsAdmin }: { init
               <div className="absolute top-[-10px] left-1/2 -translate-x-1/2 w-4 h-4 rounded-full bg-black/20 backdrop-blur shadow-inner z-10 pointer-events-none"></div>
               <div className="absolute top-[-8px] left-[calc(50%-2px)] w-1.5 h-1.5 rounded-full bg-white/30 z-20 pointer-events-none"></div>
 
-              <div 
-                className="
-                    flex-1 whitespace-pre-wrap leading-relaxed font-medium font-handwriting 
-                    overflow-y-auto max-h-[240px] pr-2
-                    pointer-events-auto
-                    note-scrollbar
-                    select-text cursor-default
-                "
-              >
+              <div className="flex-1 whitespace-pre-wrap leading-relaxed font-medium font-handwriting overflow-y-auto max-h-[240px] pr-2 pointer-events-auto note-scrollbar select-text cursor-default">
                 {note.content}
               </div>
               
@@ -227,17 +374,11 @@ export default function NotesWallClient({ initialNotes, initialIsAdmin }: { init
                   </span>
                   
                   <div className="relative min-w-[60px] flex justify-end">
-                      {/* ✨ 在编辑模式下隐藏 ID，显示操作按钮；预览模式下显示 ID */}
                       <span className={`font-bold opacity-40 text-xs font-mono transition-opacity duration-300 pointer-events-none ${isEditMode ? 'group-hover:opacity-0' : ''}`}>
                           #{note.id}
                       </span>
-                      
-                      {/* ✨ 操作按钮仅在 isEditMode 下显示 */}
                       {isEditMode && (
-                      <div 
-                          onMouseDown={(e) => e.stopPropagation()}
-                          className="absolute -right-2 top-0 bottom-0 flex items-center justify-end gap-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10 whitespace-nowrap"
-                      >
+                      <div onMouseDown={(e) => e.stopPropagation()} className="absolute -right-2 top-0 bottom-0 flex items-center justify-end gap-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10 whitespace-nowrap">
                           <button onClick={() => setEditingNote(note)} className="text-xs font-bold text-current opacity-60 hover:opacity-100 hover:underline transition-all p-2">编辑</button>
                           <span className="text-[10px] opacity-30 select-none pb-0.5">/</span>
                           <form action={deleteNote}><input type="hidden" name="id" value={note.id} /><button className="text-xs font-bold text-red-900/60 hover:text-red-700 hover:underline transition-all p-2">撕下</button></form>

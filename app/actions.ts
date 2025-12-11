@@ -298,6 +298,30 @@ export async function getLinkData() {
   return await prisma.link.findMany({ orderBy: { createdAt: 'desc' } })
 }
 
+// --- ✨✨✨ 新增：便利贴墙背景设置 ✨✨✨ ---
+
+export async function getNotesBgSettings() {
+  const config = await prisma.globalConfig.findUnique({ where: { key: 'notes_bg_settings' } })
+  if (!config) return null
+  try { return JSON.parse(config.value) } catch (e) { return null }
+}
+
+export async function updateNotesBgSettings(formData: FormData) {
+  const type = formData.get('type') as string // 'color' | 'image' | 'custom'
+  const value = formData.get('value') as string // hex code or url
+  const blur = formData.get('blur') === 'on' // 是否模糊
+
+  const settings = { type, value, blur }
+
+  await prisma.globalConfig.upsert({
+    where: { key: 'notes_bg_settings' },
+    update: { value: JSON.stringify(settings) },
+    create: { key: 'notes_bg_settings', value: JSON.stringify(settings) }
+  })
+
+  revalidatePath('/notes')
+}
+
 // --- ✨✨✨ 新增：统一身份认证系统 ✨✨✨ ---
 
 // 1. 登录并写入 Cookie (用于前台组件，如便利贴墙)
