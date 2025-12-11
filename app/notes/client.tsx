@@ -184,6 +184,7 @@ export default function NotesWallClient({ initialNotes }: { initialNotes: NoteIt
             
             <div className="mt-4 pt-4 border-t border-black/5 flex justify-between items-center opacity-60 text-xs font-mono pointer-events-none">
               <span>{new Date(note.createdAt).toLocaleDateString()}</span>
+              <span className="font-bold opacity-80">#{note.id}</span>
             </div>
           </div>
         ))}
