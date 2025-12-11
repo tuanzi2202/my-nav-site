@@ -468,7 +468,8 @@ export async function deleteNote(formData: FormData) {
 export async function chatWithAI(message: string) {
   // 1. 获取环境变量 (请在 .env 文件中配置)
   const apiKey = process.env.AI_API_KEY
-  const baseUrl = process.env.AI_BASE_URL || 'https://api.openai.com/v1'
+  const rawBaseUrl = process.env.AI_BASE_URL || 'https://api.openai.com/v1'
+  const baseUrl = rawBaseUrl.replace(/\/chat\/completions\/?$/, '')
   const model = process.env.AI_MODEL || 'gpt-3.5-turbo'
 
   if (!apiKey) {
