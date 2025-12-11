@@ -4,7 +4,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { createNote, updateNote, deleteNote, updateNotePosition, verifyAdminPassword } from '../actions'
 
-// ... (类型定义和 colorStyles 保持不变) ...
 type NoteItem = {
   id: number
   content: string
@@ -31,13 +30,16 @@ export default function NotesWallClient({ initialNotes }: { initialNotes: NoteIt
   const [showAuthModal, setShowAuthModal] = useState(false)
   const [authError, setAuthError] = useState('')
   const [editingNote, setEditingNote] = useState<Partial<NoteItem> | null>(null)
+  
+  // ✨ 新增：记录当前悬停的 ID
+  const [hoveredId, setHoveredId] = useState<number | null>(null)
+  
   const [draggingId, setDraggingId] = useState<number | null>(null)
   const dragOffset = useRef({ x: 0, y: 0 })
   const containerRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => { setNotes(initialNotes) }, [initialNotes])
 
-  // ... (handleLogin, handleMouseDown, handleMouseMove, handleMouseUp, handleSubmitNote 逻辑保持不变) ...
   const handleLogin = async (formData: FormData) => {
     const isValid = await verifyAdminPassword(formData.get('password') as string)
     if (isValid) { setIsAdmin(true); setShowAuthModal(false); setAuthError('') } 
@@ -46,15 +48,19 @@ export default function NotesWallClient({ initialNotes }: { initialNotes: NoteIt
 
   const handleMouseDown = (e: React.MouseEvent, note: NoteItem) => {
     if (!isAdmin) return
+    
     const target = e.target as HTMLElement
     if (target.classList.contains('overflow-y-auto')) {
         const rect = target.getBoundingClientRect()
         if (e.clientX >= rect.right - 15) return 
     }
+
     e.stopPropagation()
     setDraggingId(note.id)
     dragOffset.current = { x: e.clientX - note.x, y: e.clientY - note.y }
-    const maxZ = Math.max(...notes.map(n => n.sortOrder)) + 1
+    
+    // 拖拽开始时，同时也更新实际的 sortOrder，这样放下后它依然在最上面
+    const maxZ = Math.max(...notes.map(n => n.sortOrder), 0) + 1
     setNotes(prev => prev.map(n => n.id === note.id ? { ...n, sortOrder: maxZ } : n))
   }
 
@@ -72,7 +78,9 @@ export default function NotesWallClient({ initialNotes }: { initialNotes: NoteIt
     if (draggingId !== null) {
       const currentId = draggingId
       const note = notes.find(n => n.id === currentId)
+      
       setDraggingId(null)
+
       if (note) {
           await updateNotePosition(currentId, note.x, note.y, note.sortOrder)
       }
@@ -111,79 +119,94 @@ export default function NotesWallClient({ initialNotes }: { initialNotes: NoteIt
       </header>
 
       <div className="w-full h-full">
-        {notes.map((note) => (
-          <div
-            key={note.id}
-            onMouseDown={(e) => handleMouseDown(e, note)}
-            className={`
-              /* 1. 基础布局 */
-              group absolute flex flex-col p-6 w-[280px] min-h-[200px] shadow-xl rounded-sm
-              ${colorStyles[note.color] || colorStyles.yellow}
-              
-              /* ✨✨✨ 保留黑色边框 ✨✨✨ */
-              border border-black/50
+        {notes.map((note) => {
+          // ✨✨✨ 核心修改：动态 Z-Index 计算逻辑 ✨✨✨
+          // 1. 拖拽中：最高优先级，确保不被任何元素遮挡
+          const isDragging = draggingId === note.id
+          // 2. 悬停中：次高优先级，实现“查看上层”效果 (仅限管理员)
+          const isHovered = isAdmin && hoveredId === note.id
+          
+          let dynamicZIndex = note.sortOrder
+          if (isDragging) {
+             dynamicZIndex = 999999 // 拖拽时绝对置顶
+          } else if (isHovered) {
+             dynamicZIndex = 999990 // 悬停时临时置顶 (略低于拖拽)
+          }
 
-              /* 2. 交互模式 (核心修改点) */
-              /* 管理员：可拖拽 + 悬停强力置顶 (hover:!z-[100]) */
-              /* 游客：仅摆动动画 + 悬停不改变层级 (移除了 hover:!z-[100]) */
-              ${isAdmin 
-                ? 'cursor-grab active:cursor-grabbing hover:!z-[100]' 
-                : 'animate-note-sway hover:[animation-play-state:paused]'}
-              
-              /* 3. 视觉反馈 (全员通用：保留高亮和微弱放大，但不改变层级) */
-              hover:ring-2 hover:ring-offset-2 hover:ring-offset-[#0f172a] 
-              hover:scale-[1.02] hover:shadow-2xl
-              
-              /* 4. 性能优化 */
-              transition duration-200 select-none
-              ${draggingId === note.id ? 'duration-0 transition-none' : ''}
-            `}
-            style={{
-                left: note.x,
-                top: note.y,
-                zIndex: note.sortOrder,
-                animationDuration: !isAdmin ? `${6 + (note.id % 5)}s` : '0s',
-                animationDelay: !isAdmin ? `${-(note.id % 5)}s` : '0s',
-                transform: draggingId === note.id ? 'scale(1.05)' : undefined,
-            }}
-          >
-            {/* 顶部装饰钉子 */}
-            <div className="absolute top-[-10px] left-1/2 -translate-x-1/2 w-4 h-4 rounded-full bg-black/20 backdrop-blur shadow-inner z-10 pointer-events-none"></div>
-            <div className="absolute top-[-8px] left-[calc(50%-2px)] w-1.5 h-1.5 rounded-full bg-white/30 z-20 pointer-events-none"></div>
-
-            {/* 内容区域 */}
-            <div className="flex-1 whitespace-pre-wrap leading-relaxed font-medium font-handwriting overflow-y-auto max-h-[240px] pr-2 pointer-events-auto note-scrollbar">
-              {note.content}
-            </div>
-            
-            {/* 底部信息栏 */}
-            <div className="mt-4 pt-4 border-t border-black/5 flex justify-between items-center h-8 relative">
-                <span className="opacity-60 text-xs font-mono pointer-events-none text-current">
-                    {new Date(note.createdAt).toLocaleDateString()}
-                </span>
+          return (
+            <div
+              key={note.id}
+              onMouseDown={(e) => handleMouseDown(e, note)}
+              onMouseEnter={() => isAdmin && setHoveredId(note.id)} // ✨ 移入置顶
+              onMouseLeave={() => isAdmin && setHoveredId(null)}    // ✨ 移出恢复
+              className={`
+                /* 1. 基础布局 */
+                group absolute flex flex-col p-6 w-[280px] min-h-[200px] shadow-xl rounded-sm
+                ${colorStyles[note.color] || colorStyles.yellow}
                 
-                <div className="relative min-w-[60px] flex justify-end">
-                    <span className={`font-bold opacity-40 text-xs font-mono transition-opacity duration-300 pointer-events-none ${isAdmin ? 'group-hover:opacity-0' : ''}`}>
-                        #{note.id}
-                    </span>
-                    
-                    {isAdmin && (
-                    <div 
-                        onMouseDown={(e) => e.stopPropagation()}
-                        className="absolute -right-2 top-0 bottom-0 flex items-center justify-end gap-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10 whitespace-nowrap"
-                    >
-                        <button onClick={() => setEditingNote(note)} className="text-xs font-bold text-current opacity-60 hover:opacity-100 hover:underline transition-all p-2">编辑</button>
-                        <span className="text-[10px] opacity-30 select-none pb-0.5">/</span>
-                        <form action={deleteNote}><input type="hidden" name="id" value={note.id} /><button className="text-xs font-bold text-red-900/60 hover:text-red-700 hover:underline transition-all p-2">撕下</button></form>
-                    </div>
-                    )}
-                </div>
+                /* 黑色边框 */
+                border border-black/50
+
+                /* 2. 交互模式 */
+                /* 移除 CSS hover:z-index，完全由 JS style 控制 */
+                ${isAdmin 
+                  ? 'cursor-grab active:cursor-grabbing' 
+                  : 'animate-note-sway hover:[animation-play-state:paused]'}
+                
+                /* 3. 视觉反馈 */
+                hover:ring-2 hover:ring-offset-2 hover:ring-offset-[#0f172a] 
+                hover:scale-[1.02] hover:shadow-2xl
+                
+                /* 4. 性能优化 */
+                transition duration-200 select-none
+                ${isDragging ? 'duration-0 transition-none' : ''}
+              `}
+              style={{
+                  left: note.x,
+                  top: note.y,
+                  zIndex: dynamicZIndex, // ✨ 使用动态计算的 Z-Index
+                  animationDuration: !isAdmin ? `${6 + (note.id % 5)}s` : '0s',
+                  animationDelay: !isAdmin ? `${-(note.id % 5)}s` : '0s',
+                  transform: isDragging ? 'scale(1.05)' : undefined,
+              }}
+            >
+              {/* 顶部装饰钉子 */}
+              <div className="absolute top-[-10px] left-1/2 -translate-x-1/2 w-4 h-4 rounded-full bg-black/20 backdrop-blur shadow-inner z-10 pointer-events-none"></div>
+              <div className="absolute top-[-8px] left-[calc(50%-2px)] w-1.5 h-1.5 rounded-full bg-white/30 z-20 pointer-events-none"></div>
+
+              {/* 内容区域 */}
+              <div className="flex-1 whitespace-pre-wrap leading-relaxed font-medium font-handwriting overflow-y-auto max-h-[240px] pr-2 pointer-events-auto note-scrollbar">
+                {note.content}
+              </div>
+              
+              {/* 底部信息栏 */}
+              <div className="mt-4 pt-4 border-t border-black/5 flex justify-between items-center h-8 relative">
+                  <span className="opacity-60 text-xs font-mono pointer-events-none text-current">
+                      {new Date(note.createdAt).toLocaleDateString()}
+                  </span>
+                  
+                  <div className="relative min-w-[60px] flex justify-end">
+                      <span className={`font-bold opacity-40 text-xs font-mono transition-opacity duration-300 pointer-events-none ${isAdmin ? 'group-hover:opacity-0' : ''}`}>
+                          #{note.id}
+                      </span>
+                      
+                      {isAdmin && (
+                      <div 
+                          onMouseDown={(e) => e.stopPropagation()}
+                          className="absolute -right-2 top-0 bottom-0 flex items-center justify-end gap-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10 whitespace-nowrap"
+                      >
+                          <button onClick={() => setEditingNote(note)} className="text-xs font-bold text-current opacity-60 hover:opacity-100 hover:underline transition-all p-2">编辑</button>
+                          <span className="text-[10px] opacity-30 select-none pb-0.5">/</span>
+                          <form action={deleteNote}><input type="hidden" name="id" value={note.id} /><button className="text-xs font-bold text-red-900/60 hover:text-red-700 hover:underline transition-all p-2">撕下</button></form>
+                      </div>
+                      )}
+                  </div>
+              </div>
             </div>
-          </div>
-        ))}
+          )
+        })}
       </div>
 
-      {/* ... (AuthModal 和 EditModal 保持不变) ... */}
       {showAuthModal && (
         <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in">
             <div className="bg-slate-900 border border-slate-700 p-6 rounded-2xl w-full max-w-sm shadow-2xl animate-in zoom-in-95" onMouseDown={e => e.stopPropagation()}>
