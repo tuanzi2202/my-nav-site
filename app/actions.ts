@@ -305,11 +305,13 @@ export async function verifyAdminPassword(password: string) {
 
 // --- 便利贴管理 (更新) ---
 export async function getNotes() {
-  // ✨ 修改排序规则：优先按自定义顺序降序，其次按创建时间
+  // ✨ 修改核心：改为升序 (asc)
+  // 1. sortOrder: 'asc' -> 层级低的先渲染，层级高的后渲染 (符合由低到高的堆叠直觉)
+  // 2. createdAt: 'asc' -> 旧的先渲染，新的后渲染 -> 默认情况下，新的会盖住旧的
   return await prisma.note.findMany({ 
     orderBy: [
-      { sortOrder: 'desc' },
-      { createdAt: 'desc' }
+      { sortOrder: 'asc' },
+      { createdAt: 'asc' }
     ] 
   })
 }
