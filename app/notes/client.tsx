@@ -172,14 +172,14 @@ export default function NotesWallClient({ initialNotes }: { initialNotes: NoteIt
               <div className="absolute top-[-8px] left-[calc(50%-2px)] w-1.5 h-1.5 rounded-full bg-white/30 z-20 pointer-events-none"></div>
 
               {/* 内容区域 */}
-              {/* ✨✨✨ 修改点：添加 select-text 和 cursor-text 允许文字选择 ✨✨✨ */}
+              {/* ✨✨✨ 修改点：select-text 保持可选，cursor-default 强制显示箭头 ✨✨✨ */}
               <div 
                 className="
                     flex-1 whitespace-pre-wrap leading-relaxed font-medium font-handwriting 
                     overflow-y-auto max-h-[240px] pr-2
                     pointer-events-auto
                     note-scrollbar
-                    select-text cursor-text
+                    select-text cursor-default
                 "
               >
                 {note.content}
