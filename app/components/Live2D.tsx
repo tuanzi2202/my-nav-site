@@ -24,6 +24,9 @@ export default function Live2D({ settings }: { settings: any }) {
   const canvasWidth = settings?.live2dWidth ?? 280
   const canvasHeight = settings?.live2dHeight ?? 480
 
+  // 获取边框设置
+  const showBorder = settings?.live2dBorder || false;
+
   // 2. 加载依赖脚本 (只执行一次)
   useEffect(() => {
     if (isScriptsLoaded) return
@@ -184,7 +187,12 @@ export default function Live2D({ settings }: { settings: any }) {
             width: `${canvasWidth}px`,   // 👈 CSS 宽度
             height: `${canvasHeight}px`, // 👈 CSS 高度
             pointerEvents: 'auto',       // 保留 auto，因为我们要通过缩小尺寸来减少遮挡
-            transition: 'opacity 0.3s ease'
+            transition: 'opacity 0.3s ease',
+            
+            // ✨✨✨ 新增：根据设置显示红色调试边框 ✨✨✨
+            // 这样你就能清楚看到"鱼缸"到底有多大了
+            border: showBorder ? '2px dashed #ff0055' : 'none',
+            backgroundColor: showBorder ? 'rgba(255, 0, 85, 0.05)' : 'transparent', // 微微泛红背景帮助识别
         }}
     />
   )

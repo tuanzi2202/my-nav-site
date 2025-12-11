@@ -194,6 +194,9 @@ export async function updateGlobalUISettings(formData: FormData) {
     live2dWidth: Number(formData.get('live2dWidth') || 280),  // 默认宽 280
     live2dHeight: Number(formData.get('live2dHeight') || 480), // 默认高 480
 
+    // ✨✨✨ 新增：调试边框开关 ✨✨✨
+    live2dBorder: formData.get('live2dBorder') === 'on', // 是否显示红色边框
+    
     noise: formData.get('noise') === 'on',
     glow: formData.get('glow') === 'on',
     tilt: formData.get('tilt') === 'on',

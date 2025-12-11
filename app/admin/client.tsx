@@ -71,6 +71,7 @@ export default function AdminClient({
     live2dY: 0,
     live2dWidth: 280,
     live2dHeight: 480,
+    live2dBorder: false,
     ...initialGlobalSettings
   }
   const [globalSettings, setGlobalSettings] = useState(defaultUISettings)
@@ -448,6 +449,32 @@ export default function AdminClient({
                                     </div>
                                 </div>
                             </div>
+
+                            <div className="pt-4 mt-4 border-t border-slate-800/50">
+                              <div className="flex items-center justify-between">
+                                  <div>
+                                      <label className="text-sm font-bold text-white flex items-center gap-2">
+                                          🚧 调试模式：显示画布边框
+                                      </label>
+                                      <p className="text-xs text-slate-500 mt-1">
+                                          开启后，前台人物周围会出现红色虚线框。
+                                          <br />
+                                          <span className="text-orange-400">使用技巧：开启此项 ~ 调整上方宽高滑块 ~ 直到红框紧贴人物边缘 ~ 保存 ~ 关闭此项。</span>
+                                      </p>
+                                  </div>
+                                  
+                                  {/* 开关控件 */}
+                                  <label className="relative inline-flex items-center cursor-pointer">
+                                      <input 
+                                          type="checkbox" 
+                                          name="live2dBorder" 
+                                          defaultChecked={globalSettings.live2dBorder} 
+                                          className="sr-only peer" 
+                                      />
+                                      <div className="w-11 h-6 bg-slate-700 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-pink-500 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-pink-600"></div>
+                                  </label>
+                              </div>
+                          </div>
                         </div>
                     </div>
 
