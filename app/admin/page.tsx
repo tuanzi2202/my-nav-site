@@ -1,22 +1,20 @@
-// app/admin/page.tsx
 import { PrismaClient } from '@prisma/client'
 import AdminClient from './client'
-import { getLinkData, getAnnouncement, getSmartWallpapers, getUISettings, getAnnouncementHistory, getAllPosts, getNotes } from '../actions'
+import { getLinkData, getAnnouncement, getSmartWallpapers, getUISettings, getAnnouncementHistory, getAllPosts } from '../actions'
 
 export const dynamic = 'force-dynamic'
 
 const prisma = new PrismaClient()
 
 export default async function AdminPage() {
-  // 并行获取所有数据，包括 notes
-  const [links, announcement, smartThemes, uiSettings, announcementHistory, posts, notes] = await Promise.all([
+  // 🧹 移除了 getNotes()
+  const [links, announcement, smartThemes, uiSettings, announcementHistory, posts] = await Promise.all([
     getLinkData(),
     getAnnouncement(),
     getSmartWallpapers(),
     getUISettings(),
     getAnnouncementHistory(),
     getAllPosts(),
-    getNotes() // ✨ 获取便利贴数据
   ])
 
   return (
@@ -29,7 +27,7 @@ export default async function AdminPage() {
             initialGlobalSettings={uiSettings}
             initialHistory={announcementHistory}
             initialPosts={posts}
-            initialNotes={notes} // ✨ 注入便利贴数据
+            // 🧹 initialNotes 属性已移除
         />
       </div>
     </div>

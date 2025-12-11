@@ -1,4 +1,3 @@
-// app/admin/client.tsx
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
@@ -8,8 +7,8 @@ import {
   updateAnnouncement, 
   addSmartWallpaper, deleteSmartWallpaper, updateSmartWallpaper, 
   updateGlobalUISettings,
-  createPost, updatePost, deletePost,
-  createNote, updateNote, deleteNote
+  createPost, updatePost, deletePost
+  // 🧹 移除了便利贴相关的 actions 引用
 } from '../actions'
 
 // --- 类型定义 ---
@@ -29,16 +28,7 @@ type PostItem = {
   contentBgOpacity: number;
   createdAt: Date
 }
-type NoteItem = { id: number; content: string; color: string; createdAt: Date }
-
-// ✨ 静态颜色映射 (修复颜色不显示问题)
-const COLOR_MAP: Record<string, string> = {
-  yellow: 'bg-yellow-400 peer-checked:ring-yellow-400',
-  pink:   'bg-pink-400 peer-checked:ring-pink-400',
-  blue:   'bg-sky-400 peer-checked:ring-sky-400',
-  green:  'bg-emerald-400 peer-checked:ring-emerald-400',
-  purple: 'bg-purple-400 peer-checked:ring-purple-400',
-}
+// 🧹 NoteItem 类型已移除
 
 export default function AdminClient({ 
   initialLinks, 
@@ -47,7 +37,7 @@ export default function AdminClient({
   initialGlobalSettings, 
   initialHistory,
   initialPosts = [],
-  initialNotes = []
+  // 🧹 initialNotes 参数已移除
 }: { 
   initialLinks: LinkItem[], 
   initialAnnouncement: string, 
@@ -55,16 +45,16 @@ export default function AdminClient({
   initialGlobalSettings: any,
   initialHistory: HistoryItem[],
   initialPosts?: PostItem[],
-  initialNotes?: NoteItem[]
 }) {
-  const [activeTab, setActiveTab] = useState<'links' | 'categories' | 'themes' | 'announcement' | 'design' | 'blog' | 'notes'>('links')
+  // 🧹 'notes' 选项已从 Tab 类型中移除
+  const [activeTab, setActiveTab] = useState<'links' | 'categories' | 'themes' | 'announcement' | 'design' | 'blog'>('links')
   const [categories, setCategories] = useState<CategoryItem[]>([])
   const [announcement, setAnnouncement] = useState(initialAnnouncement)
   
   const [editingPost, setEditingPost] = useState<PostItem | null>(null)
   const [useMarkdown, setUseMarkdown] = useState(true)
   
-  const [editingNote, setEditingNote] = useState<NoteItem | null>(null)
+  // 🧹 editingNote 状态已移除
 
   const newPostTemplate: PostItem = { 
     id: 0, title: '', content: '', summary: '', published: true, isMarkdown: true,
@@ -113,7 +103,6 @@ export default function AdminClient({
     const newCategories = [...categories]; const draggedItemContent = newCategories[dragIndex];
     newCategories.splice(dragIndex, 1); newCategories.splice(dropIndex, 0, draggedItemContent);
     const len = newCategories.length;
-    // ✨✨✨ 修复点：将 c.id 改为 cat.id ✨✨✨
     const updates = newCategories.map((cat, index) => ({ id: cat.id, name: cat.name, sortOrder: (len - index) * 10 }));
     setCategories(updates); setDraggingItem(null); dragOverItem.current = null;
     await reorderCategories(updates.map(c => ({ id: c.id, sortOrder: c.sortOrder })));
@@ -133,10 +122,7 @@ export default function AdminClient({
   async function handleUpdateTheme(formData: FormData) { await updateSmartWallpaper(formData); setEditingTheme(null) }
   async function handleUpdatePost(formData: FormData) { await updatePost(formData); setEditingPost(null); alert('文章已更新！') }
 
-  async function handleUpdateNote(formData: FormData) {
-    await updateNote(formData)
-    setEditingNote(null)
-  }
+  // 🧹 handleUpdateNote 函数已移除
 
   const updateGlobalState = (key: string, value: any) => {
     setGlobalSettings((prev: any) => ({ ...prev, [key]: value }))
@@ -150,7 +136,8 @@ export default function AdminClient({
      alert('默认视觉风格已更新！');
   }
 
-  const containerMaxWidth = (activeTab === 'blog' || activeTab === 'notes') ? 'max-w-7xl' : 'max-w-5xl'
+  // 🧹 移除了 'notes' 相关的宽度计算逻辑，只保留 blog 的特例
+  const containerMaxWidth = activeTab === 'blog' ? 'max-w-7xl' : 'max-w-5xl'
 
   return (
     <div className={`${containerMaxWidth} mx-auto transition-all duration-300 ease-in-out`}>
@@ -171,12 +158,15 @@ export default function AdminClient({
             
             <div className="w-px h-6 bg-slate-700 mx-1 self-center"></div>
             <button onClick={() => setActiveTab('blog')} className={`px-4 py-2 text-sm rounded-md transition whitespace-nowrap ${activeTab === 'blog' ? 'bg-emerald-600/20 text-emerald-300 shadow' : 'text-slate-500 hover:text-slate-300'}`}>📝 博客管理</button>
-            <button onClick={() => setActiveTab('notes')} className={`px-4 py-2 text-sm rounded-md transition whitespace-nowrap ${activeTab === 'notes' ? 'bg-yellow-600/20 text-yellow-300 shadow' : 'text-slate-500 hover:text-slate-300'}`}>📌 便利贴墙</button>
+            
+            {/* 🧹 "便利贴墙" 按钮已移除，请直接访问前台 /notes 页面进行管理 */}
         </div>
         
         <a href="/" className="text-sm bg-slate-800 hover:bg-slate-700 text-slate-300 px-4 py-2 rounded-lg border border-slate-700">← 前台</a>
       </header>
 
+      {/* ... (Links, Categories, Themes, Announcement, Design Tabs 保持不变) ... */}
+      
       {activeTab === 'links' && (
         <>
           <div className="flex flex-col md:flex-row gap-3 mb-6">
@@ -559,84 +549,7 @@ export default function AdminClient({
         </div>
       )}
 
-      {/* ✨✨✨ 修复后的便利贴渲染部分 ✨✨✨ */}
-      {activeTab === 'notes' && (
-        <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8">
-           {/* 左侧：新建/编辑表单 */}
-           <div className="lg:col-span-1">
-              <div className="bg-slate-900/50 border border-slate-800/60 rounded-2xl p-6 sticky top-6">
-                 <h2 className="text-lg font-bold text-white mb-4">
-                    {editingNote ? '编辑便利贴' : '贴一张新的'}
-                 </h2>
-                 <form action={editingNote ? handleUpdateNote : createNote} className="space-y-4">
-                    {editingNote && <input type="hidden" name="id" value={editingNote.id} />}
-                    
-                    <div>
-                       <label className="text-xs text-slate-500 mb-1 block">颜色风格</label>
-                       {/* 修复点：使用 Object.keys 遍历静态映射，确保类名被 Tailwind 扫描到 */}
-                       <div className="flex gap-2">
-                          {Object.keys(COLOR_MAP).map(color => (
-                             <label key={color} className="cursor-pointer">
-                                <input 
-                                  type="radio" 
-                                  name="color" 
-                                  value={color} 
-                                  defaultChecked={editingNote?.color === color || (!editingNote && color === 'yellow')} 
-                                  className="peer hidden" 
-                                />
-                                <div className={`w-6 h-6 rounded-full border-2 border-transparent peer-checked:border-white ring-2 ring-transparent transition-all ${COLOR_MAP[color]}`}></div>
-                             </label>
-                          ))}
-                       </div>
-                    </div>
-
-                    <textarea 
-                       name="content" 
-                       defaultValue={editingNote?.content || ''}
-                       placeholder="写点什么..." 
-                       required 
-                       className="w-full bg-slate-800 border border-slate-700 rounded-xl p-4 text-slate-200 h-40 resize-none focus:outline-none focus:border-yellow-500 focus:ring-1 focus:ring-yellow-500/50" 
-                    />
-                    
-                    <div className="flex gap-2">
-                       {editingNote && (
-                          <button type="button" onClick={() => setEditingNote(null)} className="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-300 py-2 rounded-xl transition">取消</button>
-                       )}
-                       <button type="submit" className="flex-1 bg-yellow-600 hover:bg-yellow-500 text-white py-2 rounded-xl font-medium shadow-lg shadow-yellow-500/20">
-                          {editingNote ? '保存修改' : '贴上去'}
-                       </button>
-                    </div>
-                 </form>
-              </div>
-           </div>
-
-           {/* 右侧：列表展示 */}
-           <div className="lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {initialNotes && initialNotes.map(note => (
-                 <div key={note.id} className="relative group bg-slate-900 border border-slate-800 rounded-xl p-4 hover:border-slate-600 transition-all">
-                    {/* 色块标识 */}
-                    <div className={`absolute top-4 right-4 w-3 h-3 rounded-full ${note.color === 'blue' ? 'bg-sky-400' : note.color === 'green' ? 'bg-emerald-400' : `bg-${note.color}-400`}`}></div>
-                    
-                    <p className="text-slate-300 whitespace-pre-wrap mb-4 text-sm leading-relaxed pr-6">{note.content}</p>
-                    
-                    <div className="flex justify-between items-center pt-4 border-t border-slate-800">
-                       <span className="text-[10px] text-slate-500 font-mono">{new Date(note.createdAt).toLocaleDateString()}</span>
-                       <div className="flex gap-3">
-                          <button onClick={() => setEditingNote(note)} className="text-xs text-sky-400 hover:text-sky-300">编辑</button>
-                          <form action={deleteNote}>
-                             <input type="hidden" name="id" value={note.id} />
-                             <button className="text-xs text-red-400 hover:text-red-300">撕掉</button>
-                          </form>
-                       </div>
-                    </div>
-                 </div>
-              ))}
-              {(!initialNotes || initialNotes.length === 0) && (
-                 <div className="col-span-full py-12 text-center text-slate-500 border border-dashed border-slate-800 rounded-xl">暂无便利贴</div>
-              )}
-           </div>
-        </div>
-      )}
+      {/* 🧹 Convenience Sticky Note Wall 渲染块已移除 */}
 
       {editingLink && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
@@ -681,6 +594,7 @@ export default function AdminClient({
   )
 }
 
+// ... MarkdownEditor and ToolButton (保持不变，省略以节省空间，实际部署时请保留) ...
 function MarkdownEditor({ name, defaultValue, className, required }: { name: string, defaultValue?: string, className?: string, required?: boolean }) {
   const [content, setContent] = useState(defaultValue || '')
   const textareaRef = useRef<HTMLTextAreaElement>(null)
