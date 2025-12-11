@@ -46,6 +46,8 @@ export default function NotesWallClient({ initialNotes }: { initialNotes: NoteIt
     e.stopPropagation()
     setDraggingId(note.id)
     dragOffset.current = { x: e.clientX - note.x, y: e.clientY - note.y }
+    
+    // 视觉置顶
     const maxZ = Math.max(...notes.map(n => n.sortOrder)) + 1
     setNotes(prev => prev.map(n => n.id === note.id ? { ...n, sortOrder: maxZ } : n))
   }
@@ -62,17 +64,15 @@ export default function NotesWallClient({ initialNotes }: { initialNotes: NoteIt
 
   const handleMouseUp = async () => {
     if (draggingId !== null) {
-      // 1. 锁定当前操作对象
       const currentId = draggingId
       const note = notes.find(n => n.id === currentId)
       
-      // 2. 🚀 关键修复：立即释放 UI 锁定，消除延迟感
+      // 1. 立即释放 UI
       setDraggingId(null)
 
-      // 3. 后台异步保存位置
+      // 2. 后台保存位置和最新的层级 (SortOrder)
       if (note) {
-        // ✨ 修改点：传入 note.sortOrder (这是在 MouseDown 时已经更新过的最大值)
-        await updateNotePosition(currentId, note.x, note.y, note.sortOrder)
+          await updateNotePosition(currentId, note.x, note.y, note.sortOrder)
       }
     }
   }
@@ -94,7 +94,7 @@ export default function NotesWallClient({ initialNotes }: { initialNotes: NoteIt
       <header className="absolute top-0 left-0 w-full z-[9999] px-8 py-6 border-b border-slate-800 bg-[#0f172a]/90 backdrop-blur-sm flex justify-between items-center h-[120px]">
         <div>
           <h1 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 to-amber-500">Sticky Wall</h1>
-          <p className="text-xs text-slate-500 mt-2">灵感碎片与备忘录 {isAdmin && <span className="text-emerald-400 font-bold ml-2">[管理模式: 可自由拖拽]</span>}</p>
+          <p className="text-xs text-slate-500 mt-2">灵感碎片与备忘录 {isAdmin && <span className="text-emerald-400 font-bold ml-2">[管理模式: 拖拽边缘可移动]</span>}</p>
         </div>
         <div className="flex gap-3">
             {isAdmin ? (
@@ -123,7 +123,6 @@ export default function NotesWallClient({ initialNotes }: { initialNotes: NoteIt
               
               hover:ring-2 hover:ring-offset-2 hover:ring-offset-[#0f172a] hover:scale-[1.02] hover:shadow-2xl
               
-              /* 拖拽时禁用过渡以消除“拉皮筋”延迟 */
               transition duration-200 select-none ${draggingId === note.id ? 'duration-0 transition-none' : ''}
             `}
             style={{
@@ -138,7 +137,16 @@ export default function NotesWallClient({ initialNotes }: { initialNotes: NoteIt
             <div className="absolute top-[-10px] left-1/2 -translate-x-1/2 w-4 h-4 rounded-full bg-black/20 backdrop-blur shadow-inner z-10 pointer-events-none"></div>
             <div className="absolute top-[-8px] left-[calc(50%-2px)] w-1.5 h-1.5 rounded-full bg-white/30 z-20 pointer-events-none"></div>
 
-            <div className="flex-1 whitespace-pre-wrap leading-relaxed font-medium font-handwriting pointer-events-none">
+            {/* ✨ 内容区域：支持滚动，阻止拖拽冒泡，允许文字选择 */}
+            <div 
+                className="
+                    flex-1 whitespace-pre-wrap leading-relaxed font-medium font-handwriting 
+                    overflow-y-auto max-h-[280px] pr-2 
+                    pointer-events-auto
+                    scrollbar-thin scrollbar-thumb-black/10 hover:scrollbar-thumb-black/20 scrollbar-track-transparent
+                "
+                onMouseDown={(e) => e.stopPropagation()} 
+            >
               {note.content}
             </div>
             
