@@ -328,18 +328,37 @@ export async function reorderNotes(items: { id: number; sortOrder: number }[]) {
   revalidatePath('/admin')
 }
 
+// 批量更新位置 (拖拽结束时调用)
+export async function updateNotePosition(id: number, x: number, y: number) {
+  await prisma.note.update({
+    where: { id },
+    data: { x, y }
+  })
+  // 注意：这里不调用 revalidatePath，由前端乐观更新保持流畅，
+  // 只有在刷新页面时才重新获取最新位置
+}
+
 export async function createNote(formData: FormData) {
   const content = formData.get('content') as string
   const color = formData.get('color') as string || 'yellow'
+  
+  // ✨ 获取当前视窗的一个随机安全位置 (避免全部堆叠在一起)
+  // 假设安全区域：x: 50-800, y: 150-500
+  const randomX = Math.floor(Math.random() * 800) + 50
+  const randomY = Math.floor(Math.random() * 400) + 150 
 
-  if (!content) return
-
-  // 获取当前最大 sortOrder
+  // 获取最大 sortOrder 用于置顶
   const maxSort = await prisma.note.aggregate({ _max: { sortOrder: true } })
-  const newSortOrder = (maxSort._max.sortOrder || 0) + 10
+  const newZIndex = (maxSort._max.sortOrder || 0) + 1
 
   await prisma.note.create({
-    data: { content, color, sortOrder: newSortOrder }
+    data: { 
+      content, 
+      color, 
+      x: randomX, 
+      y: randomY,
+      sortOrder: newZIndex 
+    }
   })
   
   revalidatePath('/notes')

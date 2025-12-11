@@ -70,7 +70,9 @@ model Note {
   id        Int      @id @default(autoincrement())
   content   String
   color     String   @default("yellow")
-  sortOrder Int      @default(0) // ✨ 新增：用于拖拽排序
+  sortOrder Int      @default(0) // 保留，可用作 Z轴层级 (z-index)
+  x         Int      @default(100) // ✨ 新增：X坐标 (像素)
+  y         Int      @default(200) // ✨ 新增：Y坐标 (像素)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
