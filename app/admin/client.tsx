@@ -69,6 +69,8 @@ export default function AdminClient({
     live2dScale: 0.12,
     live2dX: 0,
     live2dY: 0,
+    live2dWidth: 280,
+    live2dHeight: 480,
     ...initialGlobalSettings
   }
   const [globalSettings, setGlobalSettings] = useState(defaultUISettings)
@@ -401,11 +403,49 @@ export default function AdminClient({
                                     <input 
                                         type="range" 
                                         name="live2dY" 
-                                        min="-100" max="200" step="5" 
+                                        min="-200" max="800" step="5" 
                                         defaultValue={globalSettings.live2dY} 
                                         onChange={(e) => updateGlobalState('live2dY', e.target.value)}
                                         className="w-full h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-pink-500" 
                                     />
+                                </div>
+                            </div>
+
+                            {/* ✨✨✨ 新增：画布容器尺寸控制 ✨✨✨ */}
+                            <div className="col-span-full border-t border-slate-800 pt-4 mt-2">
+                                <h4 className="text-xs font-bold text-slate-400 mb-4">📦 交互区域大小 (减小此数值可减少遮挡)</h4>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    {/* 画布宽度 */}
+                                    <div>
+                                        <div className="flex justify-between text-xs mb-2 text-slate-300">
+                                            <span>画布宽度 (Width)</span>
+                                            <span className="font-mono text-emerald-400">{globalSettings.live2dWidth}px</span>
+                                        </div>
+                                        <input 
+                                            type="range" 
+                                            name="live2dWidth" 
+                                            min="100" max="500" step="10" 
+                                            defaultValue={globalSettings.live2dWidth} 
+                                            onChange={(e) => updateGlobalState('live2dWidth', e.target.value)}
+                                            className="w-full h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-emerald-500" 
+                                        />
+                                    </div>
+
+                                    {/* 画布高度 */}
+                                    <div>
+                                        <div className="flex justify-between text-xs mb-2 text-slate-300">
+                                            <span>画布高度 (Height)</span>
+                                            <span className="font-mono text-emerald-400">{globalSettings.live2dHeight}px</span>
+                                        </div>
+                                        <input 
+                                            type="range" 
+                                            name="live2dHeight" 
+                                            min="100" max="800" step="10" 
+                                            defaultValue={globalSettings.live2dHeight} 
+                                            onChange={(e) => updateGlobalState('live2dHeight', e.target.value)}
+                                            className="w-full h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-emerald-500" 
+                                        />
+                                    </div>
                                 </div>
                             </div>
                         </div>

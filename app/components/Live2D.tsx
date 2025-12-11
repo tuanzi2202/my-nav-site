@@ -20,6 +20,10 @@ export default function Live2D({ settings }: { settings: any }) {
   const offsetX = settings?.live2dX ?? 0
   const offsetY = settings?.live2dY ?? 0
 
+  // ✨✨✨ 获取画布尺寸 ✨✨✨
+  const canvasWidth = settings?.live2dWidth ?? 280
+  const canvasHeight = settings?.live2dHeight ?? 480
+
   // 2. 加载依赖脚本 (只执行一次)
   useEffect(() => {
     if (isScriptsLoaded) return
@@ -72,12 +76,17 @@ export default function Live2D({ settings }: { settings: any }) {
             view: canvasRef.current,
             autoStart: true,
             backgroundAlpha: 0,
-            width: CANVAS_WIDTH,
-            height: CANVAS_HEIGHT,
+            width: canvasWidth,   // 👈 使用动态宽度
+            height: canvasHeight, // 👈 使用动态高度
         })
     }
 
     const app = appRef.current
+
+    // ✨✨✨ 监听尺寸变化并调整渲染器大小 ✨✨✨
+    if (app.renderer) {
+        app.renderer.resize(canvasWidth, canvasHeight)
+    }
 
     // 加载模型函数
     const loadModel = async () => {
@@ -117,15 +126,21 @@ export default function Live2D({ settings }: { settings: any }) {
         // 通常不需要销毁 app，因为它是全局唯一的且昂贵，
         // 但如果模型 URL 变了，我们需要清理旧模型 (上面 loadModel 里做了)
     }
-  }, [isScriptsLoaded, modelUrl]) // 依赖 modelUrl，变化时重载模型
+  }, [isScriptsLoaded, modelUrl, canvasWidth, canvasHeight]) // 👈 添加依赖
 
   // 4. 实时更新位置和缩放 (不重新加载模型，高性能)
   const updateTransform = () => {
       if (modelRef.current) {
           modelRef.current.scale.set(scale)
-          // 基础位置 (中心点 + 底部偏移) + 用户自定义偏移
-          // 之前代码：CANVAS_WIDTH / 2, 260
-          // 现在的逻辑：基准点 + offset
+
+          // ✨✨✨ 关键点：位置计算基准 ✨✨✨
+          // 以前是固定 280/2 和 260
+          // 现在我们要根据新的画布大小来居中
+          // 比如 X 轴居中 = canvasWidth / 2
+          // Y 轴推荐设为 canvasHeight 的 60% 处，或者你自己定一个基准
+          const baseX = canvasWidth / 2
+          const baseY = canvasHeight * 0.6 // 大概在中间偏下一点的位置
+
           modelRef.current.position.set(
               (CANVAS_WIDTH / 2) + offsetX, 
               260 + offsetY
@@ -166,9 +181,9 @@ export default function Live2D({ settings }: { settings: any }) {
             right: '0px',
             bottom: '0px',
             zIndex: 50,
-            width: `${CANVAS_WIDTH}px`, 
-            height: `${CANVAS_HEIGHT}px`,
-            pointerEvents: 'auto',
+            width: `${canvasWidth}px`,   // 👈 CSS 宽度
+            height: `${canvasHeight}px`, // 👈 CSS 高度
+            pointerEvents: 'auto',       // 保留 auto，因为我们要通过缩小尺寸来减少遮挡
             transition: 'opacity 0.3s ease'
         }}
     />
