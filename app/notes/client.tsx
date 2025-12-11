@@ -122,40 +122,38 @@ export default function NotesWallClient({ initialNotes }: { initialNotes: NoteIt
             <div className="absolute top-[-10px] left-1/2 -translate-x-1/2 w-4 h-4 rounded-full bg-black/20 backdrop-blur shadow-inner z-10 pointer-events-none"></div>
             <div className="absolute top-[-8px] left-[calc(50%-2px)] w-1.5 h-1.5 rounded-full bg-white/30 z-20 pointer-events-none"></div>
 
-            {/* 🧹 已移除右上角的旧管理按钮 */}
-
             <div className="flex-1 whitespace-pre-wrap leading-relaxed font-medium font-handwriting pointer-events-none">
               {note.content}
             </div>
             
-            {/* ✨ 底部信息栏：日期 + (ID 或 管理操作) */}
-            <div className="mt-4 pt-4 border-t border-black/5 flex justify-between items-center h-8">
-              <span className="opacity-60 text-xs font-mono pointer-events-none">{new Date(note.createdAt).toLocaleDateString()}</span>
+            <div className="mt-4 pt-4 border-t border-black/5 flex justify-between items-center h-8 relative">
+              <span className="opacity-60 text-xs font-mono pointer-events-none text-slate-700">{new Date(note.createdAt).toLocaleDateString()}</span>
               
-              <div className="relative">
-                 {/* 默认显示 ID，管理员悬停时消失 */}
-                 <span className={`font-bold opacity-60 text-xs font-mono transition-opacity duration-200 pointer-events-none ${isAdmin ? 'group-hover:opacity-0' : ''}`}>
+              <div className="flex justify-end min-w-[80px]">
+                 <span className={`font-bold opacity-40 text-xs font-mono transition-all duration-200 pointer-events-none ${isAdmin ? 'group-hover:opacity-0 group-hover:translate-x-4' : ''}`}>
                     #{note.id}
                  </span>
                  
-                 {/* 管理员悬停时显示操作按钮 */}
                  {isAdmin && (
-                   <div className="absolute right-0 top-1/2 -translate-y-1/2 flex items-center gap-3 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-50">
-                      <button 
-                        onMouseDown={(e) => { e.stopPropagation(); setEditingNote(note); }} // 防止触发拖拽
-                        className="text-xs font-bold text-black/60 hover:text-black border-b border-black/20 hover:border-black transition-colors"
-                      >
-                        编辑
-                      </button>
-                      <form action={deleteNote} className="flex">
-                         <input type="hidden" name="id" value={note.id} />
-                         <button 
-                            onMouseDown={(e) => e.stopPropagation()} 
-                            className="text-xs font-bold text-red-800/60 hover:text-red-900 border-b border-red-900/20 hover:border-red-900 transition-colors"
-                         >
-                            撕下
-                         </button>
-                      </form>
+                   <div className="absolute right-0 top-1/2 -translate-y-1/2 flex items-center opacity-0 group-hover:opacity-100 transition-all duration-200 z-50 translate-x-2 group-hover:translate-x-0">
+                      <div className="flex items-center gap-0 bg-white/40 backdrop-blur-md rounded-full px-2 py-1 shadow-sm border border-white/20 whitespace-nowrap">
+                          <button 
+                            onMouseDown={(e) => { e.stopPropagation(); setEditingNote(note); }}
+                            className="px-2 py-0.5 text-[11px] font-bold text-slate-700 hover:text-indigo-600 hover:bg-white/50 rounded transition-colors"
+                          >
+                            编辑
+                          </button>
+                          <div className="w-px h-3 bg-black/10 mx-0.5"></div>
+                          <form action={deleteNote}>
+                             <input type="hidden" name="id" value={note.id} />
+                             <button 
+                                onMouseDown={(e) => e.stopPropagation()} 
+                                className="px-2 py-0.5 text-[11px] font-bold text-slate-700 hover:text-red-600 hover:bg-red-500/10 rounded transition-colors"
+                             >
+                                撕下
+                             </button>
+                          </form>
+                      </div>
                    </div>
                  )}
               </div>
