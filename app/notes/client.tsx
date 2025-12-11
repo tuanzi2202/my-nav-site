@@ -112,11 +112,11 @@ export default function NotesWallClient({ initialNotes }: { initialNotes: NoteIt
               /* 区分模式：管理员可拖拽，普通用户有摆动动画 */
               ${isAdmin ? 'cursor-grab active:cursor-grabbing' : 'animate-note-sway hover:[animation-play-state:paused]'}
               
-              /* ✨✨✨ 通用高光效果 (Highlight Effect) ✨✨✨ */
-              /* hover:!z-[1000] 强制覆盖内联样式，确保悬停时在最上层 */
+              /* 通用高光效果：放大 + 边框 + 阴影 + 强制置顶 */
               hover:ring-2 hover:ring-offset-2 hover:ring-offset-[#0f172a] hover:scale-[1.02] hover:shadow-2xl hover:!z-[1000]
               
-              transition-all duration-200 select-none
+              /* ✨ 修复点：使用 'transition' 而非 'transition-all'，并对正在拖拽的元素禁用过渡 */
+              transition duration-200 select-none ${draggingId === note.id ? 'duration-0 transition-none' : ''}
             `}
             style={{
                 left: note.x,
