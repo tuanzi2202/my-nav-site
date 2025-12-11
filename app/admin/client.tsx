@@ -385,7 +385,7 @@ export default function AdminClient({
                                         name="live2dScale" 
                                         min="0.05" max="0.5" step="0.01" 
                                         defaultValue={globalSettings.live2dScale} 
-                                        onChange={(e) => updateGlobalState('live2dScale', e.target.value)}
+                                        onChange={(e) => updateGlobalState('live2dScale', parseFloat(e.target.value))}
                                         className="w-full h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-pink-500" 
                                     />
                                 </div>
@@ -401,7 +401,7 @@ export default function AdminClient({
                                         name="live2dX" 
                                         min="-100" max="100" step="5" 
                                         defaultValue={globalSettings.live2dX} 
-                                        onChange={(e) => updateGlobalState('live2dX', e.target.value)}
+                                        onChange={(e) => updateGlobalState('live2dX', parseInt(e.target.value))}
                                         className="w-full h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-pink-500" 
                                     />
                                 </div>
@@ -417,7 +417,7 @@ export default function AdminClient({
                                         name="live2dY" 
                                         min="-200" max="800" step="5" 
                                         defaultValue={globalSettings.live2dY} 
-                                        onChange={(e) => updateGlobalState('live2dY', e.target.value)}
+                                        onChange={(e) => updateGlobalState('live2dY', parseInt(e.target.value))}
                                         className="w-full h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-pink-500" 
                                     />
                                 </div>
@@ -438,7 +438,7 @@ export default function AdminClient({
                                             name="live2dWidth" 
                                             min="100" max="500" step="10" 
                                             defaultValue={globalSettings.live2dWidth} 
-                                            onChange={(e) => updateGlobalState('live2dWidth', e.target.value)}
+                                            onChange={(e) => updateGlobalState('live2dWidth', parseInt(e.target.value))}
                                             className="w-full h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-emerald-500" 
                                         />
                                     </div>
@@ -454,7 +454,7 @@ export default function AdminClient({
                                             name="live2dHeight" 
                                             min="100" max="800" step="10" 
                                             defaultValue={globalSettings.live2dHeight} 
-                                            onChange={(e) => updateGlobalState('live2dHeight', e.target.value)}
+                                            onChange={(e) => updateGlobalState('live2dHeight', parseInt(e.target.value))}
                                             className="w-full h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-emerald-500" 
                                         />
                                     </div>
