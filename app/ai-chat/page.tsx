@@ -9,46 +9,73 @@ import {
 } from '../ai-actions'
 import { useRouter } from 'next/navigation'
 
-// ✨✨✨ 修复版打字机组件 ✨✨✨
+// ✨ 1. 引入 Markdown 相关依赖
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
+import rehypeHighlight from 'rehype-highlight'
+import CodeBlock from '../blog/_components/CodeBlock' // 复用博客的代码块组件
+
+// ✨ 2. 提取 Markdown 渲染组件 (配置样式和插件)
+const MarkdownRenderer = ({ content }: { content: string }) => {
+  return (
+    <div className="prose prose-invert prose-sm max-w-none 
+      prose-p:leading-relaxed prose-pre:p-0 prose-pre:bg-transparent prose-pre:m-0
+      prose-code:text-sky-300 prose-code:bg-slate-950/30 prose-code:px-1 prose-code:rounded prose-code:before:content-none prose-code:after:content-none
+    ">
+      <ReactMarkdown
+        remarkPlugins={[remarkGfm]}
+        rehypePlugins={[rehypeHighlight]}
+        components={{
+          // 自定义链接：新窗口打开
+          a: ({ node, href, children, ...props }) => (
+            <a href={href} target="_blank" rel="noopener noreferrer" className="text-sky-400 hover:underline" {...props}>
+              {children}
+            </a>
+          ),
+          // 自定义代码块：使用 CodeBlock 组件
+          pre: ({ node, children, ...props }) => (
+            <CodeBlock {...props}>{children}</CodeBlock>
+          )
+        }}
+      >
+        {content}
+      </ReactMarkdown>
+    </div>
+  )
+}
+
+// ✨ 3. 修改打字机组件：支持 Markdown 渲染
 const Typewriter = ({ text, onComplete }: { text: string, onComplete: () => void }) => {
   const [displayedText, setDisplayedText] = useState('')
   const indexRef = useRef(0)
-  
-  // 1. 使用 ref 来保存最新的回调函数
-  // 这样无论 onComplete 怎么变，我们都能读到最新的，但不会触发 Effect 重跑
   const onCompleteRef = useRef(onComplete)
 
-  // 2. 每次渲染都更新 ref
-  useEffect(() => {
-    onCompleteRef.current = onComplete
-  }, [onComplete])
+  useEffect(() => { onCompleteRef.current = onComplete }, [onComplete])
 
   useEffect(() => {
-    // 重置状态
     indexRef.current = 0
     setDisplayedText('')
 
     const intervalId = setInterval(() => {
       indexRef.current++
+      // 每次多截取一个字符
       setDisplayedText(text.slice(0, indexRef.current))
 
       if (indexRef.current >= text.length) {
         clearInterval(intervalId)
-        // 3. 调用 ref 中的函数，而不是直接调用 prop
         onCompleteRef.current() 
       }
-    }, 30) // 打字速度
+    }, 20) // 稍微加快打字速度以优化渲染体验
 
     return () => clearInterval(intervalId)
-    // 4. ✨✨✨ 关键修改：依赖数组中移除 onComplete ✨✨✨
-    // 只在 text 真正变化时才重置打字机
   }, [text]) 
 
   return (
-    <span>
-      {displayedText}
-      <span className="inline-block w-1.5 h-4 ml-0.5 bg-current align-middle animate-pulse" />
-    </span>
+    <div className="relative">
+      <MarkdownRenderer content={displayedText} />
+      {/* 光标跟随 */}
+      <span className="inline-block w-2 h-4 bg-sky-400 ml-1 align-middle animate-pulse" />
+    </div>
   )
 }
 
@@ -380,8 +407,13 @@ export default function AIChatPage() {
                         return (
                             <div key={idx} className={`flex gap-4 ${isUser ? 'flex-row-reverse' : ''} animate-in fade-in slide-in-from-bottom-2 duration-300`}>
                                 {!isUser && (<div className="flex flex-col items-center gap-1"><img src={msg.character?.avatar} className="w-10 h-10 rounded-full bg-slate-800 object-cover border border-slate-700" /><span className="text-[10px] text-slate-500 max-w-[60px] truncate">{msg.character?.name}</span></div>)}
-                                <div className={`max-w-[70%] p-4 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap ${isUser ? 'bg-indigo-600 text-white' : 'bg-slate-800 text-slate-200 border border-slate-700'}`}>
-                                    {isTyping ? <Typewriter text={msg.content} onComplete={() => setTypingIndex(prev => prev + 1)} /> : msg.content}
+                                {/* ✨ 4. 替换纯文本渲染为 MarkdownRenderer */}
+                                <div className={`max-w-[85%] md:max-w-[70%] p-4 rounded-2xl text-sm leading-relaxed shadow-sm ${isUser ? 'bg-indigo-600 text-white' : 'bg-slate-800 text-slate-200 border border-slate-700'}`}>
+                                    {isTyping ? (
+                                        <Typewriter text={msg.content} onComplete={() => setTypingIndex(prev => prev + 1)} />
+                                    ) : (
+                                        <MarkdownRenderer content={msg.content} />
+                                    )}
                                 </div>
                             </div>
                         )
