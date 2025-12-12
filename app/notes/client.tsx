@@ -339,7 +339,7 @@ export default function NotesWallClient({ initialNotes, initialIsAdmin, initialB
       {/* Login Modal */}
       {showAuthModal && (
         <div className="fixed inset-0 z-[1000000] flex items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in" onClick={() => setShowAuthModal(false)}>
-            <div className="bg-slate-900 border border-slate-700 p-6 rounded-2xl w-full max-w-sm shadow-2xl animate-in zoom-in-95" onMouseDown={e => e.stopPropagation()}>
+            <div className="bg-slate-900 border border-slate-700 p-6 rounded-2xl w-full max-w-sm shadow-2xl animate-in zoom-in-95" onClick={e => e.stopPropagation()}>
                 <h3 className="text-lg font-bold text-white mb-4">管理员登录</h3>
                 <form action={handleLogin} className="space-y-4">
                     <div>
@@ -366,7 +366,7 @@ export default function NotesWallClient({ initialNotes, initialIsAdmin, initialB
                     ${isPresetColor(editingNote.color || 'yellow') ? colorStyles[editingNote.color || 'yellow'] : 'text-slate-900'}
                 `} 
                 style={!isPresetColor(editingNote.color || 'yellow') ? { backgroundColor: editingNote.color } : {}}
-                onMouseDown={e => e.stopPropagation()}
+                onClick={e => e.stopPropagation()}
             >
                 <h3 className="text-lg font-bold mb-4 flex items-center gap-2">{editingNote.id ? '✏️ 编辑' : '📌 新贴纸'}</h3>
                 <form action={handleSubmitNote} className="space-y-4">
