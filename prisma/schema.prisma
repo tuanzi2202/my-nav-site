@@ -81,17 +81,15 @@ model Note {
 model AICharacter {
   id          Int      @id @default(autoincrement())
   name        String
-  avatar      String?  // 头像 URL
-  description String?  // 角色简述
-  systemPrompt String  // 核心：系统提示词 (人设)
+  avatar      String?
+  description String?
+  systemPrompt String
   
-  // 可选：如果想给特定角色单独配置 API，可以在这里加字段，
-  // 简单起见我们暂时使用全局 API 配置，只由 Prompt 区分角色
+  isPublic    Boolean  @default(false) // ✨✨✨ 新增：是否公开
   
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  // 关系：该角色参与了哪些群聊
   sessions    AIChatSession[] @relation("SessionParticipants")
   messages    AIChatMessage[]
 }

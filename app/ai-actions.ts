@@ -15,21 +15,33 @@ export async function getAdminStatus() {
 // --- 角色管理 ---
 
 export async function getAICharacters() {
-  // 公开读取，不需要权限
-  return await prisma.aICharacter.findMany({ orderBy: { createdAt: 'desc' } })
+  const isAdmin = await checkAuth()
+  
+  if (isAdmin) {
+    // 管理员：看所有
+    return await prisma.aICharacter.findMany({ orderBy: { createdAt: 'desc' } })
+  } else {
+    // 游客：只看公开的
+    return await prisma.aICharacter.findMany({ 
+        where: { isPublic: true },
+        orderBy: { createdAt: 'desc' } 
+    })
+  }
 }
 
 export async function createAICharacter(formData: FormData) {
-  // ✨ 权限校验
   if (!await checkAuth()) throw new Error("Unauthorized")
 
   const name = formData.get('name') as string
   const description = formData.get('description') as string
   const systemPrompt = formData.get('systemPrompt') as string
   const avatar = formData.get('avatar') as string
+  
+  // ✨✨✨ 获取公开状态
+  const isPublic = formData.get('isPublic') === 'on'
 
   await prisma.aICharacter.create({
-    data: { name, description, systemPrompt, avatar }
+    data: { name, description, systemPrompt, avatar, isPublic } // 写入 isPublic
   })
   revalidatePath('/ai-chat')
 }
