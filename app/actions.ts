@@ -339,13 +339,19 @@ export async function updateNotesBgSettings(formData: FormData) {
   revalidatePath('/notes')
 }
 
-// --- ✨✨✨ 新增：统一身份认证系统 ✨✨✨ ---
+// --- ✨✨✨ 修改：统一身份认证系统 (数据库版) ✨✨✨ ---
 
-// 1. 登录并写入 Cookie (用于前台组件，如便利贴墙)
-export async function loginAdmin(password: string) {
-  if (password === process.env.ADMIN_PASSWORD) {
+// 1. 登录并写入 Cookie
+// 修改参数，接收 username 和 password
+export async function loginAdmin(username: string, password: string) {
+  // 从数据库查找用户
+  const user = await prisma.adminUser.findUnique({
+    where: { username }
+  })
+
+  // 验证密码 (如果未来接入 bcrypt，请在这里使用 bcrypt.compare)
+  if (user && user.password === password) {
     const cookieStore = await cookies()
-    // 设置一个名为 is_admin 的 Cookie，有效期 7 天
     cookieStore.set('is_admin', 'true', { 
       httpOnly: true, 
       secure: process.env.NODE_ENV === 'production',
@@ -357,15 +363,29 @@ export async function loginAdmin(password: string) {
   return false
 }
 
-// 2. 检查当前是否已登录 (用于服务端组件初始化状态)
+// 2. 检查当前是否已登录 (保持不变)
 export async function checkAuth() {
   const cookieStore = await cookies()
   return cookieStore.get('is_admin')?.value === 'true'
 }
 
-// 3. 验证密码 (保留给旧代码兼容，但建议逐渐迁移到 loginAdmin)
+// 3. 验证密码 (旧接口兼容，建议修改或废弃)
+// 如果其他地方还在用这个函数，建议也改为数据库验证，或者直接让其失效
 export async function verifyAdminPassword(password: string) {
+  // 暂时保留环境变量作为后门，或者直接返回 false
   return password === process.env.ADMIN_PASSWORD
+}
+
+// ✨✨✨ 临时工具：创建管理员账号 (使用后请删除或注释) ✨✨✨
+export async function createInitialAdmin(username: string, password: string) {
+  // 检查是否已存在
+  const exists = await prisma.adminUser.findUnique({ where: { username } })
+  if (exists) return { success: false, msg: '用户已存在' }
+  
+  await prisma.adminUser.create({
+    data: { username, password }
+  })
+  return { success: true, msg: '创建成功' }
 }
 
 // --- 便利贴管理 (更新) ---

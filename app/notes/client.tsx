@@ -71,8 +71,20 @@ export default function NotesWallClient({ initialNotes, initialIsAdmin, initialB
 
   // ... (handleLogin, handleSaveBg, handleMouseDown, handleMouseMove, handleMouseUp 保持不变) ...
   const handleLogin = async (formData: FormData) => {
-    const success = await loginAdmin(formData.get('password') as string)
-    if (success) { setIsAdmin(true); setIsEditMode(false); setShowAuthModal(false); setAuthError('') } else { setAuthError('密码错误') }
+    const username = formData.get('username') as string
+    const password = formData.get('password') as string
+    
+    // 调用更新后的服务端 Action
+    const success = await loginAdmin(username, password)
+    
+    if (success) { 
+      setIsAdmin(true); 
+      setIsEditMode(false); 
+      setShowAuthModal(false); 
+      setAuthError('') 
+    } else { 
+      setAuthError('账号或密码错误') 
+    }
   }
 
   const handleSaveBg = async (newSettings: BgSettings) => {
@@ -285,11 +297,26 @@ export default function NotesWallClient({ initialNotes, initialIsAdmin, initialB
 
       {showAuthModal && (
         <div className="fixed inset-0 z-[1000000] flex items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in">
-            {/* ... (Auth Modal 保持不变) ... */}
             <div className="bg-slate-900 border border-slate-700 p-6 rounded-2xl w-full max-w-sm shadow-2xl animate-in zoom-in-95" onMouseDown={e => e.stopPropagation()}>
-                <h3 className="text-lg font-bold text-white mb-4">管理员验证</h3>
+                <h3 className="text-lg font-bold text-white mb-4">管理员登录</h3>
                 <form action={handleLogin} className="space-y-4">
-                    <input type="password" name="password" placeholder="输入管理员密码..." autoFocus className="w-full bg-slate-800 border border-slate-700 rounded-xl p-3 text-white focus:border-sky-500 outline-none" />
+                    {/* ✨ 新增：用户名输入框 */}
+                    <div>
+                      <input 
+                        type="text" 
+                        name="username" 
+                        placeholder="用户名" 
+                        autoFocus 
+                        className="w-full bg-slate-800 border border-slate-700 rounded-xl p-3 text-white focus:border-sky-500 outline-none mb-3" 
+                      />
+                      <input 
+                        type="password" 
+                        name="password" 
+                        placeholder="密码" 
+                        className="w-full bg-slate-800 border border-slate-700 rounded-xl p-3 text-white focus:border-sky-500 outline-none" 
+                      />
+                    </div>
+                    
                     {authError && <p className="text-xs text-red-400">{authError}</p>}
                     <div className="flex gap-2 justify-end">
                         <button type="button" onClick={() => setShowAuthModal(false)} className="px-4 py-2 text-slate-400 hover:text-white">取消</button>

@@ -122,3 +122,11 @@ model AIChatMessage {
 
   createdAt   DateTime @default(now())
 }
+
+// ✨✨✨ 新增：管理员账号表 ✨✨✨
+model AdminUser {
+  id        Int      @id @default(autoincrement())
+  username  String   @unique
+  password  String   // 生产环境建议存储加密后的哈希值(bcrypt/argon2)，此处演示存储明文
+  createdAt DateTime @default(now())
+}
