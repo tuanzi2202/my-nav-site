@@ -1,8 +1,7 @@
 // app/page.tsx
 import { PrismaClient } from '@prisma/client'
 import ClientHome from './components/ClientHome'
-// ✨ 引入新写的 getUISettings
-import { getAnnouncement, getSmartWallpapers, getUISettings } from './actions'
+import { getAnnouncement, getSmartWallpapers, getUISettings, getAnnouncementHistory, getAllPosts, checkAuth } from './actions'
 
 export const dynamic = 'force-dynamic'
 const prisma = new PrismaClient()
@@ -44,7 +43,8 @@ export default async function Home(props: Props) {
       prisma.link.findMany({ where: whereCondition, orderBy: { createdAt: 'desc' } }),
       getAnnouncement(),
       getSmartWallpapers(),
-      getUISettings()
+      getUISettings(),
+      checkAuth() // 👈 获取登录状态
   ])
 
   return (
@@ -55,7 +55,8 @@ export default async function Home(props: Props) {
       searchQuery={searchQuery}
       announcement={announcement}
       smartThemes={smartThemes}
-      initialSettings={uiSettings} // ✨ 注入数据库里的设置
+      initialSettings={uiSettings}
+      initialIsAdmin={isAdmin} // 👈 传递给客户端组件
     />
   )
 }

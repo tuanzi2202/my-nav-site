@@ -3,6 +3,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
+import { updateGlobalUISettings, loginAdmin, logoutAdmin } from '../actions'
 
 // --- 类型定义 ---
 type LinkItem = {
@@ -35,7 +36,8 @@ type ClientHomeProps = {
   searchQuery: string
   announcement: string
   smartThemes: ThemeItem[]
-  initialSettings: any 
+  initialSettings: any
+  initialIsAdmin: boolean // 👈 新增 Prop 定义 
 }
 
 type ThemeMode = 'default' | 'slideshow'
@@ -61,7 +63,7 @@ function getTimeSlot(): 'morning' | 'afternoon' | 'night' {
   return 'night'
 }
 
-export default function ClientHome({ links, categoriesData, currentCategory, searchQuery, announcement, smartThemes, initialSettings }: ClientHomeProps) {
+export default function ClientHome({ links, categoriesData, currentCategory, searchQuery, announcement, smartThemes, initialSettings, initialIsAdmin }: ClientHomeProps) {
   const router = useRouter()
   const fileInputRef = useRef<HTMLInputElement>(null)
   
@@ -95,6 +97,12 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
   // ✨✨✨ 右键菜单状态管理 ✨✨✨
   const [contextMenu, setContextMenu] = useState<{ x: number, y: number, show: boolean } | null>(null)
   const [isClosing, setIsClosing] = useState(false)
+
+  // ✨✨✨ 新增状态 ✨✨✨
+  const [isAdmin, setIsAdmin] = useState(initialIsAdmin)
+  const [showAuthModal, setShowAuthModal] = useState(false)
+  const [authError, setAuthError] = useState('')
+  const [showUserMenu, setShowUserMenu] = useState(false) // 控制用户下拉菜单
   
   // 加载用户本地个性化设置
   useEffect(() => {
@@ -331,6 +339,32 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
       localStorage.setItem('nav_settings', JSON.stringify(newSettings));
   }
 
+  // ✨✨✨ 登录处理 ✨✨✨
+  const handleLogin = async (formData: FormData) => {
+    const username = formData.get('username') as string
+    const password = formData.get('password') as string
+    
+    // 调用服务端登录 (假设已升级为支持 username 的版本，如果是旧版本 loginAdmin 只传 password 即可)
+    const success = await loginAdmin(username, password)
+    
+    if (success) {
+      setIsAdmin(true)
+      setShowAuthModal(false)
+      setAuthError('')
+      router.refresh() // 刷新页面以更新服务端数据状态
+    } else {
+      setAuthError('账号或密码错误')
+    }
+  }
+
+  // ✨✨✨ 登出处理 ✨✨✨
+  const handleLogout = async () => {
+    await logoutAdmin()
+    setIsAdmin(false)
+    setShowUserMenu(false)
+    router.refresh()
+  }
+
   // ✨✨✨ 环形菜单配置 (自定义菜单项) ✨✨✨
   const menuItems = [
     { label: '音乐', action: () => {} },
@@ -502,6 +536,39 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
                       </svg>
                   </button>
+
+                  <div className="relative">
+                    <button 
+                        onClick={() => isAdmin ? setShowUserMenu(!showUserMenu) : setShowAuthModal(true)}
+                        className={`flex items-center justify-center w-11 h-11 backdrop-blur border rounded-2xl transition-all duration-300 shadow-lg group shrink-0
+                          ${isAdmin 
+                            ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-400 hover:bg-emerald-500 hover:text-white' 
+                            : 'bg-slate-800/80 border-slate-700 text-slate-400 hover:text-white hover:bg-slate-700 hover:border-sky-500/50'
+                          }`}
+                        title={isAdmin ? "管理员已登录" : "管理员登录"}
+                    >
+                        {isAdmin ? (
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+                        ) : (
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"></path></svg>
+                        )}
+                    </button>
+
+                    {/* 管理员下拉菜单 */}
+                    {isAdmin && showUserMenu && (
+                      <div className="absolute right-0 top-14 w-32 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl overflow-hidden z-50 animate-in fade-in zoom-in-95 origin-top-right">
+                        <div className="px-4 py-2 text-[10px] text-slate-500 border-b border-slate-800">当前身份: 管理员</div>
+                        <button onClick={() => router.push('/admin')} className="w-full text-left px-4 py-2.5 text-xs text-slate-300 hover:bg-slate-800 hover:text-sky-400 transition-colors flex items-center gap-2">
+                           <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                           后台管理
+                        </button>
+                        <button onClick={handleLogout} className="w-full text-left px-4 py-2.5 text-xs text-slate-300 hover:bg-slate-800 hover:text-red-400 transition-colors flex items-center gap-2">
+                           <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+                           退出登录
+                        </button>
+                      </div>
+                    )}
+                  </div>
               </div>
           </div>
 
@@ -682,6 +749,41 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
             </div>
         </div>
       )}
+
+      {/* ✨✨✨ 登录弹窗 (与 /notes 中的样式保持一致) ✨✨✨ */}
+      {showAuthModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in" onClick={() => setShowAuthModal(false)}>
+            <div className="bg-slate-900 border border-slate-700 p-6 rounded-2xl w-full max-w-sm shadow-2xl animate-in zoom-in-95" onClick={e => e.stopPropagation()}>
+                <h3 className="text-lg font-bold text-white mb-4">管理员登录</h3>
+                <form action={handleLogin} className="space-y-4">
+                    {/* 用户名输入框 */}
+                    <div className="space-y-2">
+                      <input 
+                        type="text" 
+                        name="username" 
+                        placeholder="用户名 (例如: admin)" 
+                        autoFocus 
+                        className="w-full bg-slate-800 border border-slate-700 rounded-xl p-3 text-white focus:border-sky-500 outline-none text-sm placeholder:text-slate-500" 
+                      />
+                      <input 
+                        type="password" 
+                        name="password" 
+                        placeholder="密码" 
+                        className="w-full bg-slate-800 border border-slate-700 rounded-xl p-3 text-white focus:border-sky-500 outline-none text-sm placeholder:text-slate-500" 
+                      />
+                    </div>
+                    
+                    {authError && <p className="text-xs text-red-400 flex items-center gap-1"><svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>{authError}</p>}
+                    
+                    <div className="flex gap-2 justify-end pt-2">
+                        <button type="button" onClick={() => setShowAuthModal(false)} className="px-4 py-2 text-sm text-slate-400 hover:text-white transition">取消</button>
+                        <button type="submit" className="px-6 py-2 bg-sky-600 hover:bg-sky-500 text-white rounded-lg text-sm font-medium shadow-lg shadow-sky-500/20 transition-all">登录</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+      )}
+
     </div>
   )
 }

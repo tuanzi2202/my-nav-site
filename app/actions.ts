@@ -532,3 +532,10 @@ export async function chatWithAI(message: string) {
     return { success: false, reply: '网络好像有点问题呢...' }
   }
 }
+
+// ✨✨✨ 新增：管理员登出 ✨✨✨
+export async function logoutAdmin() {
+  const cookieStore = await cookies()
+  cookieStore.delete('is_admin')
+  return true
+}
