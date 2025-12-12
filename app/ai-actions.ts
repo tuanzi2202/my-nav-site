@@ -210,7 +210,8 @@ async function callLLM(
                                   1. Decide who to reply to. Not restricted to last speaker.
                                   2. Use "@Name" to mention others.
                                   3. DO NOT output your own name prefix.
-                                  4. Keep it natural.` 
+                                  4. Keep it natural.
+                                  5. If writing code, MUST use Markdown code blocks.` 
                     },
                     ...contextMessages
                 ],
