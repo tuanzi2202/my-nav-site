@@ -43,7 +43,7 @@ export async function createChatSession(name: string, participantIds: number[]) 
       participants: {
         connect: participantIds.map(id => ({ id }))
       }
-    }
+    },
     include: {
       participants: true
     }
@@ -108,7 +108,8 @@ export async function triggerAIReply(sessionId: number, characterId: number) {
   // 调用 AI 接口 (复用你现有的逻辑或 fetch)
   // 这里需要从 globalConfig 获取 API Key，或者为了演示直接读 env
   const apiKey = process.env.AI_API_KEY
-  const baseUrl = process.env.AI_BASE_URL || 'https://api.openai.com/v1'
+  const rawBaseUrl = process.env.AI_BASE_URL || 'https://api.openai.com/v1'
+  const baseUrl = rawBaseUrl.replace(/\/chat\/completions\/?$/, '')
   
   try {
     const res = await fetch(`${baseUrl}/chat/completions`, {
@@ -118,10 +119,17 @@ export async function triggerAIReply(sessionId: number, characterId: number) {
         'Authorization': `Bearer ${apiKey}`
       },
       body: JSON.stringify({
-        model: 'gpt-3.5-turbo', // 或从设置中读取
+        model: process.env.AI_MODEL || 'gpt-3.5-turbo', // 或从设置中读取
         messages: [
           // 系统提示词：定义当前角色的身份，并告知它正在一个群聊中
-          { role: 'system', content: `You are ${character.name}. ${character.systemPrompt}. \nCurrently you are in a group chat. Reply to the latest message or the general discussion.` },
+          // ✨✨✨ 修复点 1：在 System Prompt 中严厉禁止输出名字前缀 ✨✨✨
+          { 
+            role: 'system', 
+            content: `You are ${character.name}. ${character.systemPrompt}. 
+                      Currently you are in a group chat. Reply to the latest message.
+                      IMPORTANT: Do NOT prefix your response with your name (e.g. do NOT say "${character.name}: ..."). 
+                      Directly output your spoken content.` 
+          },
           ...contextMessages
         ],
         temperature: 0.7,
@@ -129,7 +137,23 @@ export async function triggerAIReply(sessionId: number, characterId: number) {
     })
 
     const data = await res.json()
-    const replyContent = data.choices?.[0]?.message?.content || '...'
+
+    // ✨✨✨ 新增：检查接口是否成功 ✨✨✨
+    if (!res.ok) {
+        console.error("AI API Error Details:", JSON.stringify(data, null, 2)) // 在终端打印详细错误
+        return { success: false, error: data.error?.message || 'API调用失败' }
+    }
+    
+    let replyContent = data.choices?.[0]?.message?.content || '...'
+
+    // ✨✨✨ 修复点 2：如果 AI 还是不听话，用代码强制切掉 "名字：" 前缀 ✨✨✨
+    // 构建正则：匹配 "角色名:" 或 "角色名：" 开头的内容，忽略大小写
+    const namePrefixRegex = new RegExp(`^${character.name}[:：]\\s*`, 'i')
+    
+    // 如果回复以 "Name:" 开头，就把它替换为空字符串
+    if (namePrefixRegex.test(replyContent)) {
+        replyContent = replyContent.replace(namePrefixRegex, '')
+    }
 
     // 保存回复
     const savedMsg = await prisma.aIChatMessage.create({
@@ -145,7 +169,7 @@ export async function triggerAIReply(sessionId: number, characterId: number) {
     return { success: true, message: savedMsg }
 
   } catch (e) {
-    console.error(e)
-    return { success: false, error: 'API Error' }
+    console.error("Network/Server Error:", e)
+    return { success: false, error: '网络请求异常' }
   }
 }
