@@ -103,6 +103,9 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
   const [showAuthModal, setShowAuthModal] = useState(false)
   const [authError, setAuthError] = useState('')
   const [showUserMenu, setShowUserMenu] = useState(false) // 控制用户下拉菜单
+
+  // ✨✨✨ 1. 新增状态：记录登录后是否需要跳转 ✨✨✨
+  const [loginRedirect, setLoginRedirect] = useState<string | null>(null)
   
   // 加载用户本地个性化设置
   useEffect(() => {
@@ -351,10 +354,24 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
       setIsAdmin(true)
       setShowAuthModal(false)
       setAuthError('')
-      router.refresh() // 刷新页面以更新服务端数据状态
+      
+      // 👇👇👇 核心逻辑：如果有预设的跳转路径，则跳转；否则仅刷新当前页 👇👇👇
+      if (loginRedirect) {
+          router.push(loginRedirect)
+          setLoginRedirect(null) // 重置状态
+      } else {
+          router.refresh()
+      }
     } else {
       setAuthError('账号或密码错误')
     }
+  }
+
+  // 辅助函数：关闭弹窗时清理状态
+  const closeAuthModal = () => {
+      setShowAuthModal(false)
+      setLoginRedirect(null) // 取消登录时，同时也取消跳转意图
+      setAuthError('')
   }
 
   // ✨✨✨ 登出处理 ✨✨✨
@@ -490,17 +507,18 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
             <div className="my-4 h-px bg-gradient-to-r from-transparent via-slate-800 to-transparent"></div>
             {categoriesData.map((cat) => (<button key={cat.category} onClick={() => router.push(`/?category=${cat.category}`)} className={`w-full flex items-center justify-between px-4 py-2.5 rounded-xl text-sm transition-all duration-200 group ${currentCategory === cat.category ? 'bg-sky-600 text-white shadow-lg shadow-sky-500/20' : 'hover:bg-slate-800/40 hover:text-white text-slate-400'}`}><span>{cat.category}</span><span className={`text-[10px] px-2 py-0.5 rounded-md transition-colors ${currentCategory === cat.category ? 'bg-sky-700/50 text-white' : 'bg-slate-800 text-slate-500 group-hover:bg-slate-700'}`}>{cat._count.category}</span></button>))}
           </nav>
-          {/* ✨✨✨ 修改：侧边栏管理控制台按钮 ✨✨✨ */}
+          {/* ✨✨✨ 3. 修改侧边栏“管理控制台”按钮 ✨✨✨ */}
           <div className="p-4 border-t border-slate-800/50">
             <button 
                 onClick={() => {
                     if (isAdmin) {
                         router.push('/admin')
                     } else {
+                        setLoginRedirect('/admin') // 👈 标记意图：登录后要去 admin
                         setShowAuthModal(true)
                     }
                 }} 
-                className="w-full flex items-center justify-center gap-2 text-xs font-medium text-slate-500 hover:text-sky-400 transition py-2 rounded-lg hover:bg-slate-800/50"
+                className="..." // 保持原有样式
             >
                 管理控制台
             </button>
@@ -510,9 +528,16 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
         <main className="flex-1 overflow-y-auto custom-scrollbar p-6 md:p-10 relative">
           <header className="md:hidden mb-8 flex justify-between items-center bg-slate-900/80 backdrop-blur p-4 rounded-xl border border-slate-800 sticky top-0 z-50 shadow-lg">
               <h1 className="text-xl font-bold text-white">Oasis</h1>
-              {/* 移动端 Header 的 Admin 按钮也应用同样逻辑 */}
+              {/* ✨✨✨ 修改移动端 Admin 按钮 ✨✨✨ */}
               <button 
-                  onClick={() => isAdmin ? router.push('/admin') : setShowAuthModal(true)} 
+                  onClick={() => {
+                      if (isAdmin) {
+                          router.push('/admin')
+                      } else {
+                          setLoginRedirect('/admin') // 👈 标记意图
+                          setShowAuthModal(true)
+                      }
+                  }} 
                   className="text-xs bg-slate-800 px-3 py-1.5 rounded-full text-sky-400"
               >
                   Admin
@@ -562,7 +587,14 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
 
                   <div className="relative">
                     <button 
-                        onClick={() => isAdmin ? setShowUserMenu(!showUserMenu) : setShowAuthModal(true)}
+                        onClick={() => {
+                            if (isAdmin) {
+                                setShowUserMenu(!showUserMenu)
+                            } else {
+                                setLoginRedirect(null) // 👈 普通登录，不需要跳转
+                                setShowAuthModal(true)
+                            }
+                        }}
                         className={`flex items-center justify-center w-11 h-11 backdrop-blur border rounded-2xl transition-all duration-300 shadow-lg group shrink-0
                           ${isAdmin 
                             ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-400 hover:bg-emerald-500 hover:text-white' 
