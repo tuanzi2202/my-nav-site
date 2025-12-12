@@ -514,11 +514,12 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
                     if (isAdmin) {
                         router.push('/admin')
                     } else {
-                        setLoginRedirect('/admin') // 👈 标记意图：登录后要去 admin
+                        setLoginRedirect('/admin') // 标记意图
                         setShowAuthModal(true)
                     }
                 }} 
-                className="..." // 保持原有样式
+                // 👇👇👇 这里补全了之前省略的样式 👇👇👇
+                className="w-full flex items-center justify-center gap-2 text-xs font-medium text-slate-500 hover:text-sky-400 transition py-2 rounded-lg hover:bg-slate-800/50"
             >
                 管理控制台
             </button>
