@@ -9,12 +9,22 @@ import {
 } from '../ai-actions'
 import { useRouter } from 'next/navigation'
 
-// --- 打字机组件 (保持不变) ---
+// ✨✨✨ 修复版打字机组件 ✨✨✨
 const Typewriter = ({ text, onComplete }: { text: string, onComplete: () => void }) => {
   const [displayedText, setDisplayedText] = useState('')
   const indexRef = useRef(0)
+  
+  // 1. 使用 ref 来保存最新的回调函数
+  // 这样无论 onComplete 怎么变，我们都能读到最新的，但不会触发 Effect 重跑
+  const onCompleteRef = useRef(onComplete)
+
+  // 2. 每次渲染都更新 ref
+  useEffect(() => {
+    onCompleteRef.current = onComplete
+  }, [onComplete])
 
   useEffect(() => {
+    // 重置状态
     indexRef.current = 0
     setDisplayedText('')
 
@@ -24,12 +34,15 @@ const Typewriter = ({ text, onComplete }: { text: string, onComplete: () => void
 
       if (indexRef.current >= text.length) {
         clearInterval(intervalId)
-        onComplete()
+        // 3. 调用 ref 中的函数，而不是直接调用 prop
+        onCompleteRef.current() 
       }
-    }, 30)
+    }, 30) // 打字速度
 
     return () => clearInterval(intervalId)
-  }, [text, onComplete])
+    // 4. ✨✨✨ 关键修改：依赖数组中移除 onComplete ✨✨✨
+    // 只在 text 真正变化时才重置打字机
+  }, [text]) 
 
   return (
     <span>
