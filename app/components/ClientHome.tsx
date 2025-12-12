@@ -360,7 +360,10 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
         }
       } 
     },
-    { label: '其他', action: () => {} },
+    { 
+      label: 'AI群聊', 
+      action: () => router.push('/ai-chat') 
+    },
     { label: '其他', action: () => {} },
   ]
 
