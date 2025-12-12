@@ -3,25 +3,42 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { 
-  getAICharacters, createAICharacter, updateAICharacter, deleteAICharacter, getAdminStatus, // 👈 引入 updateAICharacter
+  getAICharacters, createAICharacter, updateAICharacter, deleteAICharacter, getAdminStatus,
   getChatSessions, createChatSession, deleteChatSession,
   getSessionMessages, saveUserMessage, triggerAIReply, chatWithAIStateless 
 } from '../ai-actions'
 import { useRouter } from 'next/navigation'
 
+// --- 1. 打字机组件 (Typewriter) ---
 const Typewriter = ({ text, onComplete }: { text: string, onComplete: () => void }) => {
   const [displayedText, setDisplayedText] = useState('')
   const indexRef = useRef(0)
+
   useEffect(() => {
-    indexRef.current = 0; setDisplayedText('')
+    // 重置状态
+    indexRef.current = 0
+    setDisplayedText('')
+
     const intervalId = setInterval(() => {
       indexRef.current++
       setDisplayedText(text.slice(0, indexRef.current))
-      if (indexRef.current >= text.length) { clearInterval(intervalId); onComplete() }
-    }, 50)
+
+      // 打字完成
+      if (indexRef.current >= text.length) {
+        clearInterval(intervalId)
+        onComplete() // 通知父组件：这一条打完了，请显示下一条
+      }
+    }, 30) // 打字速度：30ms/字 (可微调)
+
     return () => clearInterval(intervalId)
   }, [text, onComplete])
-  return <span>{displayedText}<span className="inline-block w-1.5 h-4 ml-0.5 bg-current align-middle animate-pulse" /></span>
+
+  return (
+    <span>
+      {displayedText}
+      <span className="inline-block w-1.5 h-4 ml-0.5 bg-current align-middle animate-pulse" />
+    </span>
+  )
 }
 
 export default function AIChatPage() {
@@ -37,6 +54,8 @@ export default function AIChatPage() {
 
   const [activeSession, setActiveSession] = useState<any>(null)
   const [messages, setMessages] = useState<any[]>([])
+  
+  // ✨✨✨ 打字机指针：控制当前显示到第几条消息
   const [typingIndex, setTypingIndex] = useState(0)
 
   // UI
@@ -46,9 +65,9 @@ export default function AIChatPage() {
   const [showSessionModal, setShowSessionModal] = useState(false)
   const [currentThinkingAI, setCurrentThinkingAI] = useState<string>('') 
   
-  // ✨✨✨ 编辑状态管理
-  const [editingCharId, setEditingCharId] = useState<string | number | null>(null) // null表示创建模式
-  const [charForm, setCharForm] = useState({ name: '', prompt: '', avatar: '', desc: '', isPublic: false }) // 改名为 charForm 更贴切
+  // 编辑状态
+  const [editingCharId, setEditingCharId] = useState<string | number | null>(null)
+  const [charForm, setCharForm] = useState({ name: '', prompt: '', avatar: '', desc: '', isPublic: false })
   
   const [newSessionName, setNewSessionName] = useState('')
   const [selectedCharIds, setSelectedCharIds] = useState<string[]>([]) 
@@ -78,19 +97,22 @@ export default function AIChatPage() {
     setDbSessions(s)
   }
 
+  // ✨✨✨ 切换会话时，重置消息并跳过打字效果（历史消息直接显示）
   useEffect(() => {
     if (!activeSession) return
+    
     if (typeof activeSession.id === 'number') {
        getSessionMessages(activeSession.id).then(msgs => {
          setMessages(msgs)
-         setTypingIndex(msgs.length)
+         setTypingIndex(msgs.length) // 指针指到最后，表示全部已读
        })
     } else {
        setMessages(activeSession.messages || [])
        setTypingIndex((activeSession.messages || []).length)
     }
-  }, [activeSession]) 
+  }, [activeSession?.id])
 
+  // 自动滚动
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' })
   }, [messages, currentThinkingAI, typingIndex])
@@ -100,16 +122,14 @@ export default function AIChatPage() {
 
   // --- Actions ---
 
-  // ✨✨✨ 打开创建模态框
   const openCreateModal = () => {
-      setEditingCharId(null) // 标记为创建模式
+      setEditingCharId(null)
       setCharForm({ name: '', prompt: '', avatar: '', desc: '', isPublic: false })
       setShowCharModal(true)
   }
 
-  // ✨✨✨ 打开编辑模态框
   const openEditModal = (char: any) => {
-      setEditingCharId(char.id) // 标记为编辑模式
+      setEditingCharId(char.id)
       setCharForm({
           name: char.name,
           prompt: char.systemPrompt,
@@ -120,14 +140,11 @@ export default function AIChatPage() {
       setShowCharModal(true)
   }
 
-  // ✨✨✨ 统一保存逻辑 (新增/更新)
   const handleSaveChar = async () => {
     if (!charForm.name || !charForm.prompt) return alert("请填写名称和提示词")
-
     const avatarUrl = charForm.avatar || `https://api.dicebear.com/7.x/adventurer/svg?seed=${charForm.name}`
 
     if (isAdmin) {
-        // --- 管理员操作 (云端 DB) ---
         const fd = new FormData()
         fd.append('name', charForm.name)
         fd.append('systemPrompt', charForm.prompt)
@@ -136,36 +153,17 @@ export default function AIChatPage() {
         if (charForm.isPublic) fd.append('isPublic', 'on')
 
         if (editingCharId && typeof editingCharId === 'number') {
-            // 更新模式
             fd.append('id', String(editingCharId))
             await updateAICharacter(fd)
         } else {
-            // 创建模式
             await createAICharacter(fd)
         }
         refreshDbData()
-
     } else {
-        // --- 游客操作 (本地 Local) ---
         if (editingCharId && typeof editingCharId === 'string') {
-            // 更新本地角色
-            setLocalCharacters(prev => prev.map(c => {
-                if (c.id === editingCharId) {
-                    return { ...c, name: charForm.name, systemPrompt: charForm.prompt, description: charForm.desc, avatar: avatarUrl }
-                }
-                return c
-            }))
+            setLocalCharacters(prev => prev.map(c => c.id === editingCharId ? { ...c, name: charForm.name, systemPrompt: charForm.prompt, description: charForm.desc, avatar: avatarUrl } : c))
         } else {
-            // 创建本地角色
-            const newLocalChar = {
-                id: `local_char_${Date.now()}`, 
-                name: charForm.name,
-                systemPrompt: charForm.prompt,
-                description: charForm.desc,
-                avatar: avatarUrl,
-                createdAt: new Date()
-            }
-            setLocalCharacters(prev => [newLocalChar, ...prev])
+            setLocalCharacters(prev => [{ id: `local_char_${Date.now()}`, name: charForm.name, systemPrompt: charForm.prompt, description: charForm.desc, avatar: avatarUrl, createdAt: new Date() }, ...prev])
         }
     }
     setShowCharModal(false)
@@ -217,22 +215,30 @@ export default function AIChatPage() {
     if (activeSession?.id === id) setActiveSession(null)
   }
 
+  // ✨✨✨ 发送消息逻辑 (确保打字机队列正常工作)
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!inputMsg.trim() || isProcessing || !activeSession) return
     const content = inputMsg; setInputMsg(''); setIsProcessing(true)
-    const userMsg = { id: Date.now(), role: 'user', content, createdAt: new Date() }
-    setMessages(prev => [...prev, userMsg]); setTypingIndex(prev => prev + 1) 
 
+    // 1. 用户消息：直接上屏 (typingIndex + 1)
+    const userMsg = { id: Date.now(), role: 'user', content, createdAt: new Date() }
+    setMessages(prev => [...prev, userMsg])
+    setTypingIndex(prev => prev + 1) 
+
+    // 持久化
     if (typeof activeSession.id === 'number') await saveUserMessage(activeSession.id, content)
     else updateLocalSessionMessages(activeSession.id, userMsg)
 
+    // 2. AI 轮流回复
     const participants = activeSession.participants || []
     let currentHistory = [...messages, userMsg] 
 
     for (const char of participants) {
         setCurrentThinkingAI(char.name)
+        // 模拟思考时间
         await new Promise(r => setTimeout(r, 800))
+        
         let res;
         if (typeof activeSession.id === 'number') {
             res = await triggerAIReply(activeSession.id, char.id)
@@ -248,8 +254,13 @@ export default function AIChatPage() {
             })
             if (res.success && res.message) res.message.character = char 
         }
+
         if (res.success && res.message) {
-            setMessages(prev => [...prev, res.message]); currentHistory.push(res.message) 
+            // ✨ 关键：AI 消息只是加入数组，typingIndex 不变
+            // 界面会自动检测到 (idx > typingIndex)，从而触发 Typewriter 组件
+            setMessages(prev => [...prev, res.message])
+            currentHistory.push(res.message) 
+            
             if (typeof activeSession.id !== 'number') updateLocalSessionMessages(activeSession.id, res.message)
         }
     }
@@ -279,7 +290,6 @@ export default function AIChatPage() {
             </div>
             <div className="flex gap-2">
                 <button onClick={() => setShowSessionModal(true)} className="flex-1 bg-indigo-600 hover:bg-indigo-500 text-xs py-2 rounded text-white transition">+ 新群聊</button>
-                {/* ✨ 使用 openCreateModal */}
                 <button onClick={openCreateModal} className="flex-1 bg-slate-700 hover:bg-slate-600 text-xs py-2 rounded text-slate-300 transition">角色管理</button>
             </div>
         </div>
@@ -311,19 +321,36 @@ export default function AIChatPage() {
                         <div className="flex -space-x-2 mt-1">{activeSession.participants?.map((p: any) => (<img key={p.id} src={p.avatar} className="w-5 h-5 rounded-full border border-slate-900 bg-slate-800 object-cover" />))}</div>
                     </div>
                 </header>
+                
+                {/* 消息列表区域 (包含打字机逻辑) */}
                 <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar" ref={scrollRef}>
                     {messages.map((msg, idx) => {
+                        // 1. 如果这条消息还没轮到 (idx > typingIndex)，则隐藏
                         if (idx > typingIndex) return null;
-                        const isUser = msg.role === 'user'; const isTyping = idx === typingIndex && !isUser;
+                        
+                        // 2. 判断是否是“正在打字”的那条消息
+                        const isUser = msg.role === 'user';
+                        // 用户消息不用打字；AI 消息如果正好轮到指针位置，则触发打字
+                        const isTyping = idx === typingIndex && !isUser;
+                        
                         return (
                             <div key={idx} className={`flex gap-4 ${isUser ? 'flex-row-reverse' : ''} animate-in fade-in slide-in-from-bottom-2 duration-300`}>
                                 {!isUser && (<div className="flex flex-col items-center gap-1"><img src={msg.character?.avatar} className="w-10 h-10 rounded-full bg-slate-800 object-cover border border-slate-700" /><span className="text-[10px] text-slate-500 max-w-[60px] truncate">{msg.character?.name}</span></div>)}
-                                <div className={`max-w-[70%] p-4 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap ${isUser ? 'bg-indigo-600 text-white' : 'bg-slate-800 text-slate-200 border border-slate-700'}`}>{isTyping ? <Typewriter text={msg.content} onComplete={() => setTypingIndex(prev => prev + 1)} /> : msg.content}</div>
+                                <div className={`max-w-[70%] p-4 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap ${isUser ? 'bg-indigo-600 text-white' : 'bg-slate-800 text-slate-200 border border-slate-700'}`}>
+                                    {isTyping ? (
+                                        // ✨ 只有轮到它时，才渲染 Typewriter
+                                        <Typewriter text={msg.content} onComplete={() => setTypingIndex(prev => prev + 1)} />
+                                    ) : (
+                                        // 否则直接渲染文本 (包含历史消息 和 已经打完的AI消息)
+                                        msg.content
+                                    )}
+                                </div>
                             </div>
                         )
                     })}
                     {currentThinkingAI && <div className="flex gap-4 animate-pulse opacity-70"><div className="w-10 h-10 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center"><div className="w-2 h-2 bg-indigo-400 rounded-full animate-bounce"></div></div><span className="text-[10px] text-slate-500 mt-2">{currentThinkingAI} 正在思考...</span></div>}
                 </div>
+
                 <div className="p-4 border-t border-slate-800/50 bg-slate-900/30">
                     <form onSubmit={handleSendMessage} className="relative">
                         <input type="text" value={inputMsg} onChange={(e) => setInputMsg(e.target.value)} disabled={isProcessing} placeholder={isProcessing ? "讨论中..." : "输入消息..."} className="w-full bg-slate-800/50 border border-slate-700 rounded-xl px-4 py-4 pr-12 text-sm text-white focus:outline-none focus:border-indigo-500 transition" />
@@ -334,21 +361,18 @@ export default function AIChatPage() {
          ) : <div className="flex-1 flex items-center justify-center text-slate-600 flex-col gap-4"><div className="w-20 h-20 rounded-full bg-slate-800 flex items-center justify-center"><svg className="w-10 h-10 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg></div><p>请在左侧选择或创建一个群聊</p></div>}
       </div>
 
-      {/* 角色管理 Modal (支持编辑) */}
+      {/* 角色管理 Modal */}
       {showCharModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in">
              <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-md p-6 shadow-2xl animate-in zoom-in-95 flex flex-col max-h-[90vh]">
                  <h3 className="text-lg font-bold text-white mb-4">
                      {editingCharId ? '编辑角色' : '创建角色'} <span className="text-xs font-normal opacity-60">({isAdmin ? '云端' : (editingCharId && typeof editingCharId === 'number' ? '云端·只读' : '本地')})</span>
                  </h3>
-                 
-                 {/* 表单区域 */}
                  <div className="space-y-4 overflow-y-auto custom-scrollbar p-1">
                     <input placeholder="角色名称" className="w-full bg-slate-800 border border-slate-700 rounded-lg p-3 text-sm text-white" value={charForm.name} onChange={e => setCharForm({...charForm, name: e.target.value})} disabled={!isAdmin && typeof editingCharId === 'number'} />
                     <input placeholder="简短描述" className="w-full bg-slate-800 border border-slate-700 rounded-lg p-3 text-sm text-white" value={charForm.desc} onChange={e => setCharForm({...charForm, desc: e.target.value})} disabled={!isAdmin && typeof editingCharId === 'number'} />
                     <textarea placeholder="系统提示词..." className="w-full bg-slate-800 border border-slate-700 rounded-lg p-3 text-sm text-white h-24" value={charForm.prompt} onChange={e => setCharForm({...charForm, prompt: e.target.value})} disabled={!isAdmin && typeof editingCharId === 'number'} />
                     <input placeholder="头像 URL (可选)" className="w-full bg-slate-800 border border-slate-700 rounded-lg p-3 text-sm text-white" value={charForm.avatar} onChange={e => setCharForm({...charForm, avatar: e.target.value})} disabled={!isAdmin && typeof editingCharId === 'number'} />
-                    
                     {isAdmin && (
                         <label className="flex items-center gap-2 cursor-pointer p-2 rounded hover:bg-slate-800">
                             <input type="checkbox" checked={charForm.isPublic} onChange={e => setCharForm({...charForm, isPublic: e.target.checked})} className="rounded bg-slate-700 border-slate-600 text-indigo-500 focus:ring-indigo-500" />
@@ -356,18 +380,14 @@ export default function AIChatPage() {
                         </label>
                     )}
                 </div>
-                 
                  <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-slate-800">
                     <button onClick={() => setShowCharModal(false)} className="px-4 py-2 text-slate-400 text-sm hover:text-white">取消</button>
-                    {/* 如果不是只读状态，显示保存按钮 */}
                     {!( !isAdmin && typeof editingCharId === 'number' ) && (
                         <button onClick={handleSaveChar} className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-sm shadow-lg shadow-emerald-500/20">
                             {editingCharId ? '保存修改' : '创建角色'}
                         </button>
                     )}
                  </div>
-                 
-                 {/* 列表显示 - 仅在创建模式下显示，编辑模式下隐藏列表以免干扰 */}
                  {!editingCharId && (
                      <div className="mt-4 pt-4 border-t border-slate-800 flex-1 overflow-y-auto custom-scrollbar min-h-[150px]">
                         <p className="text-xs text-slate-500 mb-2">已有角色 (点击编辑)</p>
@@ -379,16 +399,8 @@ export default function AIChatPage() {
                                     {typeof c.id === 'number' && c.isPublic && <span className="text-[10px] bg-blue-500/20 text-blue-400 px-1 rounded">公开</span>}
                                 </span>
                                 <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                    {/* ✨✨✨ 编辑按钮 */}
-                                    {/* 管理员可以编辑所有云端角色；游客只能编辑本地角色 */}
-                                    {(isAdmin || typeof c.id !== 'number') && (
-                                        <button onClick={() => openEditModal(c)} className="text-xs text-sky-400 hover:text-sky-300">编辑</button>
-                                    )}
-                                    
-                                    {/* 删除按钮 */}
-                                    {(isAdmin || typeof c.id !== 'number') && (
-                                        <button onClick={() => handleDeleteChar(c.id)} className="text-xs text-slate-600 hover:text-red-400">删除</button>
-                                    )}
+                                    {(isAdmin || typeof c.id !== 'number') && <button onClick={() => openEditModal(c)} className="text-xs text-sky-400 hover:text-sky-300">编辑</button>}
+                                    {(isAdmin || typeof c.id !== 'number') && <button onClick={() => handleDeleteChar(c.id)} className="text-xs text-slate-600 hover:text-red-400">删除</button>}
                                 </div>
                             </div>
                         ))}
