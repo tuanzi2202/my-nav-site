@@ -39,7 +39,7 @@ export default async function Home(props: Props) {
   }
 
   // ✨ 并行获取所有数据，包括 UI 设置
-  const [links, announcement, smartThemes, uiSettings] = await Promise.all([
+  const [links, announcement, smartThemes, uiSettings, isAdmin] = await Promise.all([
       prisma.link.findMany({ where: whereCondition, orderBy: { createdAt: 'desc' } }),
       getAnnouncement(),
       getSmartWallpapers(),
@@ -56,7 +56,7 @@ export default async function Home(props: Props) {
       announcement={announcement}
       smartThemes={smartThemes}
       initialSettings={uiSettings}
-      initialIsAdmin={isAdmin} // 👈 传递给客户端组件
+      initialIsAdmin={isAdmin} // 👈 现在这里就不会报错了
     />
   )
 }
