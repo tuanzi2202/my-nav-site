@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { 
-  getAICharacters, createAICharacter, deleteAICharacter, getAdminStatus,
+  getAICharacters, createAICharacter, updateAICharacter, deleteAICharacter, getAdminStatus, // 👈 引入 updateAICharacter
   getChatSessions, createChatSession, deleteChatSession,
   getSessionMessages, saveUserMessage, triggerAIReply, chatWithAIStateless 
 } from '../ai-actions'
@@ -29,7 +29,7 @@ export default function AIChatPage() {
   
   // --- State ---
   const [isAdmin, setIsAdmin] = useState(false)
-  const [dbCharacters, setDbCharacters] = useState<any[]>([]) // 管理员=所有，游客=仅公开
+  const [dbCharacters, setDbCharacters] = useState<any[]>([])
   const [dbSessions, setDbSessions] = useState<any[]>([])
   
   const [localCharacters, setLocalCharacters] = useState<any[]>([])
@@ -45,8 +45,11 @@ export default function AIChatPage() {
   const [showCharModal, setShowCharModal] = useState(false)
   const [showSessionModal, setShowSessionModal] = useState(false)
   const [currentThinkingAI, setCurrentThinkingAI] = useState<string>('') 
-  // ✨✨✨ 新增 isPublic 状态
-  const [newChar, setNewChar] = useState({ name: '', prompt: '', avatar: '', desc: '', isPublic: false })
+  
+  // ✨✨✨ 编辑状态管理
+  const [editingCharId, setEditingCharId] = useState<string | number | null>(null) // null表示创建模式
+  const [charForm, setCharForm] = useState({ name: '', prompt: '', avatar: '', desc: '', isPublic: false }) // 改名为 charForm 更贴切
+  
   const [newSessionName, setNewSessionName] = useState('')
   const [selectedCharIds, setSelectedCharIds] = useState<string[]>([]) 
 
@@ -56,8 +59,6 @@ export default function AIChatPage() {
   useEffect(() => {
     getAdminStatus().then(status => {
         setIsAdmin(status)
-        // 无论是不是管理员，都去拉取 DB 数据
-        // 后端会自动过滤：管理员给全部，游客给公开
         refreshDbData()
     })
 
@@ -94,50 +95,89 @@ export default function AIChatPage() {
     if (scrollRef.current) scrollRef.current.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' })
   }, [messages, currentThinkingAI, typingIndex])
 
-  // ✨✨✨ 核心修改：角色列表合并逻辑 ✨✨✨
-  // 管理员：只看 DB (因为所有都在 DB)
-  // 游客：看 DB (公开的) + Local (私有的)
   const displayCharacters = isAdmin ? dbCharacters : [...dbCharacters, ...localCharacters]
-  
-  // 会话列表依然隔离
   const displaySessions = isAdmin ? dbSessions : localSessions
 
   // --- Actions ---
 
-  const handleCreateChar = async () => {
+  // ✨✨✨ 打开创建模态框
+  const openCreateModal = () => {
+      setEditingCharId(null) // 标记为创建模式
+      setCharForm({ name: '', prompt: '', avatar: '', desc: '', isPublic: false })
+      setShowCharModal(true)
+  }
+
+  // ✨✨✨ 打开编辑模态框
+  const openEditModal = (char: any) => {
+      setEditingCharId(char.id) // 标记为编辑模式
+      setCharForm({
+          name: char.name,
+          prompt: char.systemPrompt,
+          desc: char.description || '',
+          avatar: char.avatar || '',
+          isPublic: char.isPublic || false
+      })
+      setShowCharModal(true)
+  }
+
+  // ✨✨✨ 统一保存逻辑 (新增/更新)
+  const handleSaveChar = async () => {
+    if (!charForm.name || !charForm.prompt) return alert("请填写名称和提示词")
+
+    const avatarUrl = charForm.avatar || `https://api.dicebear.com/7.x/adventurer/svg?seed=${charForm.name}`
+
     if (isAdmin) {
+        // --- 管理员操作 (云端 DB) ---
         const fd = new FormData()
-        fd.append('name', newChar.name); fd.append('systemPrompt', newChar.prompt); 
-        fd.append('description', newChar.desc); fd.append('avatar', newChar.avatar || `https://api.dicebear.com/7.x/adventurer/svg?seed=${newChar.name}`)
-        // ✨ 只有管理员能提交 isPublic
-        if (newChar.isPublic) fd.append('isPublic', 'on')
-        
-        await createAICharacter(fd)
-        refreshDbData()
-    } else {
-        const newLocalChar = {
-            id: `local_char_${Date.now()}`, 
-            name: newChar.name,
-            systemPrompt: newChar.prompt,
-            description: newChar.desc,
-            avatar: newChar.avatar || `https://api.dicebear.com/7.x/adventurer/svg?seed=${newChar.name}`,
-            createdAt: new Date()
+        fd.append('name', charForm.name)
+        fd.append('systemPrompt', charForm.prompt)
+        fd.append('description', charForm.desc)
+        fd.append('avatar', avatarUrl)
+        if (charForm.isPublic) fd.append('isPublic', 'on')
+
+        if (editingCharId && typeof editingCharId === 'number') {
+            // 更新模式
+            fd.append('id', String(editingCharId))
+            await updateAICharacter(fd)
+        } else {
+            // 创建模式
+            await createAICharacter(fd)
         }
-        setLocalCharacters(prev => [newLocalChar, ...prev])
+        refreshDbData()
+
+    } else {
+        // --- 游客操作 (本地 Local) ---
+        if (editingCharId && typeof editingCharId === 'string') {
+            // 更新本地角色
+            setLocalCharacters(prev => prev.map(c => {
+                if (c.id === editingCharId) {
+                    return { ...c, name: charForm.name, systemPrompt: charForm.prompt, description: charForm.desc, avatar: avatarUrl }
+                }
+                return c
+            }))
+        } else {
+            // 创建本地角色
+            const newLocalChar = {
+                id: `local_char_${Date.now()}`, 
+                name: charForm.name,
+                systemPrompt: charForm.prompt,
+                description: charForm.desc,
+                avatar: avatarUrl,
+                createdAt: new Date()
+            }
+            setLocalCharacters(prev => [newLocalChar, ...prev])
+        }
     }
     setShowCharModal(false)
-    setNewChar({ name: '', prompt: '', avatar: '', desc: '', isPublic: false }) // Reset
   }
 
   const handleDeleteChar = async (id: number | string) => {
       if (typeof id === 'number') {
-          // 云端角色：只有管理员能删
           if (!isAdmin) return alert("无法删除云端公开角色")
           if (!confirm("确定要永久删除这个角色吗？")) return
           await deleteAICharacter(id)
           refreshDbData()
       } else {
-          // 本地角色：随意删
           setLocalCharacters(prev => prev.filter(c => c.id !== id))
       }
   }
@@ -146,22 +186,17 @@ export default function AIChatPage() {
     if (!newSessionName || selectedCharIds.length === 0) return alert("请填写完整")
     
     if (isAdmin) {
-        // Admin: 只允许创建 DB 会话，且只能选 DB 角色
         const dbIds = selectedCharIds.map(id => parseInt(id)).filter(id => !isNaN(id))
         if (dbIds.length !== selectedCharIds.length) return alert("云端会话不能包含本地角色")
-        
         const session = await createChatSession(newSessionName, dbIds)
         refreshDbData()
         setActiveSession(session)
     } else {
-        // Guest: 创建 Local 会话，可以混合使用 (公开云端角色 + 本地角色)
-        // 从 displayCharacters (混合列表) 中查找选中的角色
         const selectedChars = displayCharacters.filter(c => selectedCharIds.includes(String(c.id)))
-        
         const newSession = {
             id: `session_${Date.now()}`,
             name: newSessionName,
-            participants: selectedChars, // 存快照
+            participants: selectedChars, 
             messages: [],
             updatedAt: new Date()
         }
@@ -174,7 +209,6 @@ export default function AIChatPage() {
   const handleDeleteSession = async (e: React.MouseEvent, id: number | string) => {
     e.stopPropagation() 
     if (!confirm("确定要删除这个群聊吗？")) return
-
     if (isAdmin && typeof id === 'number') {
         try { await deleteChatSession(id); refreshDbData() } catch (err) { alert("删除失败") }
     } else if (!isAdmin && typeof id === 'string') {
@@ -186,19 +220,12 @@ export default function AIChatPage() {
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!inputMsg.trim() || isProcessing || !activeSession) return
-
-    const content = inputMsg
-    setInputMsg(''); setIsProcessing(true)
-
+    const content = inputMsg; setInputMsg(''); setIsProcessing(true)
     const userMsg = { id: Date.now(), role: 'user', content, createdAt: new Date() }
-    setMessages(prev => [...prev, userMsg])
-    setTypingIndex(prev => prev + 1) 
+    setMessages(prev => [...prev, userMsg]); setTypingIndex(prev => prev + 1) 
 
-    if (typeof activeSession.id === 'number') {
-        await saveUserMessage(activeSession.id, content)
-    } else {
-        updateLocalSessionMessages(activeSession.id, userMsg)
-    }
+    if (typeof activeSession.id === 'number') await saveUserMessage(activeSession.id, content)
+    else updateLocalSessionMessages(activeSession.id, userMsg)
 
     const participants = activeSession.participants || []
     let currentHistory = [...messages, userMsg] 
@@ -206,31 +233,23 @@ export default function AIChatPage() {
     for (const char of participants) {
         setCurrentThinkingAI(char.name)
         await new Promise(r => setTimeout(r, 800))
-
         let res;
-        
         if (typeof activeSession.id === 'number') {
             res = await triggerAIReply(activeSession.id, char.id)
         } else {
-            // Guest + Stateless
             const historyPayload = currentHistory.map(m => {
-                let prefix = "User";
-                if (m.role !== 'user') prefix = m.character?.name || m.name || "Assistant"
+                let prefix = "User"; if (m.role !== 'user') prefix = m.character?.name || m.name || "Assistant"
                 return { role: m.role, content: `${prefix}: ${m.content}` }
             })
             const allNames = ['User', ...participants.map((p: any) => p.name)]
-            
             res = await chatWithAIStateless({
                 character: { name: char.name, systemPrompt: char.systemPrompt },
-                history: historyPayload,
-                participantsNames: allNames
+                history: historyPayload, participantsNames: allNames
             })
             if (res.success && res.message) res.message.character = char 
         }
-
         if (res.success && res.message) {
-            setMessages(prev => [...prev, res.message])
-            currentHistory.push(res.message) 
+            setMessages(prev => [...prev, res.message]); currentHistory.push(res.message) 
             if (typeof activeSession.id !== 'number') updateLocalSessionMessages(activeSession.id, res.message)
         }
     }
@@ -260,7 +279,8 @@ export default function AIChatPage() {
             </div>
             <div className="flex gap-2">
                 <button onClick={() => setShowSessionModal(true)} className="flex-1 bg-indigo-600 hover:bg-indigo-500 text-xs py-2 rounded text-white transition">+ 新群聊</button>
-                <button onClick={() => setShowCharModal(true)} className="flex-1 bg-slate-700 hover:bg-slate-600 text-xs py-2 rounded text-slate-300 transition">角色管理</button>
+                {/* ✨ 使用 openCreateModal */}
+                <button onClick={openCreateModal} className="flex-1 bg-slate-700 hover:bg-slate-600 text-xs py-2 rounded text-slate-300 transition">角色管理</button>
             </div>
         </div>
         
@@ -268,19 +288,9 @@ export default function AIChatPage() {
         <div className="flex-1 overflow-y-auto custom-scrollbar p-2 space-y-1">
             {displaySessions.map(s => (
                 <div key={s.id} className="group relative">
-                    <button 
-                        onClick={() => setActiveSession(s)}
-                        className={`w-full text-left p-3 pr-9 rounded-xl transition flex items-center gap-3 ${activeSession?.id === s.id ? 'bg-indigo-500/20 text-white border border-indigo-500/30' : 'hover:bg-slate-800/50 text-slate-400'}`}
-                    >
-                        <div className={`w-10 h-10 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0 ${isAdmin ? 'bg-gradient-to-br from-amber-500 to-orange-600' : 'bg-gradient-to-br from-emerald-500 to-teal-600'}`}>
-                            {s.name[0]}
-                        </div>
-                        <div className="overflow-hidden">
-                            <div className="font-medium text-sm truncate">{s.name}</div>
-                            <div className="text-[10px] opacity-60 truncate">
-                                {s.participants?.length || 0} 位成员
-                            </div>
-                        </div>
+                    <button onClick={() => setActiveSession(s)} className={`w-full text-left p-3 pr-9 rounded-xl transition flex items-center gap-3 ${activeSession?.id === s.id ? 'bg-indigo-500/20 text-white border border-indigo-500/30' : 'hover:bg-slate-800/50 text-slate-400'}`}>
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0 ${isAdmin ? 'bg-gradient-to-br from-amber-500 to-orange-600' : 'bg-gradient-to-br from-emerald-500 to-teal-600'}`}>{s.name[0]}</div>
+                        <div className="overflow-hidden"><div className="font-medium text-sm truncate">{s.name}</div><div className="text-[10px] opacity-60 truncate">{s.participants?.length || 0} 位成员</div></div>
                     </button>
                     <button onClick={(e) => handleDeleteSession(e, s.id)} className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-slate-500 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity z-10 rounded-md hover:bg-slate-700/50">
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
@@ -297,17 +307,8 @@ export default function AIChatPage() {
             <>
                 <header className="h-16 border-b border-slate-800/50 flex items-center justify-between px-6 bg-slate-900/30 backdrop-blur-sm z-10">
                     <div>
-                        <h2 className="font-bold text-white flex items-center gap-2">
-                            {activeSession.name}
-                            <span className={`text-[10px] px-1.5 py-0.5 rounded border ${isAdmin ? 'bg-amber-500/20 text-amber-400 border-amber-500/30' : 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'}`}>
-                                {isAdmin ? 'Cloud' : 'Local'}
-                            </span>
-                        </h2>
-                        <div className="flex -space-x-2 mt-1">
-                            {activeSession.participants?.map((p: any) => (
-                                <img key={p.id} src={p.avatar} className="w-5 h-5 rounded-full border border-slate-900 bg-slate-800 object-cover" />
-                            ))}
-                        </div>
+                        <h2 className="font-bold text-white flex items-center gap-2">{activeSession.name}<span className={`text-[10px] px-1.5 py-0.5 rounded border ${isAdmin ? 'bg-amber-500/20 text-amber-400 border-amber-500/30' : 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'}`}>{isAdmin ? 'Cloud' : 'Local'}</span></h2>
+                        <div className="flex -space-x-2 mt-1">{activeSession.participants?.map((p: any) => (<img key={p.id} src={p.avatar} className="w-5 h-5 rounded-full border border-slate-900 bg-slate-800 object-cover" />))}</div>
                     </div>
                 </header>
                 <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar" ref={scrollRef}>
@@ -316,15 +317,8 @@ export default function AIChatPage() {
                         const isUser = msg.role === 'user'; const isTyping = idx === typingIndex && !isUser;
                         return (
                             <div key={idx} className={`flex gap-4 ${isUser ? 'flex-row-reverse' : ''} animate-in fade-in slide-in-from-bottom-2 duration-300`}>
-                                {!isUser && (
-                                    <div className="flex flex-col items-center gap-1">
-                                        <img src={msg.character?.avatar} className="w-10 h-10 rounded-full bg-slate-800 object-cover border border-slate-700" />
-                                        <span className="text-[10px] text-slate-500 max-w-[60px] truncate">{msg.character?.name}</span>
-                                    </div>
-                                )}
-                                <div className={`max-w-[70%] p-4 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap ${isUser ? 'bg-indigo-600 text-white' : 'bg-slate-800 text-slate-200 border border-slate-700'}`}>
-                                    {isTyping ? <Typewriter text={msg.content} onComplete={() => setTypingIndex(prev => prev + 1)} /> : msg.content}
-                                </div>
+                                {!isUser && (<div className="flex flex-col items-center gap-1"><img src={msg.character?.avatar} className="w-10 h-10 rounded-full bg-slate-800 object-cover border border-slate-700" /><span className="text-[10px] text-slate-500 max-w-[60px] truncate">{msg.character?.name}</span></div>)}
+                                <div className={`max-w-[70%] p-4 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap ${isUser ? 'bg-indigo-600 text-white' : 'bg-slate-800 text-slate-200 border border-slate-700'}`}>{isTyping ? <Typewriter text={msg.content} onComplete={() => setTypingIndex(prev => prev + 1)} /> : msg.content}</div>
                             </div>
                         )
                     })}
@@ -337,55 +331,74 @@ export default function AIChatPage() {
                     </form>
                 </div>
             </>
-         ) : <div className="flex-1 flex items-center justify-center text-slate-600 flex-col gap-4"><p>请选择或创建群聊</p></div>}
+         ) : <div className="flex-1 flex items-center justify-center text-slate-600 flex-col gap-4"><div className="w-20 h-20 rounded-full bg-slate-800 flex items-center justify-center"><svg className="w-10 h-10 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg></div><p>请在左侧选择或创建一个群聊</p></div>}
       </div>
 
-      {/* 角色管理 Modal */}
+      {/* 角色管理 Modal (支持编辑) */}
       {showCharModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in">
-             <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-md p-6 shadow-2xl animate-in zoom-in-95">
-                 <h3 className="text-lg font-bold text-white mb-4">角色管理 <span className="text-xs font-normal opacity-60">({isAdmin ? '云端' : '混合视图'})</span></h3>
-                 <div className="space-y-4">
-                    <input placeholder="角色名称" className="w-full bg-slate-800 border border-slate-700 rounded-lg p-3 text-sm text-white" value={newChar.name} onChange={e => setNewChar({...newChar, name: e.target.value})} />
-                    <input placeholder="简短描述" className="w-full bg-slate-800 border border-slate-700 rounded-lg p-3 text-sm text-white" value={newChar.desc} onChange={e => setNewChar({...newChar, desc: e.target.value})} />
-                    <textarea placeholder="系统提示词..." className="w-full bg-slate-800 border border-slate-700 rounded-lg p-3 text-sm text-white h-24" value={newChar.prompt} onChange={e => setNewChar({...newChar, prompt: e.target.value})} />
-                    <input placeholder="头像 URL (可选)" className="w-full bg-slate-800 border border-slate-700 rounded-lg p-3 text-sm text-white" value={newChar.avatar} onChange={e => setNewChar({...newChar, avatar: e.target.value})} />
+             <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-md p-6 shadow-2xl animate-in zoom-in-95 flex flex-col max-h-[90vh]">
+                 <h3 className="text-lg font-bold text-white mb-4">
+                     {editingCharId ? '编辑角色' : '创建角色'} <span className="text-xs font-normal opacity-60">({isAdmin ? '云端' : (editingCharId && typeof editingCharId === 'number' ? '云端·只读' : '本地')})</span>
+                 </h3>
+                 
+                 {/* 表单区域 */}
+                 <div className="space-y-4 overflow-y-auto custom-scrollbar p-1">
+                    <input placeholder="角色名称" className="w-full bg-slate-800 border border-slate-700 rounded-lg p-3 text-sm text-white" value={charForm.name} onChange={e => setCharForm({...charForm, name: e.target.value})} disabled={!isAdmin && typeof editingCharId === 'number'} />
+                    <input placeholder="简短描述" className="w-full bg-slate-800 border border-slate-700 rounded-lg p-3 text-sm text-white" value={charForm.desc} onChange={e => setCharForm({...charForm, desc: e.target.value})} disabled={!isAdmin && typeof editingCharId === 'number'} />
+                    <textarea placeholder="系统提示词..." className="w-full bg-slate-800 border border-slate-700 rounded-lg p-3 text-sm text-white h-24" value={charForm.prompt} onChange={e => setCharForm({...charForm, prompt: e.target.value})} disabled={!isAdmin && typeof editingCharId === 'number'} />
+                    <input placeholder="头像 URL (可选)" className="w-full bg-slate-800 border border-slate-700 rounded-lg p-3 text-sm text-white" value={charForm.avatar} onChange={e => setCharForm({...charForm, avatar: e.target.value})} disabled={!isAdmin && typeof editingCharId === 'number'} />
                     
-                    {/* ✨✨✨ 管理员才有的选项：是否公开 */}
                     {isAdmin && (
                         <label className="flex items-center gap-2 cursor-pointer p-2 rounded hover:bg-slate-800">
-                            <input type="checkbox" checked={newChar.isPublic} onChange={e => setNewChar({...newChar, isPublic: e.target.checked})} className="rounded bg-slate-700 border-slate-600 text-indigo-500 focus:ring-indigo-500" />
+                            <input type="checkbox" checked={charForm.isPublic} onChange={e => setCharForm({...charForm, isPublic: e.target.checked})} className="rounded bg-slate-700 border-slate-600 text-indigo-500 focus:ring-indigo-500" />
                             <span className="text-sm text-slate-300">设为公开角色 (游客可见)</span>
                         </label>
                     )}
                 </div>
-                 <div className="flex justify-end gap-3 mt-6">
+                 
+                 <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-slate-800">
                     <button onClick={() => setShowCharModal(false)} className="px-4 py-2 text-slate-400 text-sm hover:text-white">取消</button>
-                    <button onClick={handleCreateChar} className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-sm">创建角色</button>
+                    {/* 如果不是只读状态，显示保存按钮 */}
+                    {!( !isAdmin && typeof editingCharId === 'number' ) && (
+                        <button onClick={handleSaveChar} className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-sm shadow-lg shadow-emerald-500/20">
+                            {editingCharId ? '保存修改' : '创建角色'}
+                        </button>
+                    )}
                  </div>
                  
-                 {/* 列表显示 */}
-                 <div className="mt-6 pt-4 border-t border-slate-800 max-h-40 overflow-y-auto custom-scrollbar">
-                    {displayCharacters.map(c => (
-                        <div key={c.id} className="flex justify-between items-center p-2 hover:bg-slate-800 rounded group">
-                            <span className="text-xs text-slate-300 flex items-center gap-2">
-                                <img src={c.avatar} className="w-5 h-5 rounded-full bg-slate-700" />
-                                {c.name}
-                                {/* 标记公开的云端角色 */}
-                                {typeof c.id === 'number' && c.isPublic && <span className="text-[10px] bg-blue-500/20 text-blue-400 px-1 rounded">公开</span>}
-                            </span>
-                            {/* 删除保护：游客不能删云端角色 */}
-                            {(isAdmin || typeof c.id !== 'number') && (
-                                <button onClick={() => handleDeleteChar(c.id)} className="text-xs text-slate-600 group-hover:text-red-400">删除</button>
-                            )}
-                        </div>
-                    ))}
-                 </div>
+                 {/* 列表显示 - 仅在创建模式下显示，编辑模式下隐藏列表以免干扰 */}
+                 {!editingCharId && (
+                     <div className="mt-4 pt-4 border-t border-slate-800 flex-1 overflow-y-auto custom-scrollbar min-h-[150px]">
+                        <p className="text-xs text-slate-500 mb-2">已有角色 (点击编辑)</p>
+                        {displayCharacters.map(c => (
+                            <div key={c.id} className="flex justify-between items-center p-2 hover:bg-slate-800 rounded group">
+                                <span className="text-xs text-slate-300 flex items-center gap-2">
+                                    <img src={c.avatar} className="w-5 h-5 rounded-full bg-slate-700" />
+                                    {c.name}
+                                    {typeof c.id === 'number' && c.isPublic && <span className="text-[10px] bg-blue-500/20 text-blue-400 px-1 rounded">公开</span>}
+                                </span>
+                                <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    {/* ✨✨✨ 编辑按钮 */}
+                                    {/* 管理员可以编辑所有云端角色；游客只能编辑本地角色 */}
+                                    {(isAdmin || typeof c.id !== 'number') && (
+                                        <button onClick={() => openEditModal(c)} className="text-xs text-sky-400 hover:text-sky-300">编辑</button>
+                                    )}
+                                    
+                                    {/* 删除按钮 */}
+                                    {(isAdmin || typeof c.id !== 'number') && (
+                                        <button onClick={() => handleDeleteChar(c.id)} className="text-xs text-slate-600 hover:text-red-400">删除</button>
+                                    )}
+                                </div>
+                            </div>
+                        ))}
+                     </div>
+                 )}
              </div>
         </div>
       )}
 
-      {/* 会话创建 Modal */}
+      {/* Session Modal */}
       {showSessionModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in">
               <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-md p-6 shadow-2xl animate-in zoom-in-95">
@@ -396,26 +409,16 @@ export default function AIChatPage() {
                         <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto custom-scrollbar p-1">
                             {displayCharacters.map(c => (
                                 <label key={c.id} className={`flex items-center gap-2 p-2 rounded-lg border cursor-pointer transition ${selectedCharIds.includes(String(c.id)) ? 'bg-indigo-600/20 border-indigo-500' : 'bg-slate-800 border-slate-700 hover:border-slate-600'}`}>
-                                    <input type="checkbox" className="hidden" 
-                                        checked={selectedCharIds.includes(String(c.id))}
-                                        onChange={e => {
-                                            const sid = String(c.id)
-                                            if(e.target.checked) setSelectedCharIds([...selectedCharIds, sid])
-                                            else setSelectedCharIds(selectedCharIds.filter(id => id !== sid))
-                                        }}
-                                    />
+                                    <input type="checkbox" className="hidden" checked={selectedCharIds.includes(String(c.id))} onChange={e => { const sid = String(c.id); if(e.target.checked) setSelectedCharIds([...selectedCharIds, sid]); else setSelectedCharIds(selectedCharIds.filter(id => id !== sid)) }} />
                                     <img src={c.avatar} className="w-6 h-6 rounded-full" />
-                                    <div className="overflow-hidden">
-                                        <div className="text-xs text-slate-200 truncate">{c.name}</div>
-                                        {typeof c.id === 'number' && <div className="text-[9px] text-blue-400">Cloud</div>}
-                                    </div>
+                                    <div className="overflow-hidden"><div className="text-xs text-slate-200 truncate">{c.name}</div>{typeof c.id === 'number' && <div className="text-[9px] text-blue-400">Cloud</div>}</div>
                                 </label>
                             ))}
                         </div>
                   </div>
                   <div className="flex justify-end gap-3 mt-6">
                       <button onClick={() => setShowSessionModal(false)} className="px-4 py-2 text-slate-400 text-sm hover:text-white">取消</button>
-                      <button onClick={handleCreateSession} className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-sm">开始群聊</button>
+                      <button onClick={handleCreateSession} className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-sm shadow-lg shadow-indigo-500/20">开始群聊</button>
                   </div>
               </div>
           </div>

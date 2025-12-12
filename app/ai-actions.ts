@@ -244,3 +244,25 @@ export async function deleteChatSession(sessionId: number) {
   await prisma.aIChatSession.delete({ where: { id: sessionId } })
   revalidatePath('/ai-chat')
 }
+
+// ✨✨✨ 新增：更新角色信息 ✨✨✨
+export async function updateAICharacter(formData: FormData) {
+  // 权限校验：只有管理员可以修改数据库中的角色
+  if (!await checkAuth()) throw new Error("Unauthorized")
+
+  const id = formData.get('id') as string
+  const name = formData.get('name') as string
+  const description = formData.get('description') as string
+  const systemPrompt = formData.get('systemPrompt') as string
+  const avatar = formData.get('avatar') as string
+  const isPublic = formData.get('isPublic') === 'on'
+
+  if (!id) throw new Error("ID is required")
+
+  await prisma.aICharacter.update({
+    where: { id: parseInt(id) },
+    data: { name, description, systemPrompt, avatar, isPublic }
+  })
+  
+  revalidatePath('/ai-chat')
+}
