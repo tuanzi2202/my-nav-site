@@ -9,6 +9,41 @@ import {
 } from '../ai-actions'
 import { useRouter } from 'next/navigation'
 
+// ✨✨✨ 1. 新增：打字机组件 ✨✨✨
+const Typewriter = ({ text, onComplete }: { text: string, onComplete: () => void }) => {
+  const [displayedText, setDisplayedText] = useState('')
+  const indexRef = useRef(0)
+
+  useEffect(() => {
+    // 重置状态
+    indexRef.current = 0
+    setDisplayedText('')
+
+    // 启动定时器
+    const intervalId = setInterval(() => {
+      // 每次多截取一个字符
+      indexRef.current++
+      setDisplayedText(text.slice(0, indexRef.current))
+
+      // 打完了吗？
+      if (indexRef.current >= text.length) {
+        clearInterval(intervalId)
+        onComplete() // 通知父组件：我完事了，叫下一个
+      }
+    }, 50) // 打字速度：50毫秒/字 (可根据需要调整)
+
+    return () => clearInterval(intervalId)
+  }, [text, onComplete])
+
+  return (
+    <span>
+      {displayedText}
+      {/* 光标闪烁动画 */}
+      <span className="inline-block w-1.5 h-4 ml-0.5 bg-current align-middle animate-pulse" />
+    </span>
+  )
+}
+
 export default function AIChatPage() {
   const router = useRouter()
   // Data State
@@ -17,35 +52,47 @@ export default function AIChatPage() {
   const [activeSession, setActiveSession] = useState<any>(null)
   const [messages, setMessages] = useState<any[]>([])
   
+  // ✨✨✨ 2. 新增：控制打字进度的指针 ✨✨✨
+  // typingIndex 指向“当前正在打字”或“等待打字”的那条消息的下标
+  // 如果 typingIndex === messages.length，说明所有消息都展示完了
+  const [typingIndex, setTypingIndex] = useState(0)
+
   // UI State
   const [inputMsg, setInputMsg] = useState('')
   const [isProcessing, setIsProcessing] = useState(false)
   const [showCharModal, setShowCharModal] = useState(false)
   const [showSessionModal, setShowSessionModal] = useState(false)
-  const [currentThinkingAI, setCurrentThinkingAI] = useState<string>('') // 正在思考的 AI 名字
+  const [currentThinkingAI, setCurrentThinkingAI] = useState<string>('') 
 
-  // New Character Form
   const [newChar, setNewChar] = useState({ name: '', prompt: '', avatar: '', desc: '' })
-  // New Session Form
   const [newSessionName, setNewSessionName] = useState('')
   const [selectedCharIds, setSelectedCharIds] = useState<number[]>([])
 
   const scrollRef = useRef<HTMLDivElement>(null)
 
-  // Init Load
   useEffect(() => {
     refreshData()
   }, [])
 
-  // Auto Scroll
+  // 自动滚动：当消息增加、有AI正在思考、或者打字进度推进时，都触发滚动
   useEffect(() => {
-    if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight
-  }, [messages, currentThinkingAI])
+    if (scrollRef.current) {
+        // 使用平滑滚动效果更佳
+        scrollRef.current.scrollTo({
+            top: scrollRef.current.scrollHeight,
+            behavior: 'smooth'
+        })
+    }
+  }, [messages, currentThinkingAI, typingIndex])
 
-  // Load Messages when session changes
+  // 切换会话时加载历史
   useEffect(() => {
     if (activeSession) {
-      getSessionMessages(activeSession.id).then(setMessages)
+      getSessionMessages(activeSession.id).then(msgs => {
+        setMessages(msgs)
+        // ✨✨✨ 历史消息直接全部“已读”，不需要打字效果 ✨✨✨
+        setTypingIndex(msgs.length) 
+      })
     }
   }, [activeSession])
 
@@ -72,11 +119,10 @@ export default function AIChatPage() {
     if(!newSessionName || selectedCharIds.length === 0) return alert("请填写名称并至少选择一个AI")
     const session = await createChatSession(newSessionName, selectedCharIds)
     await refreshData()
-    setActiveSession(session) // 选中新会话，但需要重新获取带 participants 的完整对象
+    setActiveSession(session) 
     setShowSessionModal(false)
   }
 
-  // ✨✨✨ 核心逻辑：群聊轮流发言 ✨✨✨
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!inputMsg.trim() || isProcessing || !activeSession) return
@@ -85,26 +131,27 @@ export default function AIChatPage() {
     setInputMsg('')
     setIsProcessing(true)
 
-    // 1. 用户发言上屏
+    // 1. 用户发言
     const optimisitcMsg = { id: Date.now(), role: 'user', content, createdAt: new Date() }
     setMessages(prev => [...prev, optimisitcMsg])
     
-    // 2. 保存到数据库
+    // ✨✨✨ 用户的话不需要打字，直接把进度 +1 ✨✨✨
+    setTypingIndex(prev => prev + 1)
+    
     await saveUserMessage(activeSession.id, content)
 
-    // 3. 轮流触发 AI (Chain of Thought / Discussion)
-    // 这里的逻辑是：按 participants 顺序依次调用 API
-    // 更好的方式可能是并行或者让 AI 决定是否发言，为了效果明显，我们这里做顺序发言
     const participants = activeSession.participants || []
     
+    // 2. AI 轮流发言 (后端队列)
     for (const char of participants) {
-        setCurrentThinkingAI(char.name) // UI 显示正在思考
+        setCurrentThinkingAI(char.name) // 此时前端可能还在打上一条消息，这里会显示“某某正在思考”
         
-        // 延迟一点点，增加真实感
         await new Promise(r => setTimeout(r, 800))
 
         const res = await triggerAIReply(activeSession.id, char.id)
         if (res.success && res.message) {
+            // ✨✨✨ 关键：只把消息加入数组，不手动加 typingIndex ✨✨✨
+            // 因为 typingIndex 还在后面慢慢追，界面会自动判断“这条消息需要排队等待显示”
             setMessages(prev => [...prev, res.message])
         }
     }
@@ -116,7 +163,7 @@ export default function AIChatPage() {
   return (
     <div className="flex h-screen bg-[#0f172a] text-slate-200 font-sans selection:bg-indigo-500/30 overflow-hidden">
       
-      {/* --- 左侧边栏：会话列表 --- */}
+      {/* 左侧边栏 (保持不变) */}
       <div className="w-64 bg-slate-900/80 border-r border-slate-700/50 flex flex-col backdrop-blur-md">
         <div className="p-4 border-b border-slate-800/50">
             <h1 className="font-bold text-transparent bg-clip-text bg-gradient-to-r from-sky-400 to-indigo-400 text-lg">AI Group Chat</h1>
@@ -138,7 +185,7 @@ export default function AIChatPage() {
                     <div className="overflow-hidden">
                         <div className="font-medium text-sm truncate">{s.name}</div>
                         <div className="text-[10px] opacity-60 truncate">
-                            {s.participants.length} 位 AI 成员
+                            {s.participants?.length || 0} 位 AI 成员
                         </div>
                     </div>
                 </button>
@@ -149,11 +196,10 @@ export default function AIChatPage() {
         </div>
       </div>
 
-      {/* --- 主聊天区域 --- */}
+      {/* 主聊天区域 */}
       <div className="flex-1 flex flex-col bg-[#0f172a] relative">
         {activeSession ? (
             <>
-                {/* 顶部标题 */}
                 <header className="h-16 border-b border-slate-800/50 flex items-center justify-between px-6 bg-slate-900/30 backdrop-blur-sm z-10">
                     <div>
                         <h2 className="font-bold text-white">{activeSession.name}</h2>
@@ -165,12 +211,20 @@ export default function AIChatPage() {
                     </div>
                 </header>
 
-                {/* 消息列表 */}
                 <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar" ref={scrollRef}>
                     {messages.map((msg, idx) => {
                         const isUser = msg.role === 'user'
+                        
+                        // ✨✨✨ 3. 核心显示逻辑 ✨✨✨
+                        // 情况A: 还没轮到我显示 (idx > typingIndex) -> 隐藏
+                        if (idx > typingIndex) return null;
+
+                        // 情况B: 正轮到我打字 (idx === typingIndex) -> 显示打字机 (仅限AI消息)
+                        // 用户消息因为是自己发的，我们已经在发送时跳过了打字效果
+                        const isTyping = idx === typingIndex && !isUser;
+
                         return (
-                            <div key={idx} className={`flex gap-4 ${isUser ? 'flex-row-reverse' : ''}`}>
+                            <div key={idx} className={`flex gap-4 ${isUser ? 'flex-row-reverse' : ''} animate-in fade-in slide-in-from-bottom-2 duration-300`}>
                                 {!isUser && (
                                     <div className="flex flex-col items-center gap-1">
                                         <img src={msg.character?.avatar} className="w-10 h-10 rounded-full bg-slate-800 object-cover border border-slate-700" />
@@ -178,26 +232,33 @@ export default function AIChatPage() {
                                     </div>
                                 )}
                                 <div className={`max-w-[70%] p-4 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap ${isUser ? 'bg-indigo-600 text-white' : 'bg-slate-800 text-slate-200 border border-slate-700'}`}>
-                                    {msg.content}
+                                    {isTyping ? (
+                                        <Typewriter 
+                                            text={msg.content} 
+                                            onComplete={() => setTypingIndex(prev => prev + 1)} // 打完了，指针+1，下一条消息自然会显示出来
+                                        />
+                                    ) : (
+                                        // 已经打完的，直接显示文本
+                                        msg.content
+                                    )}
                                 </div>
                             </div>
                         )
                     })}
                     
-                    {/* 思考状态指示器 */}
+                    {/* 思考状态指示器 (现在显示在消息列表的最下方) */}
                     {currentThinkingAI && (
-                        <div className="flex gap-4 animate-pulse">
+                        <div className="flex gap-4 animate-pulse opacity-70">
                             <div className="flex flex-col items-center gap-1">
                                 <div className="w-10 h-10 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center">
                                     <div className="w-2 h-2 bg-indigo-400 rounded-full animate-bounce"></div>
                                 </div>
-                                <span className="text-[10px] text-slate-500">{currentThinkingAI} 正在输入...</span>
+                                <span className="text-[10px] text-slate-500">{currentThinkingAI} 正在思考...</span>
                             </div>
                         </div>
                     )}
                 </div>
 
-                {/* 输入框 */}
                 <div className="p-4 border-t border-slate-800/50 bg-slate-900/30">
                     <form onSubmit={handleSendMessage} className="relative">
                         <input 
@@ -226,7 +287,7 @@ export default function AIChatPage() {
         )}
       </div>
 
-      {/* --- Modal: Create Character --- */}
+      {/* --- Modal: Create Character (保持不变) --- */}
       {showCharModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
             <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-md p-6 shadow-2xl animate-in zoom-in-95">
@@ -242,7 +303,6 @@ export default function AIChatPage() {
                     <button onClick={handleCreateChar} className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-sm">创建角色</button>
                 </div>
                 
-                {/* 简单的列表显示已有角色，支持删除 */}
                 <div className="mt-6 pt-4 border-t border-slate-800 max-h-40 overflow-y-auto custom-scrollbar">
                     <p className="text-xs text-slate-500 mb-2">已有角色</p>
                     {characters.map(c => (
@@ -256,7 +316,7 @@ export default function AIChatPage() {
         </div>
       )}
 
-      {/* --- Modal: Create Session --- */}
+      {/* --- Modal: Create Session (保持不变) --- */}
       {showSessionModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
             <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-md p-6 shadow-2xl animate-in zoom-in-95">
