@@ -73,8 +73,6 @@ export default function AIChatPage() {
     const session = await createChatSession(newSessionName, selectedCharIds)
     await refreshData()
     setActiveSession(session) // 选中新会话，但需要重新获取带 participants 的完整对象
-    const fullSessions = await getChatSessions()
-    setActiveSession(fullSessions.find(s => s.id === session.id))
     setShowSessionModal(false)
   }
 
@@ -160,7 +158,7 @@ export default function AIChatPage() {
                     <div>
                         <h2 className="font-bold text-white">{activeSession.name}</h2>
                         <div className="flex -space-x-2 mt-1">
-                            {activeSession.participants.map((p: any) => (
+                            {activeSession.participants?.map((p: any) => (
                                 <img key={p.id} src={p.avatar} alt={p.name} title={p.name} className="w-5 h-5 rounded-full border border-slate-900 bg-slate-800 object-cover" />
                             ))}
                         </div>

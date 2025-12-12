@@ -44,6 +44,9 @@ export async function createChatSession(name: string, participantIds: number[]) 
         connect: participantIds.map(id => ({ id }))
       }
     }
+    include: {
+      participants: true
+    }
   })
   revalidatePath('/ai-chat')
   return session
