@@ -223,3 +223,12 @@ async function callLLM(
         return { success: false, error: 'Network Error' }
     }
 }
+
+// ✨✨✨ 新增：删除群聊会话 ✨✨✨
+export async function deleteChatSession(sessionId: number) {
+  // 权限校验：只有管理员可以删除数据库中的会话
+  if (!await checkAuth()) throw new Error("Unauthorized")
+  
+  await prisma.aIChatSession.delete({ where: { id: sessionId } })
+  revalidatePath('/ai-chat')
+}

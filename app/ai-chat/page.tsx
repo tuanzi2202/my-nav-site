@@ -5,7 +5,8 @@ import { useState, useEffect, useRef } from 'react'
 import { 
   getAICharacters, createAICharacter, deleteAICharacter, getAdminStatus,
   getChatSessions, createChatSession, getSessionMessages,
-  saveUserMessage, triggerAIReply, chatWithAIStateless 
+  saveUserMessage, triggerAIReply, chatWithAIStateless,
+  deleteChatSession // 👈 引入这个新函数
 } from '../ai-actions'
 import { useRouter } from 'next/navigation'
 
@@ -136,6 +137,33 @@ export default function AIChatPage() {
       } else {
           setLocalCharacters(prev => prev.filter(c => c.id !== id))
       }
+  }
+
+  // ✨✨✨ 新增：处理删除会话 ✨✨✨
+  const handleDeleteSession = async (e: React.MouseEvent, id: number | string) => {
+    e.stopPropagation() // 防止触发“切换会话”的点击事件
+    
+    if (!confirm("确定要删除这个群聊吗？聊天记录将无法恢复。")) return
+
+    if (typeof id === 'number') {
+        // --- 删除云端会话 (需要管理员权限) ---
+        if (!isAdmin) return alert("只有管理员可以删除云端群聊")
+        
+        try {
+            await deleteChatSession(id)
+            refreshDbData() // 刷新列表
+        } catch (err) {
+            alert("删除失败，请重试")
+        }
+    } else {
+        // --- 删除本地会话 ---
+        setLocalSessions(prev => prev.filter(s => s.id !== id))
+    }
+
+    // 如果删除的是当前正在看的会话，清空当前视图
+    if (activeSession?.id === id) {
+        setActiveSession(null)
+    }
   }
 
   const handleCreateSession = async () => {
@@ -301,25 +329,35 @@ export default function AIChatPage() {
                 <button onClick={() => setShowCharModal(true)} className="flex-1 bg-slate-700 hover:bg-slate-600 text-xs py-2 rounded text-slate-300 transition">角色管理</button>
             </div>
         </div>
+        {/* 侧边栏列表区域 */}
         <div className="flex-1 overflow-y-auto custom-scrollbar p-2 space-y-1">
             {allSessions.map(s => (
-                <button 
-                    key={s.id} 
-                    onClick={() => setActiveSession(s)}
-                    className={`w-full text-left p-3 rounded-xl transition flex items-center gap-3 ${activeSession?.id === s.id ? 'bg-indigo-500/20 text-white border border-indigo-500/30' : 'hover:bg-slate-800/50 text-slate-400'}`}
-                >
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-indigo-500 flex items-center justify-center text-xs font-bold text-white shrink-0 relative">
-                        {s.name[0]}
-                        {/* 标记是否为本地会话 */}
-                        {typeof s.id === 'string' && <span className="absolute -bottom-1 -right-1 w-3 h-3 bg-emerald-500 rounded-full border-2 border-slate-900" title="本地会话"></span>}
-                    </div>
-                    <div className="overflow-hidden">
-                        <div className="font-medium text-sm truncate">{s.name}</div>
-                        <div className="text-[10px] opacity-60 truncate">
-                            {s.participants?.length || 0} 位 AI 成员
+                <div key={s.id} className="group relative"> {/* 👈 加个 relative 的容器 */}
+                    <button 
+                        onClick={() => setActiveSession(s)}
+                        className={`w-full text-left p-3 pr-9 rounded-xl transition flex items-center gap-3 ${activeSession?.id === s.id ? 'bg-indigo-500/20 text-white border border-indigo-500/30' : 'hover:bg-slate-800/50 text-slate-400'}`}
+                    >
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-indigo-500 flex items-center justify-center text-xs font-bold text-white shrink-0 relative">
+                            {s.name[0]}
+                            {typeof s.id === 'string' && <span className="absolute -bottom-1 -right-1 w-3 h-3 bg-emerald-500 rounded-full border-2 border-slate-900" title="本地会话"></span>}
                         </div>
-                    </div>
-                </button>
+                        <div className="overflow-hidden">
+                            <div className="font-medium text-sm truncate">{s.name}</div>
+                            <div className="text-[10px] opacity-60 truncate">
+                                {s.participants?.length || 0} 位 AI 成员
+                            </div>
+                        </div>
+                    </button>
+
+                    {/* ✨✨✨ 新增：删除按钮 (悬停显示) ✨✨✨ */}
+                    <button
+                        onClick={(e) => handleDeleteSession(e, s.id)}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-slate-500 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity z-10 rounded-md hover:bg-slate-700/50"
+                        title="删除会话"
+                    >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                    </button>
+                </div>
             ))}
         </div>
         <div className="p-4 border-t border-slate-800/50">
