@@ -1,10 +1,11 @@
-// app/notes/client.tsx
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { createNote, updateNote, deleteNote, updateNotePosition, loginAdmin, updateNotesBgSettings } from '../actions'
+// ✨ 1. 引入 logoutAdmin
+import { createNote, updateNote, deleteNote, updateNotePosition, loginAdmin, logoutAdmin, updateNotesBgSettings } from '../actions'
+import { useRouter } from 'next/navigation' // ✨ 引入 router 用于刷新
 
-// ... (类型定义 NoteItem, BgSettings 保持不变) ...
+// ... (类型定义和常量保持不变) ...
 type NoteItem = {
   id: number
   content: string
@@ -21,7 +22,6 @@ type BgSettings = {
   blur?: boolean
 }
 
-// 预设颜色样式 (Tailwind Classes)
 const colorStyles: Record<string, string> = {
   yellow: 'bg-yellow-200 text-yellow-900 shadow-yellow-500/20 ring-yellow-400',
   pink:   'bg-pink-200 text-pink-900 shadow-pink-500/20 ring-pink-400',
@@ -32,7 +32,6 @@ const colorStyles: Record<string, string> = {
 const COLOR_OPTIONS = Object.keys(colorStyles)
 const HEADER_HEIGHT = 140 
 
-// ... (BG_PRESETS 保持不变) ...
 const BG_PRESETS = {
     colors: [
       { name: '深邃夜空', value: '#0f172a' },
@@ -51,6 +50,7 @@ const BG_PRESETS = {
   }
 
 export default function NotesWallClient({ initialNotes, initialIsAdmin, initialBgSettings }: { initialNotes: NoteItem[], initialIsAdmin: boolean, initialBgSettings?: BgSettings }) {
+  const router = useRouter() // ✨
   const [notes, setNotes] = useState<NoteItem[]>(initialNotes)
   const [isAdmin, setIsAdmin] = useState(initialIsAdmin)
   const [isEditMode, setIsEditMode] = useState(false) 
@@ -62,6 +62,9 @@ export default function NotesWallClient({ initialNotes, initialIsAdmin, initialB
   const [authError, setAuthError] = useState('')
   const [editingNote, setEditingNote] = useState<Partial<NoteItem> | null>(null)
   
+  // ✨ 2. 新增：用户菜单状态
+  const [showUserMenu, setShowUserMenu] = useState(false)
+
   const [hoveredId, setHoveredId] = useState<number | null>(null)
   const [draggingId, setDraggingId] = useState<number | null>(null)
   const dragOffset = useRef({ x: 0, y: 0 })
@@ -69,24 +72,34 @@ export default function NotesWallClient({ initialNotes, initialIsAdmin, initialB
 
   useEffect(() => { setNotes(initialNotes) }, [initialNotes])
 
-  // ... (handleLogin, handleSaveBg, handleMouseDown, handleMouseMove, handleMouseUp 保持不变) ...
+  // 登录逻辑 (已更新为用户名+密码)
   const handleLogin = async (formData: FormData) => {
     const username = formData.get('username') as string
     const password = formData.get('password') as string
     
-    // 调用更新后的服务端 Action
     const success = await loginAdmin(username, password)
-    
     if (success) { 
-      setIsAdmin(true); 
-      setIsEditMode(false); 
-      setShowAuthModal(false); 
-      setAuthError('') 
+        setIsAdmin(true); 
+        setIsEditMode(true); // 登录后默认开启编辑模式，方便操作
+        setShowAuthModal(false); 
+        setAuthError('');
+        router.refresh();
     } else { 
-      setAuthError('账号或密码错误') 
+        setAuthError('账号或密码错误') 
     }
   }
 
+  // ✨ 3. 新增：登出逻辑
+  const handleLogout = async () => {
+      await logoutAdmin()
+      setIsAdmin(false)
+      setIsEditMode(false)
+      setShowUserMenu(false)
+      setShowBgPanel(false)
+      router.refresh()
+  }
+
+  // ... (handleSaveBg, handleMouseDown, handleMouseMove, handleMouseUp 保持不变) ...
   const handleSaveBg = async (newSettings: BgSettings) => {
     setBgSettings(newSettings)
     const formData = new FormData()
@@ -135,7 +148,6 @@ export default function NotesWallClient({ initialNotes, initialIsAdmin, initialB
     setEditingNote(null)
   }
 
-  // ... (getBackgroundStyle 保持不变) ...
   const getBackgroundStyle = () => {
     const base: React.CSSProperties = { width: '100%', height: '100%', position: 'absolute', top: 0, left: 0, zIndex: 0, transition: 'background 0.5s ease' }
     if (bgSettings.type === 'color') return { ...base, backgroundColor: bgSettings.value }
@@ -150,8 +162,6 @@ export default function NotesWallClient({ initialNotes, initialIsAdmin, initialB
   }
 
   const isLightBg = bgSettings.value === '#fdf6e3' || bgSettings.value === '#e2e8f0' || bgSettings.value === '#e8f5e9' || bgSettings.type === 'texture'
-
-  // ✨✨✨ 辅助函数：判断是否是预设颜色 ✨✨✨
   const isPresetColor = (color: string) => colorStyles.hasOwnProperty(color)
 
   return (
@@ -167,25 +177,28 @@ export default function NotesWallClient({ initialNotes, initialIsAdmin, initialB
           <div className="absolute inset-0 bg-black/10 pointer-events-none z-0" />
       )}
 
-      {/* ... (Header 保持不变，为了篇幅省略代码) ... */}
+      {/* Header */}
       <header className={`absolute top-0 left-0 w-full z-[9999] px-8 py-6 flex justify-between items-center h-[120px] transition-all duration-300 backdrop-blur-md ${isLightBg ? 'bg-white/30 text-slate-800 border-b border-white/20' : 'bg-black/20 text-white border-b border-white/5'}`}>
         <div>
           <h1 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 to-amber-500 drop-shadow-sm filter">Sticky Wall</h1>
           <p className={`text-xs mt-2 flex items-center gap-2 font-medium ${isLightBg ? 'text-slate-600' : 'text-slate-300/80'}`}>
-            灵感碎片与备忘录 {isEditMode && <span className="text-emerald-400 font-bold bg-emerald-500/20 px-1.5 py-0.5 rounded border border-emerald-400/20 shadow-sm">[管理模式]</span>}
+            灵感碎片与备忘录 {isAdmin && <span className="text-emerald-400 font-bold bg-emerald-500/20 px-1.5 py-0.5 rounded border border-emerald-400/20 shadow-sm">[管理员]</span>}
           </p>
         </div>
+        
+        {/* Right Actions */}
         <div className="flex gap-3 items-center">
-            {isAdmin ? (
+            {/* 仅在登录后显示的管理工具栏 */}
+            {isAdmin && (
                 <>
-                    {isEditMode && (
+                    {/* 背景设置按钮 */}
                     <div className="relative">
                         <button onClick={() => setShowBgPanel(!showBgPanel)} className={`p-2 rounded-lg transition border backdrop-blur-sm ${showBgPanel ? 'bg-indigo-500 text-white border-indigo-500' : 'bg-black/10 hover:bg-black/20 text-current border-transparent'}`} title="背景设置">
                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
                         </button>
+                        {/* 背景设置面板 (保持不变) */}
                         {showBgPanel && (
                             <div className="absolute top-12 right-0 w-72 bg-slate-900/95 backdrop-blur-xl border border-slate-700 rounded-xl shadow-2xl p-4 animate-in zoom-in-95 origin-top-right text-slate-200 z-[10000]">
-                                {/* ... (背景设置面板内容保持不变) ... */}
                                 <h4 className="text-xs font-bold text-slate-400 mb-3 uppercase tracking-wider">背景风格</h4>
                                 <div className="space-y-4">
                                     <div><div className="text-[10px] text-slate-500 mb-2">纯色主题</div><div className="flex gap-2">{BG_PRESETS.colors.map(c => (<button key={c.value} onClick={() => handleSaveBg({ type: 'color', value: c.value })} className={`w-8 h-8 rounded-full border-2 transition ${bgSettings.value === c.value ? 'border-white scale-110' : 'border-transparent hover:scale-105'}`} style={{ backgroundColor: c.value }} />))}</div></div>
@@ -197,24 +210,64 @@ export default function NotesWallClient({ initialNotes, initialIsAdmin, initialB
                             </div>
                         )}
                     </div>
-                    )}
-                    {isEditMode && <div className={`w-px h-6 mx-1 ${isLightBg ? 'bg-slate-400/30' : 'bg-white/20'}`}></div>}
+                    
+                    <div className={`w-px h-6 mx-1 ${isLightBg ? 'bg-slate-400/30' : 'bg-white/20'}`}></div>
+                    
+                    {/* 编辑模式开关 */}
                     <button onClick={() => setIsEditMode(!isEditMode)} className={`px-4 py-2 rounded-lg transition text-sm flex items-center gap-2 font-medium border backdrop-blur-sm ${isEditMode ? 'bg-slate-800 text-slate-400 border-transparent hover:bg-slate-700 hover:text-white' : isLightBg ? 'bg-emerald-600/10 text-emerald-700 border-emerald-600/20 hover:bg-emerald-600/20' : 'bg-emerald-400/10 text-emerald-400 border-emerald-400/20 hover:bg-emerald-400/20'}`}>
                         {isEditMode ? '预览' : '管理'}
                     </button>
+                    
+                    {/* 贴一张按钮 */}
                     {isEditMode && (
                         <button onClick={() => setEditingNote({ color: 'yellow' })} className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg transition text-sm flex items-center gap-2 shadow-lg hover:shadow-emerald-500/30">
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"></path></svg> 贴一张
                         </button>
                     )}
                 </>
-            ) : (
-                <button onClick={() => setShowAuthModal(true)} className="px-4 py-2 bg-black/40 hover:bg-black/60 text-white rounded-lg transition text-sm backdrop-blur-sm border border-white/10">管理员登录</button>
             )}
+
+            {/* ✨✨✨ 用户登录/登出 按钮 (仿导航页风格) ✨✨✨ */}
+            <div className="relative">
+                <button 
+                    onClick={() => isAdmin ? setShowUserMenu(!showUserMenu) : setShowAuthModal(true)}
+                    className={`flex items-center justify-center w-10 h-10 backdrop-blur border rounded-xl transition-all duration-300 shadow-sm group shrink-0
+                        ${isAdmin 
+                        ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-400 hover:bg-emerald-500 hover:text-white' 
+                        : isLightBg 
+                            ? 'bg-white/50 border-slate-300 text-slate-500 hover:bg-white hover:text-slate-800' 
+                            : 'bg-white/10 border-white/10 text-white/70 hover:bg-white/20 hover:text-white'
+                        }`}
+                    title={isAdmin ? "管理员已登录" : "管理员登录"}
+                >
+                    {isAdmin ? (
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+                    ) : (
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"></path></svg>
+                    )}
+                </button>
+
+                {/* 用户下拉菜单 */}
+                {isAdmin && showUserMenu && (
+                    <div className="absolute right-0 top-12 w-32 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl overflow-hidden z-[10001] animate-in fade-in zoom-in-95 origin-top-right">
+                        <div className="px-4 py-2 text-[10px] text-slate-500 border-b border-slate-800">当前身份: 管理员</div>
+                        <button onClick={() => router.push('/admin')} className="w-full text-left px-4 py-2.5 text-xs text-slate-300 hover:bg-slate-800 hover:text-sky-400 transition-colors flex items-center gap-2">
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                            后台管理
+                        </button>
+                        <button onClick={handleLogout} className="w-full text-left px-4 py-2.5 text-xs text-slate-300 hover:bg-slate-800 hover:text-red-400 transition-colors flex items-center gap-2">
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+                            退出登录
+                        </button>
+                    </div>
+                )}
+            </div>
+
             <a href="/" className={`px-4 py-2 rounded-lg transition text-sm backdrop-blur-sm ${isLightBg ? 'bg-black/5 hover:bg-black/10 text-slate-700' : 'bg-white/10 hover:bg-white/20 text-white'}`}>返回</a>
         </div>
       </header>
 
+      {/* Note Area */}
       <div className="w-full h-full relative z-10">
         {notes.map((note) => {
           const isDragging = draggingId === note.id
@@ -224,14 +277,8 @@ export default function NotesWallClient({ initialNotes, initialIsAdmin, initialB
           if (isDragging) dynamicZIndex = 999999 
           else if (isHovered) dynamicZIndex = 999990
 
-          // ✨✨✨ 1. 动态生成样式 ✨✨✨
           const isPreset = isPresetColor(note.color)
-          
-          // 如果是自定义颜色，应用通用样式 + 内联背景色
-          const customStyle = !isPreset ? {
-             backgroundColor: note.color,
-             // 给自定义颜色便利贴一些默认的阴影和旋转效果，以匹配预设风格
-          } : {}
+          const customStyle = !isPreset ? { backgroundColor: note.color } : {}
 
           return (
             <div
@@ -241,13 +288,7 @@ export default function NotesWallClient({ initialNotes, initialIsAdmin, initialB
               onMouseLeave={() => isEditMode && setHoveredId(null)}
               className={`
                 group absolute flex flex-col p-6 w-[280px] min-h-[200px] rounded-sm
-                
-                /* ✨ 应用预设样式 或 通用样式 */
-                ${isPreset 
-                    ? colorStyles[note.color] 
-                    : 'text-slate-900 shadow-xl ring-1 ring-black/5' /* 自定义颜色的通用基类 */
-                }
-
+                ${isPreset ? colorStyles[note.color] : 'text-slate-900 shadow-xl ring-1 ring-black/5'}
                 border border-black/50
                 ${isEditMode ? 'cursor-grab active:cursor-grabbing' : 'animate-note-sway hover:[animation-play-state:paused]'}
                 hover:ring-2 hover:ring-offset-2 hover:ring-offset-[#0f172a] 
@@ -262,7 +303,7 @@ export default function NotesWallClient({ initialNotes, initialIsAdmin, initialB
                   animationDuration: !isEditMode ? `${6 + (note.id % 5)}s` : '0s',
                   animationDelay: !isEditMode ? `${-(note.id % 5)}s` : '0s',
                   transform: isDragging ? 'scale(1.05)' : undefined,
-                  ...customStyle // ✨ 应用自定义颜色
+                  ...customStyle
               }}
             >
               <div className="absolute top-[-10px] left-1/2 -translate-x-1/2 w-4 h-4 rounded-full bg-black/20 backdrop-blur shadow-inner z-10 pointer-events-none"></div>
@@ -295,28 +336,16 @@ export default function NotesWallClient({ initialNotes, initialIsAdmin, initialB
         })}
       </div>
 
+      {/* Login Modal */}
       {showAuthModal && (
-        <div className="fixed inset-0 z-[1000000] flex items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in">
+        <div className="fixed inset-0 z-[1000000] flex items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in" onClick={() => setShowAuthModal(false)}>
             <div className="bg-slate-900 border border-slate-700 p-6 rounded-2xl w-full max-w-sm shadow-2xl animate-in zoom-in-95" onMouseDown={e => e.stopPropagation()}>
                 <h3 className="text-lg font-bold text-white mb-4">管理员登录</h3>
                 <form action={handleLogin} className="space-y-4">
-                    {/* ✨ 新增：用户名输入框 */}
                     <div>
-                      <input 
-                        type="text" 
-                        name="username" 
-                        placeholder="用户名" 
-                        autoFocus 
-                        className="w-full bg-slate-800 border border-slate-700 rounded-xl p-3 text-white focus:border-sky-500 outline-none mb-3" 
-                      />
-                      <input 
-                        type="password" 
-                        name="password" 
-                        placeholder="密码" 
-                        className="w-full bg-slate-800 border border-slate-700 rounded-xl p-3 text-white focus:border-sky-500 outline-none" 
-                      />
+                      <input type="text" name="username" placeholder="用户名" autoFocus className="w-full bg-slate-800 border border-slate-700 rounded-xl p-3 text-white focus:border-sky-500 outline-none mb-3" />
+                      <input type="password" name="password" placeholder="密码" className="w-full bg-slate-800 border border-slate-700 rounded-xl p-3 text-white focus:border-sky-500 outline-none" />
                     </div>
-                    
                     {authError && <p className="text-xs text-red-400">{authError}</p>}
                     <div className="flex gap-2 justify-end">
                         <button type="button" onClick={() => setShowAuthModal(false)} className="px-4 py-2 text-slate-400 hover:text-white">取消</button>
@@ -327,9 +356,9 @@ export default function NotesWallClient({ initialNotes, initialIsAdmin, initialB
         </div>
       )}
 
+      {/* Edit Modal (保持不变) */}
       {editingNote && (
-        <div className="fixed inset-0 z-[1000000] flex items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in">
-            {/* ✨✨✨ 2. 编辑弹窗动态颜色 ✨✨✨ */}
+        <div className="fixed inset-0 z-[1000000] flex items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in" onClick={() => setEditingNote(null)}>
             <div 
                 className={`
                     p-6 rounded-2xl w-full max-w-md shadow-2xl animate-in zoom-in-95 relative 
@@ -343,37 +372,29 @@ export default function NotesWallClient({ initialNotes, initialIsAdmin, initialB
                 <form action={handleSubmitNote} className="space-y-4">
                     {editingNote.id && <input type="hidden" name="id" value={editingNote.id} />}
                     
-                    {/* 颜色选择区 */}
                     <div className="flex gap-3 justify-center mb-4 p-2 bg-black/5 rounded-full w-fit mx-auto items-center">
-                        {/* 预设颜色 */}
                         {COLOR_OPTIONS.map(c => (
                             <label key={c} className="cursor-pointer relative group">
                                 <input 
                                     type="radio" 
                                     name="color" 
                                     value={c} 
-                                    checked={c === (editingNote.color || 'yellow')} // ✅ 改为 checked，实现受控组件
+                                    checked={c === (editingNote.color || 'yellow')} 
                                     onChange={() => setEditingNote({...editingNote, color: c})} 
                                     className="peer sr-only" 
                                 />
                                 <div className={`w-6 h-6 rounded-full border-2 border-transparent peer-checked:border-black/50 peer-checked:scale-110 transition-all ${colorStyles[c].split(' ')[0]}`}></div>
                             </label>
                         ))}
-                        
                         <div className="w-px h-4 bg-black/10 mx-1"></div>
-
-                        {/* ✨✨✨ 自定义颜色选择器 ✨✨✨ */}
                         <label className="cursor-pointer relative group flex items-center justify-center w-6 h-6 rounded-full bg-gradient-to-br from-red-400 via-green-400 to-blue-400 border-2 border-transparent hover:scale-110 transition-transform overflow-hidden">
-                            {/* 真实的 input[type=color] */}
                             <input 
                                 type="color" 
-                                name="color" // 提交时也是 name="color"
-                                // 如果当前颜色不是预设的，则认为是自定义颜色，回填 value
+                                name="color"
                                 defaultValue={!isPresetColor(editingNote.color || '') ? editingNote.color : '#ffffff'}
                                 onChange={(e) => setEditingNote({...editingNote, color: e.target.value})} 
                                 className="absolute inset-[-10px] w-[200%] h-[200%] cursor-pointer opacity-0" 
                             />
-                            {/* 选中指示器：如果当前是自定义颜色，显示一个黑色边框 */}
                             {!isPresetColor(editingNote.color || 'yellow') && (
                                 <div className="absolute inset-0 rounded-full border-2 border-black/50 pointer-events-none"></div>
                             )}
