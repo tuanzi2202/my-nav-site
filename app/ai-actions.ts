@@ -266,3 +266,19 @@ export async function updateAICharacter(formData: FormData) {
   
   revalidatePath('/ai-chat')
 }
+
+// ✨✨✨ 新增：向现有群聊添加成员 ✨✨✨
+export async function addParticipantsToSession(sessionId: number, characterIds: number[]) {
+  // 权限校验
+  if (!await checkAuth()) throw new Error("Unauthorized")
+
+  await prisma.aIChatSession.update({
+    where: { id: sessionId },
+    data: {
+      participants: {
+        connect: characterIds.map(id => ({ id }))
+      }
+    }
+  })
+  revalidatePath('/ai-chat')
+}

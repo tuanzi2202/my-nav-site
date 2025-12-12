@@ -4,18 +4,17 @@
 import { useState, useEffect, useRef } from 'react'
 import { 
   getAICharacters, createAICharacter, updateAICharacter, deleteAICharacter, getAdminStatus,
-  getChatSessions, createChatSession, deleteChatSession,
+  getChatSessions, createChatSession, deleteChatSession, addParticipantsToSession, // 👈 引入新接口
   getSessionMessages, saveUserMessage, triggerAIReply, chatWithAIStateless 
 } from '../ai-actions'
 import { useRouter } from 'next/navigation'
 
-// --- 1. 打字机组件 (Typewriter) ---
+// --- 打字机组件 (保持不变) ---
 const Typewriter = ({ text, onComplete }: { text: string, onComplete: () => void }) => {
   const [displayedText, setDisplayedText] = useState('')
   const indexRef = useRef(0)
 
   useEffect(() => {
-    // 重置状态
     indexRef.current = 0
     setDisplayedText('')
 
@@ -23,12 +22,11 @@ const Typewriter = ({ text, onComplete }: { text: string, onComplete: () => void
       indexRef.current++
       setDisplayedText(text.slice(0, indexRef.current))
 
-      // 打字完成
       if (indexRef.current >= text.length) {
         clearInterval(intervalId)
-        onComplete() // 通知父组件：这一条打完了，请显示下一条
+        onComplete()
       }
-    }, 30) // 打字速度：30ms/字 (可微调)
+    }, 30)
 
     return () => clearInterval(intervalId)
   }, [text, onComplete])
@@ -54,8 +52,6 @@ export default function AIChatPage() {
 
   const [activeSession, setActiveSession] = useState<any>(null)
   const [messages, setMessages] = useState<any[]>([])
-  
-  // ✨✨✨ 打字机指针：控制当前显示到第几条消息
   const [typingIndex, setTypingIndex] = useState(0)
 
   // UI
@@ -63,6 +59,7 @@ export default function AIChatPage() {
   const [isProcessing, setIsProcessing] = useState(false)
   const [showCharModal, setShowCharModal] = useState(false)
   const [showSessionModal, setShowSessionModal] = useState(false)
+  const [showAddMemberModal, setShowAddMemberModal] = useState(false) // ✨ 新增：添加成员 Modal
   const [currentThinkingAI, setCurrentThinkingAI] = useState<string>('') 
   
   // 编辑状态
@@ -97,22 +94,27 @@ export default function AIChatPage() {
     setDbSessions(s)
   }
 
-  // ✨✨✨ 切换会话时，重置消息并跳过打字效果（历史消息直接显示）
   useEffect(() => {
     if (!activeSession) return
     
+    // 如果是 DB 会话，activeSession 可能已经旧了（比如刚才添加了成员），需要同步一下 participants
     if (typeof activeSession.id === 'number') {
+       // 同步最新的 session info (为了获取最新的 participants)
+       const latestSession = dbSessions.find(s => s.id === activeSession.id)
+       if (latestSession && JSON.stringify(latestSession.participants) !== JSON.stringify(activeSession.participants)) {
+           setActiveSession(latestSession)
+       }
+
        getSessionMessages(activeSession.id).then(msgs => {
          setMessages(msgs)
-         setTypingIndex(msgs.length) // 指针指到最后，表示全部已读
+         setTypingIndex(msgs.length) 
        })
     } else {
        setMessages(activeSession.messages || [])
        setTypingIndex((activeSession.messages || []).length)
     }
-  }, [activeSession?.id])
+  }, [activeSession?.id, dbSessions]) // ✨ 监听 dbSessions 变化以同步 activeSession
 
-  // 自动滚动
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' })
   }, [messages, currentThinkingAI, typingIndex])
@@ -215,30 +217,62 @@ export default function AIChatPage() {
     if (activeSession?.id === id) setActiveSession(null)
   }
 
-  // ✨✨✨ 发送消息逻辑 (确保打字机队列正常工作)
+  // ✨✨✨ 新增：处理添加成员 ✨✨✨
+  const handleAddMembers = async () => {
+      if (!activeSession || selectedCharIds.length === 0) return
+
+      if (typeof activeSession.id === 'number') {
+          // --- DB 会话 ---
+          // 只能添加 DB 角色
+          const dbIds = selectedCharIds.map(id => parseInt(id)).filter(id => !isNaN(id))
+          if (dbIds.length !== selectedCharIds.length) return alert("云端会话不能添加本地角色")
+          
+          await addParticipantsToSession(activeSession.id, dbIds)
+          await refreshDbData() 
+          // activeSession 会通过上面的 useEffect 自动更新
+      } else {
+          // --- Local 会话 ---
+          const newChars = displayCharacters.filter(c => selectedCharIds.includes(String(c.id)))
+          
+          setLocalSessions(prev => prev.map(s => {
+              if (s.id === activeSession.id) {
+                  return { ...s, participants: [...s.participants, ...newChars] }
+              }
+              return s
+          }))
+          
+          // 手动更新当前 activeSession (因为 Local 没有 useEffect 自动重载)
+          setActiveSession((prev: any) => ({ ...prev, participants: [...prev.participants, ...newChars] }))
+      }
+      setShowAddMemberModal(false)
+      setSelectedCharIds([])
+  }
+
+  // 打开添加成员 Modal
+  const openAddMemberModal = () => {
+      setSelectedCharIds([])
+      setShowAddMemberModal(true)
+  }
+
+  // 发送消息
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!inputMsg.trim() || isProcessing || !activeSession) return
     const content = inputMsg; setInputMsg(''); setIsProcessing(true)
 
-    // 1. 用户消息：直接上屏 (typingIndex + 1)
     const userMsg = { id: Date.now(), role: 'user', content, createdAt: new Date() }
     setMessages(prev => [...prev, userMsg])
     setTypingIndex(prev => prev + 1) 
 
-    // 持久化
     if (typeof activeSession.id === 'number') await saveUserMessage(activeSession.id, content)
     else updateLocalSessionMessages(activeSession.id, userMsg)
 
-    // 2. AI 轮流回复
     const participants = activeSession.participants || []
     let currentHistory = [...messages, userMsg] 
 
     for (const char of participants) {
         setCurrentThinkingAI(char.name)
-        // 模拟思考时间
         await new Promise(r => setTimeout(r, 800))
-        
         let res;
         if (typeof activeSession.id === 'number') {
             res = await triggerAIReply(activeSession.id, char.id)
@@ -254,13 +288,9 @@ export default function AIChatPage() {
             })
             if (res.success && res.message) res.message.character = char 
         }
-
         if (res.success && res.message) {
-            // ✨ 关键：AI 消息只是加入数组，typingIndex 不变
-            // 界面会自动检测到 (idx > typingIndex)，从而触发 Typewriter 组件
             setMessages(prev => [...prev, res.message])
             currentHistory.push(res.message) 
-            
             if (typeof activeSession.id !== 'number') updateLocalSessionMessages(activeSession.id, res.message)
         }
     }
@@ -318,32 +348,27 @@ export default function AIChatPage() {
                 <header className="h-16 border-b border-slate-800/50 flex items-center justify-between px-6 bg-slate-900/30 backdrop-blur-sm z-10">
                     <div>
                         <h2 className="font-bold text-white flex items-center gap-2">{activeSession.name}<span className={`text-[10px] px-1.5 py-0.5 rounded border ${isAdmin ? 'bg-amber-500/20 text-amber-400 border-amber-500/30' : 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'}`}>{isAdmin ? 'Cloud' : 'Local'}</span></h2>
-                        <div className="flex -space-x-2 mt-1">{activeSession.participants?.map((p: any) => (<img key={p.id} src={p.avatar} className="w-5 h-5 rounded-full border border-slate-900 bg-slate-800 object-cover" />))}</div>
+                        <div className="flex items-center gap-2 mt-1">
+                            <div className="flex -space-x-2">
+                                {activeSession.participants?.map((p: any) => (<img key={p.id} src={p.avatar} className="w-5 h-5 rounded-full border border-slate-900 bg-slate-800 object-cover" title={p.name} />))}
+                            </div>
+                            {/* ✨✨✨ 新增：添加成员按钮 */}
+                            <button onClick={openAddMemberModal} className="w-5 h-5 rounded-full bg-slate-800 border border-dashed border-slate-500 flex items-center justify-center text-slate-400 hover:text-white hover:border-white text-xs transition" title="邀请新角色">
+                                +
+                            </button>
+                        </div>
                     </div>
                 </header>
                 
-                {/* 消息列表区域 (包含打字机逻辑) */}
                 <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar" ref={scrollRef}>
                     {messages.map((msg, idx) => {
-                        // 1. 如果这条消息还没轮到 (idx > typingIndex)，则隐藏
                         if (idx > typingIndex) return null;
-                        
-                        // 2. 判断是否是“正在打字”的那条消息
-                        const isUser = msg.role === 'user';
-                        // 用户消息不用打字；AI 消息如果正好轮到指针位置，则触发打字
-                        const isTyping = idx === typingIndex && !isUser;
-                        
+                        const isUser = msg.role === 'user'; const isTyping = idx === typingIndex && !isUser;
                         return (
                             <div key={idx} className={`flex gap-4 ${isUser ? 'flex-row-reverse' : ''} animate-in fade-in slide-in-from-bottom-2 duration-300`}>
                                 {!isUser && (<div className="flex flex-col items-center gap-1"><img src={msg.character?.avatar} className="w-10 h-10 rounded-full bg-slate-800 object-cover border border-slate-700" /><span className="text-[10px] text-slate-500 max-w-[60px] truncate">{msg.character?.name}</span></div>)}
                                 <div className={`max-w-[70%] p-4 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap ${isUser ? 'bg-indigo-600 text-white' : 'bg-slate-800 text-slate-200 border border-slate-700'}`}>
-                                    {isTyping ? (
-                                        // ✨ 只有轮到它时，才渲染 Typewriter
-                                        <Typewriter text={msg.content} onComplete={() => setTypingIndex(prev => prev + 1)} />
-                                    ) : (
-                                        // 否则直接渲染文本 (包含历史消息 和 已经打完的AI消息)
-                                        msg.content
-                                    )}
+                                    {isTyping ? <Typewriter text={msg.content} onComplete={() => setTypingIndex(prev => prev + 1)} /> : msg.content}
                                 </div>
                             </div>
                         )
@@ -431,6 +456,38 @@ export default function AIChatPage() {
                   <div className="flex justify-end gap-3 mt-6">
                       <button onClick={() => setShowSessionModal(false)} className="px-4 py-2 text-slate-400 text-sm hover:text-white">取消</button>
                       <button onClick={handleCreateSession} className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-sm shadow-lg shadow-indigo-500/20">开始群聊</button>
+                  </div>
+              </div>
+          </div>
+      )}
+
+      {/* ✨✨✨ Add Member Modal ✨✨✨ */}
+      {showAddMemberModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in">
+              <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-md p-6 shadow-2xl animate-in zoom-in-95">
+                  <h3 className="text-lg font-bold text-white mb-4">邀请角色入群</h3>
+                  <div className="space-y-4">
+                        <p className="text-xs text-slate-500">选择要邀请的角色 (已过滤群内现有成员)</p>
+                        <div className="grid grid-cols-2 gap-2 max-h-60 overflow-y-auto custom-scrollbar p-1">
+                            {displayCharacters
+                                // 过滤掉已经在群里的角色
+                                .filter(c => !activeSession?.participants?.some((p:any) => String(p.id) === String(c.id)))
+                                .map(c => (
+                                <label key={c.id} className={`flex items-center gap-2 p-2 rounded-lg border cursor-pointer transition ${selectedCharIds.includes(String(c.id)) ? 'bg-indigo-600/20 border-indigo-500' : 'bg-slate-800 border-slate-700 hover:border-slate-600'}`}>
+                                    <input type="checkbox" className="hidden" checked={selectedCharIds.includes(String(c.id))} onChange={e => { const sid = String(c.id); if(e.target.checked) setSelectedCharIds([...selectedCharIds, sid]); else setSelectedCharIds(selectedCharIds.filter(id => id !== sid)) }} />
+                                    <img src={c.avatar} className="w-6 h-6 rounded-full" />
+                                    <div className="overflow-hidden"><div className="text-xs text-slate-200 truncate">{c.name}</div></div>
+                                </label>
+                            ))}
+                            
+                            {displayCharacters.filter(c => !activeSession?.participants?.some((p:any) => String(p.id) === String(c.id))).length === 0 && (
+                                <p className="col-span-2 text-center text-xs text-slate-600 py-4">没有更多可邀请的角色了</p>
+                            )}
+                        </div>
+                  </div>
+                  <div className="flex justify-end gap-3 mt-6">
+                      <button onClick={() => { setShowAddMemberModal(false); setSelectedCharIds([]); }} className="px-4 py-2 text-slate-400 text-sm hover:text-white">取消</button>
+                      <button onClick={handleAddMembers} className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-sm shadow-lg shadow-indigo-500/20">确认邀请</button>
                   </div>
               </div>
           </div>
