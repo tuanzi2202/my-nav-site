@@ -490,11 +490,34 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
             <div className="my-4 h-px bg-gradient-to-r from-transparent via-slate-800 to-transparent"></div>
             {categoriesData.map((cat) => (<button key={cat.category} onClick={() => router.push(`/?category=${cat.category}`)} className={`w-full flex items-center justify-between px-4 py-2.5 rounded-xl text-sm transition-all duration-200 group ${currentCategory === cat.category ? 'bg-sky-600 text-white shadow-lg shadow-sky-500/20' : 'hover:bg-slate-800/40 hover:text-white text-slate-400'}`}><span>{cat.category}</span><span className={`text-[10px] px-2 py-0.5 rounded-md transition-colors ${currentCategory === cat.category ? 'bg-sky-700/50 text-white' : 'bg-slate-800 text-slate-500 group-hover:bg-slate-700'}`}>{cat._count.category}</span></button>))}
           </nav>
-          <div className="p-4 border-t border-slate-800/50"><button onClick={() => router.push('/admin')} className="w-full flex items-center justify-center gap-2 text-xs font-medium text-slate-500 hover:text-sky-400 transition py-2 rounded-lg hover:bg-slate-800/50">管理控制台</button></div>
+          {/* ✨✨✨ 修改：侧边栏管理控制台按钮 ✨✨✨ */}
+          <div className="p-4 border-t border-slate-800/50">
+            <button 
+                onClick={() => {
+                    if (isAdmin) {
+                        router.push('/admin')
+                    } else {
+                        setShowAuthModal(true)
+                    }
+                }} 
+                className="w-full flex items-center justify-center gap-2 text-xs font-medium text-slate-500 hover:text-sky-400 transition py-2 rounded-lg hover:bg-slate-800/50"
+            >
+                管理控制台
+            </button>
+          </div>
         </aside>
 
         <main className="flex-1 overflow-y-auto custom-scrollbar p-6 md:p-10 relative">
-          <header className="md:hidden mb-8 flex justify-between items-center bg-slate-900/80 backdrop-blur p-4 rounded-xl border border-slate-800 sticky top-0 z-50 shadow-lg"><h1 className="text-xl font-bold text-white">Oasis</h1><button onClick={() => router.push('/admin')} className="text-xs bg-slate-800 px-3 py-1.5 rounded-full text-sky-400">Admin</button></header>
+          <header className="md:hidden mb-8 flex justify-between items-center bg-slate-900/80 backdrop-blur p-4 rounded-xl border border-slate-800 sticky top-0 z-50 shadow-lg">
+              <h1 className="text-xl font-bold text-white">Oasis</h1>
+              {/* 移动端 Header 的 Admin 按钮也应用同样逻辑 */}
+              <button 
+                  onClick={() => isAdmin ? router.push('/admin') : setShowAuthModal(true)} 
+                  className="text-xs bg-slate-800 px-3 py-1.5 rounded-full text-sky-400"
+              >
+                  Admin
+              </button>
+          </header>
           <div className="mb-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
               {/* 1. 左侧标题区域 */}
               <div className="shrink-0 flex flex-col items-start">
@@ -558,10 +581,7 @@ export default function ClientHome({ links, categoriesData, currentCategory, sea
                     {isAdmin && showUserMenu && (
                       <div className="absolute right-0 top-14 w-32 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl overflow-hidden z-50 animate-in fade-in zoom-in-95 origin-top-right">
                         <div className="px-4 py-2 text-[10px] text-slate-500 border-b border-slate-800">当前身份: 管理员</div>
-                        <button onClick={() => router.push('/admin')} className="w-full text-left px-4 py-2.5 text-xs text-slate-300 hover:bg-slate-800 hover:text-sky-400 transition-colors flex items-center gap-2">
-                           <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-                           后台管理
-                        </button>
+                        {/* 已移除后台管理按钮 */}
                         <button onClick={handleLogout} className="w-full text-left px-4 py-2.5 text-xs text-slate-300 hover:bg-slate-800 hover:text-red-400 transition-colors flex items-center gap-2">
                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
                            退出登录
