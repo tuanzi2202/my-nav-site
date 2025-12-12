@@ -6,7 +6,8 @@ import { revalidatePath } from 'next/cache'
 
 const prisma = new PrismaClient()
 
-// --- 角色管理 ---
+// --- 角色管理 (Character Management) ---
+
 export async function getAICharacters() {
   return await prisma.aICharacter.findMany({ orderBy: { createdAt: 'desc' } })
 }
@@ -28,7 +29,8 @@ export async function deleteAICharacter(id: number) {
   revalidatePath('/ai-chat')
 }
 
-// --- 会话管理 ---
+// --- 会话管理 (Session Management) ---
+
 export async function getChatSessions() {
   return await prisma.aIChatSession.findMany({
     include: { participants: true },
@@ -55,12 +57,12 @@ export async function createChatSession(name: string, participantIds: number[]) 
 export async function getSessionMessages(sessionId: number) {
   return await prisma.aIChatMessage.findMany({
     where: { sessionId },
-    include: { character: true }, // 获取发言角色的头像和名字
+    include: { character: true }, 
     orderBy: { createdAt: 'asc' }
   })
 }
 
-// --- 核心：发送消息并触发 AI 轮询 ---
+// --- 消息处理核心逻辑 (Core Messaging Logic) ---
 
 // 1. 保存用户消息
 export async function saveUserMessage(sessionId: number, content: string) {
@@ -72,7 +74,6 @@ export async function saveUserMessage(sessionId: number, content: string) {
     }
   })
   
-  // 更新会话时间
   await prisma.aIChatSession.update({
     where: { id: sessionId },
     data: { updatedAt: new Date() }
@@ -81,12 +82,24 @@ export async function saveUserMessage(sessionId: number, content: string) {
   return { success: true }
 }
 
-// 2. 触发特定角色的回复
+// 2. 触发 AI 回复 (核心修改版)
 export async function triggerAIReply(sessionId: number, characterId: number) {
+  // 1. 获取当前需要发言的角色
   const character = await prisma.aICharacter.findUnique({ where: { id: characterId } })
   if (!character) return { success: false, error: 'Character not found' }
 
-  // 获取上下文历史 (最近 20 条，避免 token 爆炸)
+  // 2. 获取会话详情，整理群成员名单 (用于 AI 智能 @其他人)
+  const session = await prisma.aIChatSession.findUnique({
+    where: { id: sessionId },
+    include: { participants: true }
+  })
+  
+  // 生成名单字符串，例如: "User, 激进派AI, 保守派AI"
+  // 排除掉当前发言 AI 自己的名字
+  const allNames = ['User', ...(session?.participants.map(p => p.name) || [])]
+  const otherNames = allNames.filter(n => n !== character.name).join(', ')
+
+  // 3. 获取历史记录 (作为上下文 Context)
   const history = await prisma.aIChatMessage.findMany({
     where: { sessionId },
     orderBy: { createdAt: 'desc' },
@@ -94,23 +107,21 @@ export async function triggerAIReply(sessionId: number, characterId: number) {
     include: { character: true }
   })
 
-  // 构建消息链
-  // 我们需要把群聊的历史格式化为 AI 能理解的文本
-  // 比如： User: xxx \n ExpertAI: xxx \n CriticAI: xxx
+  // 格式化历史记录供 AI 阅读 (Name: Content)
   const contextMessages = history.reverse().map(msg => {
     const name = msg.role === 'user' ? 'User' : (msg.character?.name || 'Assistant')
     return {
       role: msg.role === 'user' ? 'user' : 'assistant',
-      content: `${name}: ${msg.content}` // 将名字带入内容，让 AI 知道是谁说的
+      content: `${name}: ${msg.content}` 
     }
   })
 
-  // 调用 AI 接口 (复用你现有的逻辑或 fetch)
-  // 这里需要从 globalConfig 获取 API Key，或者为了演示直接读 env
+  // 4. 准备 API 调用
   const apiKey = process.env.AI_API_KEY
+  // 自动去除 URL 末尾可能多余的后缀，防止双重拼接
   const rawBaseUrl = process.env.AI_BASE_URL || 'https://api.openai.com/v1'
   const baseUrl = rawBaseUrl.replace(/\/chat\/completions\/?$/, '')
-  
+
   try {
     const res = await fetch(`${baseUrl}/chat/completions`, {
       method: 'POST',
@@ -119,16 +130,23 @@ export async function triggerAIReply(sessionId: number, characterId: number) {
         'Authorization': `Bearer ${apiKey}`
       },
       body: JSON.stringify({
-        model: process.env.AI_MODEL || 'gpt-3.5-turbo', // 或从设置中读取
+        model: process.env.AI_MODEL || 'gpt-3.5-turbo',
         messages: [
-          // 系统提示词：定义当前角色的身份，并告知它正在一个群聊中
-          // ✨✨✨ 修复点 1：在 System Prompt 中严厉禁止输出名字前缀 ✨✨✨
+          // 系统提示词：定义人设 + 群聊规则 + 智能@规则
           { 
             role: 'system', 
             content: `You are ${character.name}. ${character.systemPrompt}. 
-                      Currently you are in a group chat. Reply to the latest message.
-                      IMPORTANT: Do NOT prefix your response with your name (e.g. do NOT say "${character.name}: ..."). 
-                      Directly output your spoken content.` 
+                      
+                      [Context]
+                      You are in a group chat. 
+                      Participants list: [${otherNames}, and You].
+                      The chat history provided below is in 'SpeakerName: Message' format for your reference only.
+                      
+                      [Instructions]
+                      1. Analyze the chat history to decide who to reply to. You are NOT restricted to the last speaker.
+                      2. If you want to address specific person(s), mention them like "@Name" at the beginning or middle of your sentence.
+                      3. IMPORTANT: DO NOT prefix your response with your own name (e.g. do NOT say "${character.name}: ..."). Just output your speech directly.
+                      4. Keep it natural, conversational and concise.` 
           },
           ...contextMessages
         ],
@@ -138,27 +156,28 @@ export async function triggerAIReply(sessionId: number, characterId: number) {
 
     const data = await res.json()
 
-    // ✨✨✨ 新增：检查接口是否成功 ✨✨✨
+    // 错误检查
     if (!res.ok) {
-        console.error("AI API Error Details:", JSON.stringify(data, null, 2)) // 在终端打印详细错误
-        return { success: false, error: data.error?.message || 'API调用失败' }
+        console.error("AI API Error:", data)
+        return { success: false, error: data.error?.message || 'API Error' }
     }
-    
+
+    // 5. 获取回复并进行清洗
+    // 使用 let 以便修改
     let replyContent = data.choices?.[0]?.message?.content || '...'
 
-    // ✨✨✨ 修复点 2：如果 AI 还是不听话，用代码强制切掉 "名字：" 前缀 ✨✨✨
-    // 构建正则：匹配 "角色名:" 或 "角色名：" 开头的内容，忽略大小写
-    const namePrefixRegex = new RegExp(`^${character.name}[:：]\\s*`, 'i')
+    // 正则清洗：防止 AI 不听话带上了 "Name:" 前缀
+    // 同时也清洗掉 AI 误把自己当做目标 @ 了的情况 (比如 "@Myself ...")
+    const namePrefixRegex = new RegExp(`^(${character.name}[:：]|@?${character.name}\\s+)`, 'i')
     
-    // 如果回复以 "Name:" 开头，就把它替换为空字符串
     if (namePrefixRegex.test(replyContent)) {
-        replyContent = replyContent.replace(namePrefixRegex, '')
+        replyContent = replyContent.replace(namePrefixRegex, '').trim()
     }
 
-    // 保存回复
+    // 6. 保存到数据库
     const savedMsg = await prisma.aIChatMessage.create({
       data: {
-        content: replyContent,
+        content: replyContent, 
         role: 'assistant',
         sessionId,
         characterId: character.id
@@ -170,6 +189,6 @@ export async function triggerAIReply(sessionId: number, characterId: number) {
 
   } catch (e) {
     console.error("Network/Server Error:", e)
-    return { success: false, error: '网络请求异常' }
+    return { success: false, error: 'Network Request Failed' }
   }
 }
