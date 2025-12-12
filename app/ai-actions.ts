@@ -3,16 +3,26 @@
 
 import { PrismaClient } from '@prisma/client'
 import { revalidatePath } from 'next/cache'
+import { checkAuth } from './actions' // 👈 引入鉴权
 
 const prisma = new PrismaClient()
 
-// --- 角色管理 (Character Management) ---
+// --- 辅助：检查权限 ---
+export async function getAdminStatus() {
+  return await checkAuth()
+}
+
+// --- 角色管理 ---
 
 export async function getAICharacters() {
+  // 公开读取，不需要权限
   return await prisma.aICharacter.findMany({ orderBy: { createdAt: 'desc' } })
 }
 
 export async function createAICharacter(formData: FormData) {
+  // ✨ 权限校验
+  if (!await checkAuth()) throw new Error("Unauthorized")
+
   const name = formData.get('name') as string
   const description = formData.get('description') as string
   const systemPrompt = formData.get('systemPrompt') as string
@@ -25,11 +35,12 @@ export async function createAICharacter(formData: FormData) {
 }
 
 export async function deleteAICharacter(id: number) {
+  if (!await checkAuth()) throw new Error("Unauthorized")
   await prisma.aICharacter.delete({ where: { id } })
   revalidatePath('/ai-chat')
 }
 
-// --- 会话管理 (Session Management) ---
+// --- 会话管理 ---
 
 export async function getChatSessions() {
   return await prisma.aIChatSession.findMany({
@@ -39,6 +50,8 @@ export async function getChatSessions() {
 }
 
 export async function createChatSession(name: string, participantIds: number[]) {
+  if (!await checkAuth()) throw new Error("Unauthorized")
+  
   const session = await prisma.aIChatSession.create({
     data: {
       name,
@@ -62,10 +75,13 @@ export async function getSessionMessages(sessionId: number) {
   })
 }
 
-// --- 消息处理核心逻辑 (Core Messaging Logic) ---
+// --- 核心消息逻辑 1: 基于数据库的群聊 (管理员用) ---
 
-// 1. 保存用户消息
 export async function saveUserMessage(sessionId: number, content: string) {
+  // 校验：只有管理员能往数据库写消息
+  // (实际上如果不想太严格，可以允许游客在“公共群”发言，但根据你的需求，这里先锁住)
+  if (!await checkAuth()) return { success: false, error: "Guest cannot write to DB" }
+
   await prisma.aIChatMessage.create({
     data: {
       content,
@@ -82,24 +98,20 @@ export async function saveUserMessage(sessionId: number, content: string) {
   return { success: true }
 }
 
-// 2. 触发 AI 回复 (核心修改版)
 export async function triggerAIReply(sessionId: number, characterId: number) {
-  // 1. 获取当前需要发言的角色
+  if (!await checkAuth()) return { success: false, error: "Unauthorized" }
+
   const character = await prisma.aICharacter.findUnique({ where: { id: characterId } })
   if (!character) return { success: false, error: 'Character not found' }
 
-  // 2. 获取会话详情，整理群成员名单 (用于 AI 智能 @其他人)
   const session = await prisma.aIChatSession.findUnique({
     where: { id: sessionId },
     include: { participants: true }
   })
   
-  // 生成名单字符串，例如: "User, 激进派AI, 保守派AI"
-  // 排除掉当前发言 AI 自己的名字
   const allNames = ['User', ...(session?.participants.map(p => p.name) || [])]
   const otherNames = allNames.filter(n => n !== character.name).join(', ')
 
-  // 3. 获取历史记录 (作为上下文 Context)
   const history = await prisma.aIChatMessage.findMany({
     where: { sessionId },
     orderBy: { createdAt: 'desc' },
@@ -107,88 +119,107 @@ export async function triggerAIReply(sessionId: number, characterId: number) {
     include: { character: true }
   })
 
-  // 格式化历史记录供 AI 阅读 (Name: Content)
-  const contextMessages = history.reverse().map(msg => {
-    const name = msg.role === 'user' ? 'User' : (msg.character?.name || 'Assistant')
-    return {
-      role: msg.role === 'user' ? 'user' : 'assistant',
-      content: `${name}: ${msg.content}` 
-    }
-  })
+  // 这里的 contextMessages 构建逻辑需要和下面的 stateless 版保持一致
+  const contextMessages = history.reverse().map(msg => ({
+    role: msg.role === 'user' ? 'user' : 'assistant',
+    content: `${msg.role === 'user' ? 'User' : (msg.character?.name || 'Assistant')}: ${msg.content}`
+  }))
 
-  // 4. 准备 API 调用
-  const apiKey = process.env.AI_API_KEY
-  // 自动去除 URL 末尾可能多余的后缀，防止双重拼接
-  const rawBaseUrl = process.env.AI_BASE_URL || 'https://api.openai.com/v1'
-  const baseUrl = rawBaseUrl.replace(/\/chat\/completions\/?$/, '')
-
-  try {
-    const res = await fetch(`${baseUrl}/chat/completions`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`
-      },
-      body: JSON.stringify({
-        model: process.env.AI_MODEL || 'gpt-3.5-turbo',
-        messages: [
-          // 系统提示词：定义人设 + 群聊规则 + 智能@规则
-          { 
-            role: 'system', 
-            content: `You are ${character.name}. ${character.systemPrompt}. 
-                      
-                      [Context]
-                      You are in a group chat. 
-                      Participants list: [${otherNames}, and You].
-                      The chat history provided below is in 'SpeakerName: Message' format for your reference only.
-                      
-                      [Instructions]
-                      1. Analyze the chat history to decide who to reply to. You are NOT restricted to the last speaker.
-                      2. If you want to address specific person(s), mention them like "@Name" at the beginning or middle of your sentence.
-                      3. IMPORTANT: DO NOT prefix your response with your own name (e.g. do NOT say "${character.name}: ..."). Just output your speech directly.
-                      4. Keep it natural, conversational and concise.` 
-          },
-          ...contextMessages
-        ],
-        temperature: 0.7,
-      })
-    })
-
-    const data = await res.json()
-
-    // 错误检查
-    if (!res.ok) {
-        console.error("AI API Error:", data)
-        return { success: false, error: data.error?.message || 'API Error' }
-    }
-
-    // 5. 获取回复并进行清洗
-    // 使用 let 以便修改
-    let replyContent = data.choices?.[0]?.message?.content || '...'
-
-    // 正则清洗：防止 AI 不听话带上了 "Name:" 前缀
-    // 同时也清洗掉 AI 误把自己当做目标 @ 了的情况 (比如 "@Myself ...")
-    const namePrefixRegex = new RegExp(`^(${character.name}[:：]|@?${character.name}\\s+)`, 'i')
-    
-    if (namePrefixRegex.test(replyContent)) {
-        replyContent = replyContent.replace(namePrefixRegex, '').trim()
-    }
-
-    // 6. 保存到数据库
-    const savedMsg = await prisma.aIChatMessage.create({
+  return await callLLM(character, contextMessages, otherNames, (content) => 
+    prisma.aIChatMessage.create({
       data: {
-        content: replyContent, 
+        content, 
         role: 'assistant',
         sessionId,
         characterId: character.id
       },
       include: { character: true }
     })
+  )
+}
 
-    return { success: true, message: savedMsg }
 
-  } catch (e) {
-    console.error("Network/Server Error:", e)
-    return { success: false, error: 'Network Request Failed' }
-  }
+// --- 核心消息逻辑 2: ✨无状态✨群聊 (游客本地用) ---
+
+// 这个函数不读写数据库，只负责推理
+export async function chatWithAIStateless(params: {
+    character: { name: string, systemPrompt: string }, // 角色信息前端传
+    history: any[], // 历史记录前端传
+    participantsNames: string[] // 群成员名单前端传
+}) {
+    const { character, history, participantsNames } = params
+    
+    // 构建上下文
+    const contextMessages = history.map(msg => ({
+        role: msg.role,
+        // 这里假设前端传来的 history 已经是标准格式，或者我们需要在这里处理一下
+        // 为了统一，我们要求前端传 { role: 'user'|'assistant', content: 'Name: Content' } 这种格式的内容
+        content: msg.content 
+    }))
+
+    const otherNames = participantsNames.filter(n => n !== character.name).join(', ')
+
+    // 调用 LLM，但不保存到 DB，直接返回字符串
+    return await callLLM(character, contextMessages, otherNames, async (content) => {
+        // 伪造一个 message 对象返回给前端
+        return {
+            id: Date.now(),
+            role: 'assistant',
+            content,
+            character: { ...character, avatar: '' } // 简单返回
+        }
+    })
+}
+
+
+// --- 公共 LLM 调用核心 (复用逻辑) ---
+async function callLLM(
+    character: { name: string, systemPrompt: string }, 
+    contextMessages: any[], 
+    otherNames: string,
+    onSuccess: (content: string) => Promise<any>
+) {
+    const apiKey = process.env.AI_API_KEY
+    const rawBaseUrl = process.env.AI_BASE_URL || 'https://api.openai.com/v1'
+    const baseUrl = rawBaseUrl.replace(/\/chat\/completions\/?$/, '')
+
+    try {
+        const res = await fetch(`${baseUrl}/chat/completions`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+            body: JSON.stringify({
+                model: process.env.AI_MODEL || 'gpt-3.5-turbo',
+                messages: [
+                    { 
+                        role: 'system', 
+                        content: `You are ${character.name}. ${character.systemPrompt}. 
+                                  [Context] Group Chat Participants: [${otherNames}, and You].
+                                  [Instructions]
+                                  1. Decide who to reply to. Not restricted to last speaker.
+                                  2. Use "@Name" to mention others.
+                                  3. DO NOT output your own name prefix.
+                                  4. Keep it natural.` 
+                    },
+                    ...contextMessages
+                ],
+                temperature: 0.7,
+            })
+        })
+        const data = await res.json()
+        if (!res.ok) return { success: false, error: data.error?.message || 'API Error' }
+
+        let replyContent = data.choices?.[0]?.message?.content || '...'
+        
+        // 清洗前缀
+        const namePrefixRegex = new RegExp(`^(${character.name}[:：]|@?${character.name}\\s+)`, 'i')
+        if (namePrefixRegex.test(replyContent)) replyContent = replyContent.replace(namePrefixRegex, '').trim()
+
+        // 执行回调 (保存DB 或 直接返回)
+        const result = await onSuccess(replyContent)
+        return { success: true, message: result }
+
+    } catch (e) {
+        console.error(e)
+        return { success: false, error: 'Network Error' }
+    }
 }
