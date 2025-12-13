@@ -5,6 +5,7 @@ import { notFound } from 'next/navigation'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import rehypeHighlight from 'rehype-highlight'
+import rehypeSlug from 'rehype-slug'
 import CodeBlock from '../_components/CodeBlock' // 👈 引入刚才创建的组件
 
 interface Props {
@@ -79,7 +80,10 @@ export default async function BlogPost({ params }: Props) {
             ">
                <ReactMarkdown 
                  remarkPlugins={[remarkGfm]} 
-                 rehypePlugins={[rehypeHighlight]}
+                 rehypePlugins={[
+                   rehypeHighlight, 
+                   rehypeSlug // 👈 2. 添加到这里
+                 ]}
                  components={{
                     // 1. 自定义链接渲染 (自动补全 https + 新窗口打开)
                     a: ({ node, ...props }) => {
